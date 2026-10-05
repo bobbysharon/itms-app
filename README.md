@@ -34,7 +34,7 @@ Build command: *(none)* · Publish directory: `.`
 ## Workflow, masters & integrations (js/workflow.js)
 - **Onboarding** (Workflow → Onboarding & Offboarding): pick or create the employee, tick spare assets, tick systems → assets are issued and AD / biometric / ERP IDs are registered in one click → signature form opens.
 - **Offboarding**: per asset choose *return to spare*, *repair*, *dispose* or *reassign to a colleague*; tick the system IDs to disable → employee marked Left, clearance form opens. Left employees still holding assets/IDs are flagged and shown as a badge on the menu.
-- **Integrations**: systems master (name, type, ID format, connector). *Simulation* records IDs only; *Webhook* POSTs `{action:"create|disable", system, accountId, employee{...}}` to your middleware (n8n / Power Automate / Azure Function / SCIM-LDAP gateway; must allow CORS). Failures are flagged and can be retried.
+- **Integrations**: systems master with seven connection methods — *Webhook* (middleware), *REST API* (templates for Entra ID Graph, Google Workspace, Okta, ERP, biometric servers), *SCIM 2.0*, *File / script export* (AD PowerShell, biometric / ERP CSV), *Email request*, *Manual task* and *Simulation*. Add a system from a ready template; request/body templates use placeholders such as `{{accountId}} {{name}} {{email}} {{dept}} {{tempPassword}}`. Offline methods leave the account **Pending** until IT clicks *Mark done*; failed API calls can be retried.
 - **Masters**: departments, locations, designations, brands, operating systems and system types feed every dropdown; in-use values cannot be removed.
 - **Asset record** now shows the full custody history: each holder, from–to dates, days, issuing/returning document, condition and remarks.
 
