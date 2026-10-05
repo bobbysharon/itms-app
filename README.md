@@ -5,10 +5,8 @@ A zero-build web app (plain HTML/CSS/JS) generated from the **ITSM_2026.xlsx** w
 ## Run locally
 Open `index.html` in a browser — no server or install needed.
 
-## Publish on GitHub Pages
-1. Create a repo and push this folder to `main`.
-2. *Settings → Pages → Source: GitHub Actions* (the included workflow `.github/workflows/pages.yml` deploys on every push).
-   Or choose *Deploy from a branch → main / (root)*.
+## Deploy on Render (static site)
+Build command: *(none)* · Publish directory: `.`
 
 ## Modules (workbook sheet → app page)
 | Page | Replaces workbook sheets |
