@@ -38,6 +38,14 @@ Build command: *(none)* · Publish directory: `.`
 - **Masters**: departments, locations, designations, brands, operating systems and system types feed every dropdown; in-use values cannot be removed.
 - **Asset record** now shows the full custody history: each holder, from–to dates, days, issuing/returning document, condition and remarks.
 
+## ITSM suite (js/itsm.js) — independent ServiceDesk-style helpdesk
+- **Requests**: incidents and service requests with requester, 3-level category (category › subcategory › item), impact × urgency → priority, level, mode, affected asset, auto-routing to a group, auto-assign to the least-loaded technician, SLA due dates (paused on hold), conversation (public / private), worklogs, tasks, approvals, resolution + closure code, full history, reopen, cancel.
+- **Problems · Changes · Releases**: linked to requests and assets; change approvals (CAB).
+- **Projects & Follow-ups**: project items with status, priority, owner, pending-with, auto timeline status, latest update, next action; views by owner / pending-with / project; Excel paste import and CSV export.
+- **Solutions & Catalog**: knowledge base (save a resolution as a solution), service catalog with optional approval, announcements.
+- **Home dashboard & Reports**: status, priority, workload, SLA, ageing, approvals, overdue follow-ups.
+- **Admin**: technicians, groups, categories, SLA and routing rules, and all masters.
+
 ## Data
 First launch loads your workbook (100 employees, 50 vendors, 97 PRs, 100 POs) and posts the GRNs so stock exists; a few consumables, AMCs and allocations are **sample** records. *Settings → Data* can reset to sample, workbook‑only (nothing received) or empty.
 

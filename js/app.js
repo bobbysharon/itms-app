@@ -3,7 +3,7 @@
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
-  const ORDER = ['dashboard', 'lifecycle', 'integrations', 'employees', 'vendors', 'masters', 'requests', 'orders', 'hardware', 'movements', 'software', 'consumables', 'amc', 'settings'];
+  const ORDER = ['dashboard', 'lifecycle', 'integrations', 'itsm', 'requests', 'itil', 'projects', 'kb', 'itsmadmin', 'employees', 'vendors', 'masters', 'requests', 'orders', 'hardware', 'movements', 'software', 'consumables', 'amc', 'settings'];
 
   function badges() {
     const d = S.db; const s = L.stats(); const a = s.alerts; const b = {};
@@ -13,6 +13,7 @@
     const sw = a.sw30.length + a.swExpired.length; if (sw) b.software = [sw, 1];
     const am = a.amc30.length + a.amcExpired.length; if (am) b.amc = [am, 1];
     if (a.lowStock.length) b.consumables = [a.lowStock.length, 1];
+    if (ITMS.hdOverdue) { const n = ITMS.hdOverdue(); if (n) b.requests = [n, 1]; }
     if (ITMS.pendingOffboarding) { const n = ITMS.pendingOffboarding().length; if (n) b.lifecycle = [n, 2]; }
     if (a.spare.length === 0 && d.hw.length) b.hardware = ['!', 1];
     return b;
