@@ -33,6 +33,13 @@ Open `index.html` in a browser — no server or install needed.
 - **Consumable issues** reduce available stock (blocked if insufficient); low‑stock alerts feed the dashboard.
 - **AMC** contracts stamp their dates onto the covered assets; expiring contracts raise alerts.
 
+## Workflow, masters & integrations (js/workflow.js)
+- **Onboarding** (Workflow → Onboarding & Offboarding): pick or create the employee, tick spare assets, tick systems → assets are issued and AD / biometric / ERP IDs are registered in one click → signature form opens.
+- **Offboarding**: per asset choose *return to spare*, *repair*, *dispose* or *reassign to a colleague*; tick the system IDs to disable → employee marked Left, clearance form opens. Left employees still holding assets/IDs are flagged and shown as a badge on the menu.
+- **Integrations**: systems master (name, type, ID format, connector). *Simulation* records IDs only; *Webhook* POSTs `{action:"create|disable", system, accountId, employee{...}}` to your middleware (n8n / Power Automate / Azure Function / SCIM-LDAP gateway; must allow CORS). Failures are flagged and can be retried.
+- **Masters**: departments, locations, designations, brands, operating systems and system types feed every dropdown; in-use values cannot be removed.
+- **Asset record** now shows the full custody history: each holder, from–to dates, days, issuing/returning document, condition and remarks.
+
 ## Data
 First launch loads your workbook (100 employees, 50 vendors, 97 PRs, 100 POs) and posts the GRNs so stock exists; a few consumables, AMCs and allocations are **sample** records. *Settings → Data* can reset to sample, workbook‑only (nothing received) or empty.
 

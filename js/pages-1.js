@@ -83,8 +83,8 @@
 
   /* ===================== EMPLOYEES ===================== */
   const empFields = () => [
-    { section: 'Employee' }, { k: 'name', label: 'Employee name', req: true }, { k: 'designation', label: 'Designation' }, { k: 'dept', label: 'Department', type: 'select', options: () => L.uniq(db().employees.map((e) => e.dept).concat(['IT', 'Finance', 'Human Resources', 'Sales', 'Marketing', 'Administration', 'Procurement', 'Legal', 'Engineering'])).filter(Boolean).sort(), req: true },
-    { k: 'manager', label: 'Reporting manager', type: 'select', options: () => db().employees.map((e) => e.name) }, { k: 'location', label: 'Location' }, { k: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'Left'], blank: false },
+    { section: 'Employee' }, { k: 'name', label: 'Employee name', req: true }, { k: 'designation', label: 'Designation', type: 'select', options: () => db().lists.designations || [] }, { k: 'dept', label: 'Department', type: 'select', options: () => db().lists.departments || [], req: true },
+    { k: 'manager', label: 'Reporting manager', type: 'select', options: () => db().employees.map((e) => e.name) }, { k: 'location', label: 'Location', type: 'select', options: () => db().lists.locations || [] }, { k: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'Left'], blank: false },
     { section: 'Dates & contact' }, { k: 'doj', label: 'Date of joining', type: 'date' }, { k: 'dol', label: 'Date of leaving', type: 'date' }, { k: 'email', label: 'Email', type: 'email' }, { k: 'mobile', label: 'Mobile', type: 'tel' }, { k: 'tel', label: 'Telephone', type: 'tel' }, { k: 'ext', label: 'Extension' },
   ];
   const heldBy = (no) => db().hw.filter((a) => a.holder === no);
@@ -101,7 +101,7 @@
           { k: 'assets', label: 'Assets', num: true, val: (r) => heldBy(r.no).length, render: (r) => { const n = heldBy(r.no).length; return n ? `<span class="pill p-blue">${n}</span>` : '–'; } },
           { k: 'status', label: 'Status', render: (r) => pill(r.status) },
         ],
-        actions: (r) => `<button class="ibtn" title="Profile" data-act="emp.view" data-id="${r.no}">${ic('eye')}</button><button class="ibtn" style="--c:#00c2ff" title="Asset issuance form" data-act="emp.form" data-kind="issue" data-id="${r.no}">${ic('print')}</button><button class="ibtn" title="Edit" data-act="emp.edit" data-id="${r.no}">${ic('edit')}</button><button class="ibtn" style="--c:#ff5c6c" title="Delete" data-act="emp.del" data-id="${r.no}">${ic('trash')}</button>`,
+        actions: (r) => `<button class="ibtn" title="Profile" data-act="emp.view" data-id="${r.no}">${ic('eye')}</button><button class="ibtn" style="--c:#00c2ff" title="Asset issuance form" data-act="emp.form" data-kind="issue" data-id="${r.no}">${ic('print')}</button><button class="ibtn" style="--c:#10d9a0" title="Onboard / assign assets & IDs" data-act="lc.on" data-emp="${r.no}">${ic('plus')}</button><button class="ibtn" style="--c:#ff9a3d" title="Offboard / return assets" data-act="lc.off" data-emp="${r.no}">${ic('undo')}</button><button class="ibtn" title="Edit" data-act="emp.edit" data-id="${r.no}">${ic('edit')}</button><button class="ibtn" style="--c:#ff5c6c" title="Delete" data-act="emp.del" data-id="${r.no}">${ic('trash')}</button>`,
         toolbar: `<button class="btn" data-act="emp.new">${ic('plus')}Add employee</button>`,
       })}</div>`;
     },
