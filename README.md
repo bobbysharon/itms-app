@@ -39,7 +39,7 @@ Build command: *(none)* · Publish directory: `.`
 - **Asset record** now shows the full custody history: each holder, from–to dates, days, issuing/returning document, condition and remarks.
 
 ## ITSM suite (js/itsm.js) — independent ServiceDesk-style helpdesk
-- **Requests**: incidents and service requests with requester, 3-level category (category › subcategory › item), impact × urgency → priority, level, mode, affected asset, auto-routing to a group, auto-assign to the least-loaded technician, SLA due dates (paused on hold), conversation (public / private), worklogs, tasks, approvals, resolution + closure code, full history, reopen, cancel.
+- **Tickets**: incidents and service requests with requester, 3-level category (category › subcategory › item), impact × urgency → priority, level, mode, affected asset, auto-routing to a group, auto-assign to the least-loaded technician, SLA due dates (paused on hold), conversation (public / private), worklogs, tasks, approvals, resolution + closure code, full history, reopen, cancel.
 - **Problems · Changes · Releases**: linked to requests and assets; change approvals (CAB).
 - **Projects & Follow-ups**: project items with status, priority, owner, pending-with, auto timeline status, latest update, next action; views by owner / pending-with / project; Excel paste import and CSV export.
 - **Solutions & Catalog**: knowledge base (save a resolution as a solution), service catalog with optional approval, announcements.

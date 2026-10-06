@@ -3,7 +3,17 @@
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
-  const ORDER = ['dashboard', 'lifecycle', 'integrations', 'itsm', 'requests', 'itil', 'projects', 'kb', 'itsmadmin', 'employees', 'vendors', 'masters', 'requests', 'orders', 'hardware', 'movements', 'software', 'consumables', 'amc', 'settings'];
+  const MENU = [
+    { id: 'dashboard', single: true },
+    { id: 'helpdesk', title: 'IT Helpdesk', icon: 'bell', color: '#ff5c6c', items: ['itsm', 'tickets', 'itil', 'projects', 'kb', 'itsmadmin'] },
+    { id: 'people', title: 'People & Access', icon: 'users', color: '#10d9a0', items: ['employees', 'lifecycle', 'integrations'] },
+    { id: 'assets', title: 'Assets & Inventory', icon: 'laptop', color: '#2f6bff', items: ['hardware', 'movements', 'software', 'consumables', 'amc'] },
+    { id: 'proc', title: 'Procurement', icon: 'cart', color: '#00a8e8', items: ['requests', 'orders', 'vendors'] },
+    { id: 'admin', title: 'Administration', icon: 'cog', color: '#ffb020', items: ['masters', 'settings'] },
+  ];
+  const ORDER = MENU.reduce((a, g) => a.concat(g.single ? [g.id] : g.items), []);
+  const NAVKEY = 'itms.nav'; const navState = (() => { try { return JSON.parse(localStorage.getItem(NAVKEY)) || {}; } catch (e) { return {}; } })();
+  const saveNav = () => { try { localStorage.setItem(NAVKEY, JSON.stringify(navState)); } catch (e) { /* ignore */ } };
 
   function badges() {
     const d = S.db; const s = L.stats(); const a = s.alerts; const b = {};
@@ -13,18 +23,21 @@
     const sw = a.sw30.length + a.swExpired.length; if (sw) b.software = [sw, 1];
     const am = a.amc30.length + a.amcExpired.length; if (am) b.amc = [am, 1];
     if (a.lowStock.length) b.consumables = [a.lowStock.length, 1];
-    if (ITMS.hdOverdue) { const n = ITMS.hdOverdue(); if (n) b.requests = [n, 1]; }
+    if (ITMS.hdOverdue) { const n = ITMS.hdOverdue(); if (n) b.tickets = [n, 1]; }
     if (ITMS.pendingOffboarding) { const n = ITMS.pendingOffboarding().length; if (n) b.lifecycle = [n, 2]; }
     if (a.spare.length === 0 && d.hw.length) b.hardware = ['!', 1];
     return b;
   }
   function renderNav() {
-    const b = badges(); let last = ''; let h = '';
-    ORDER.forEach((id) => {
-      const p = ITMS.pages[id]; if (p.group !== last) { h += `<h6>${p.group}</h6>`; last = p.group; }
-      h += `<a data-nav="${id}" class="${ITMS.nav.page === id ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${p.title}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`;
+    const b = badges(); const cur = ITMS.nav.page; let h = '';
+    const item = (id) => { const p = ITMS.pages[id]; return `<a data-nav="${id}" class="${cur === id ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${p.title}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`; };
+    MENU.forEach((g) => {
+      if (g.single) { h += item(g.id); return; }
+      const has = g.items.includes(cur); if (has && navState._last !== cur) navState[g.id] = true; const open = !!navState[g.id];
+      const sum = g.items.reduce((n, id) => n + (b[id] && typeof b[id][0] === 'number' ? b[id][0] : (b[id] ? 1 : 0)), 0);
+      h += `<div class="grp ${open ? 'open' : ''}" style="--c:${g.color}"><div class="gh ${has ? 'has' : ''}" data-grp="${g.id}"><span class="gi">${ic(g.icon)}</span><span class="gt">${g.title}</span>${sum && !open ? `<span class="bd">${sum}</span>` : ''}<i class="chev"></i></div><div class="sub">${g.items.map(item).join('')}</div></div>`;
     });
-    document.getElementById('nav').innerHTML = h;
+    document.getElementById('nav').innerHTML = h; if (navState._last !== cur) { navState._last = cur; saveNav(); }
     const total = Object.keys(b).reduce((s, k) => s + (typeof b[k][0] === 'number' ? b[k][0] : 0), 0);
     const bell = document.getElementById('bellN'); if (bell) { bell.textContent = total; bell.style.display = total ? '' : 'none'; }
   }
@@ -54,6 +67,7 @@
   /* ---- delegated events ---- */
   document.addEventListener('click', (e) => {
     const t = e.target;
+    const gh = t.closest('[data-grp]'); if (gh) { navState[gh.dataset.grp] = !navState[gh.dataset.grp]; saveNav(); renderNav(); return; }
     const nv = t.closest('[data-nav]'); if (nv) { const target = '#/' + nv.dataset.nav; if (location.hash === target) route(); else location.hash = target; return; }
     const act = t.closest('[data-act]');
     if (act) {

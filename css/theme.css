@@ -281,3 +281,21 @@ table.t td.act { position: sticky; right: 0; background: linear-gradient(90deg, 
 table.t tbody tr:hover td.act { background: linear-gradient(90deg, rgba(246,243,255,0), #f6f3ff 18%); }
 table.t th:last-child { position: sticky; right: 0; }
 .row-actions { flex-wrap: nowrap; }
+
+/* grouped sidebar menu */
+.nav > a { margin-bottom: 2px; }
+.nav .grp { margin: 3px 0; }
+.nav .gh { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 14px; cursor: pointer; user-select: none; font: 650 12.5px var(--font); letter-spacing: .2px; color: var(--ink2); transition: background .2s; }
+.nav .gh:hover { background: rgba(255,255,255,.7); }
+.nav .gh .gi { width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+.nav .gh .gi svg { width: 15px; height: 15px; }
+.nav .gh .gt { flex: 1; text-transform: uppercase; letter-spacing: 1.1px; font-size: 11px; }
+.nav .gh.has .gt { color: var(--ink); }
+.nav .gh .chev { width: 7px; height: 7px; border-right: 2px solid #9aa0c6; border-bottom: 2px solid #9aa0c6; transform: rotate(-45deg); transition: transform .25s; margin-right: 4px; }
+.nav .grp.open > .gh .chev { transform: rotate(45deg); }
+.nav .sub { display: none; margin: 2px 0 4px 22px; padding-left: 8px; border-left: 2px solid color-mix(in srgb, var(--c) 28%, transparent); }
+.nav .grp.open > .sub { display: block; }
+.nav .sub a { padding-top: 6px; padding-bottom: 6px; font-size: 13px; }
+.nav .sub a .ni { width: 26px; height: 26px; border-radius: 9px; }
+.nav .sub a .ni svg { width: 14px; height: 14px; }
+.nav .sub a.on::before { left: -11px; }
