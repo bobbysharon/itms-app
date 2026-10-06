@@ -46,6 +46,9 @@ Build command: *(none)* · Publish directory: `.`
 - **Home dashboard & Reports**: status, priority, workload, SLA, ageing, approvals, overdue follow-ups.
 - **Admin**: technicians, groups, categories, SLA and routing rules, and all masters.
 
+- **Sample data**: Helpdesk Home → *Load sample data* adds 24 tickets (all statuses and SLA states), 4 problems, 5 changes, 2 releases, 6 solutions, 7 catalog items, announcements, 10 follow-up items, 4 sample employees (two leavers still holding assets and IDs), 36 system accounts, onboarding/offboarding records and software installs. *Remove sample data* deletes only those flagged records and restores asset custody. A brand-new install loads it automatically once.
+- **Assigned to**: tickets can only be assigned to staff whose role is assignable (default: *Technician*; change under ITSM Admin → SLA & routing).
+
 ## Data
 First launch loads your workbook (100 employees, 50 vendors, 97 PRs, 100 POs) and posts the GRNs so stock exists; a few consumables, AMCs and allocations are **sample** records. *Settings → Data* can reset to sample, workbook‑only (nothing received) or empty.
 
