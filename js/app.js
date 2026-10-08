@@ -9,6 +9,7 @@
     { id: 'people', title: 'People & Access', icon: 'users', color: '#10d9a0', items: ['employees', 'lifecycle'] },
     { id: 'assets', title: 'Assets & Inventory', icon: 'laptop', color: '#2f6bff', items: ['hardware', 'movements', 'software', 'consumables', 'amc'] },
     { id: 'proc', title: 'Procurement', icon: 'cart', color: '#00a8e8', items: ['requests', 'orders', 'vendors'] },
+    { id: 'govern', title: 'Plan & Govern', icon: 'shield', color: '#7a4dff', items: ['workflow', 'budget', 'compliance'] },
     { id: 'admin', title: 'Administration', icon: 'cog', color: '#ffb020', items: ['masters', 'integrations', 'settings'] },
   ];
   const ORDER = MENU.reduce((a, g) => a.concat(g.single ? [g.id] : g.items), []);
@@ -26,6 +27,10 @@
     if (ITMS.hdOverdue) { const n = ITMS.hdOverdue(); if (n) b.tickets = [n, 1]; }
     if (ITMS.pendingOffboarding) { const n = ITMS.pendingOffboarding().length; if (n) b.lifecycle = [n, 2]; }
     if (a.spare.length === 0 && d.hw.length) b.hardware = ['!', 1];
+    try {
+      if (d.budgets && ITMS.budget) { const yr = new Date().getFullYear(); const p = ITMS.budget.plannedByYear(yr); const a2 = ITMS.budget.actualsByYear(yr); const tp = Object.values(p).reduce((x, y) => x + y, 0); const ta = Object.values(a2).reduce((x, y) => x + y, 0); if (tp && ta > tp) b.budget = ['OVER', 1]; }
+      if (d.compliance && d.compliance.active && ITMS.gov) { const rows = ITMS.gov.controlsOf(d.compliance.active); const open = rows.filter((r) => r.status === 'Non-compliant' || r.status === 'Partially compliant').length; const todo = rows.filter((r) => r.status === 'Not assessed').length; if (open) b.compliance = [open, 1]; else if (todo && d.compliance.confirmed) b.compliance = [todo, 2]; }
+    } catch (e) { /* badges optional */ }
     return b;
   }
   function renderNav() {

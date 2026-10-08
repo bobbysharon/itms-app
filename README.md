@@ -31,6 +31,11 @@ Build command: *(none)* · Publish directory: `.`
 - **Consumable issues** reduce available stock (blocked if insufficient); low‑stock alerts feed the dashboard.
 - **AMC** contracts stamp their dates onto the covered assets; expiring contracts raise alerts.
 
+## Plan & Govern — end-to-end workflow, budget, compliance (js/budget.js, js/compliance.js)
+- **IT Workflow** (`#/workflow`): 7 live stages — 1 Plan (budget) · 2 Procure (PR→PO) · 3 Receive (GRN→stock) · 4 Deploy (issue + onboarding) · 5 Operate (tickets, AMC, installs) · 6 Govern (compliance) · 7 Retire (return/dispose). Each card shows live counts and jumps straight into the module.
+- **IT Budget** (`#/budget`): set planned budget per category per financial year (Hardware, Software & Licences, Consumables, AMC & Maintenance, Network & Infrastructure, Cloud & Services, Security, Staffing & Training, Other). Actuals are computed live from approved PO lines (incl. VAT) + AMC values + manual “additional actual”. Shows Planned vs Actual + Difference + Var %, current vs previous year with YoY deltas, utilisation ring, over-budget badges, copy-previous-year, CSV and printable budget report.
+- **Policy Compliance** (`#/compliance`): dropdown of frameworks — ISO/IEC 27001:2022 (16 controls), NIST CSF 2.0 (12), UAE NESA IA (10), ITIL 4 practices (8). You must **Confirm before proceeding**, then assess controls **one by one**: Compliant / Partially / Non-compliant / N/A, current status, owner, due date, action item, and the **document/evidence needed for conformance** (pre-filled per control). Readiness score, donut, open-action list, re-assess, CSV and printable readiness report. Switching frameworks keeps prior assessments.
+
 ## Workflow, masters & integrations (js/workflow.js)
 - **Onboarding** (Workflow → Onboarding & Offboarding): pick or create the employee, tick spare assets, tick systems → assets are issued and AD / biometric / ERP IDs are registered in one click → signature form opens.
 - **Offboarding**: per asset choose *return to spare*, *repair*, *dispose* or *reassign to a colleague*; tick the system IDs to disable → employee marked Left, clearance form opens. Left employees still holding assets/IDs are flagged and shown as a badge on the menu.
