@@ -16,7 +16,7 @@
   const now = () => new Date().toISOString();
   const fdt = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '');
   const P = (t, c) => pill(t || '—', c || undefined);
-  const C = { coral: '#ff5c6c', amber: '#ffb020', mint: '#10d9a0', blue: '#2f6bff', violet: '#7a4dff', cyan: '#00c2ff' };
+  const C = { coral: '#ff5c6c', amber: '#ffb020', mint: '#10d9a0', blue: '#2f6bff', violet: '#2f6bff', cyan: '#00c2ff' };
 
   /* ================= store ================= */
   function ensure() {
@@ -298,7 +298,7 @@
   });
   UI.on('link.del', async (el) => { if (await UI.confirm('Remove this relationship?', 'Remove', true)) { D().links = D().links.filter((x) => x.id !== el.dataset.id); S.emit(); } });
   pages.cmdb = {
-    title: 'CMDB', crumb: 'Configuration items, relationships and impact analysis', icon: 'cpu', color: '#7a4dff',
+    title: 'CMDB', crumb: 'Configuration items, relationships and impact analysis', icon: 'cpu', color: '#2f6bff',
     render() {
       const d = D(); const tab = UI.curTab('cmdb', 'cis');
       const impact = (id) => { const seen = new Set([id]); let q = [id]; for (let i = 0; i < 4 && q.length; i++) { const nx = []; d.links.forEach((l) => { if (q.includes(l.from) && !seen.has(l.to)) { seen.add(l.to); nx.push(l.to); } if (q.includes(l.to) && !seen.has(l.from)) { seen.add(l.from); nx.push(l.from); } }); q = nx; } return [...seen].map((x) => d.cis.find((c) => c.id === x)).filter(Boolean); };
@@ -320,7 +320,7 @@
   UI.on('contracts.edit', (el) => { const r = D().contracts.find((x) => x.id === el.dataset.id); UI.form({ title: 'Edit ' + r.id, icon: 'receipt', fields: [{ k: 'title', label: 'Contract title', req: true, full: true }, { k: 'type', label: 'Type', type: 'select', options: ['Maintenance', 'Lease', 'Support', 'Licence Subscription', 'Warranty', 'Other'], blank: false }, { k: 'start', label: 'Start', type: 'date' }, { k: 'end', label: 'End', type: 'date' }, { k: 'value', label: 'Value', type: 'number' }, { k: 'status', label: 'Status', type: 'select', options: ['Active', 'Expired', 'Terminated', 'Renewal'], blank: false }, { k: 'notes', label: 'Terms / notes', type: 'textarea', full: true }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
   UI.on('contracts.renew', (el) => { const r = D().contracts.find((x) => x.id === el.dataset.id); r.status = 'Renewal'; r.end = L.addYears(r.end || today(), 1); L.log('Contract', `Contract ${r.id} sent for renewal`, r.id); S.emit(); UI.toast('Sent for renewal (+1 year proposed)'); });
   pages.contracts = {
-    title: 'Contracts', crumb: 'Purchase & contract management — suppliers, renewals, traceability', icon: 'receipt', color: '#ffb020',
+    title: 'Contracts', crumb: 'Purchase & contract management — suppliers, renewals, traceability', icon: 'receipt', color: '#3b82f6',
     render() {
       const d = D(); const exp = d.contracts.filter((c) => c.end && L.diffDays(c.end, today()) < 0 && c.status === 'Active').length;
       const soon = d.contracts.filter((c) => c.end && L.diffDays(c.end, today()) >= 0 && L.diffDays(c.end, today()) <= 30).length;
@@ -342,7 +342,7 @@
     S.emit(); UI.toast(`Ticket ${r.id} generated · next due ${m.next}`);
   });
   pages.pmtasks = {
-    title: 'Preventive Maintenance', crumb: 'Scheduled requests with all parameters pre-filled', icon: 'cal', color: '#10d9a0',
+    title: 'Preventive Maintenance', crumb: 'Scheduled requests with all parameters pre-filled', icon: 'cal', color: '#00a8e8',
     render() {
       const d = D(); const due = d.maint.filter((m) => m.status === 'Scheduled' && m.next <= today());
       return `<div class="note-box" style="margin-bottom:10px"><b>${due.length}</b> task(s) due — generating creates a real ticket in Tickets with full history.</div>
@@ -379,7 +379,7 @@
   UI.on('rules.run', () => { const r = runRules('manual'); UI.toast(r.applied ? `${r.applied} action(s) applied` : 'Nothing to apply — all rules already evaluated'); });
   UI.on('esc.close', (el) => { const e = D().escalations.find((x) => x.id === el.dataset.id); e.status = 'Closed'; S.emit(); });
   pages.automation = {
-    title: 'Automation & SLA', crumb: 'Business rules · auto-assign · smart notifications · escalations', icon: 'spark', color: '#ff3d9a',
+    title: 'Automation & SLA', crumb: 'Business rules · auto-assign · smart notifications · escalations', icon: 'spark', color: '#1d4ed8',
     render() {
       const d = D(); const tab = UI.curTab('automation', 'rules');
       const autoTxt = H() ? `Auto-assign: <b>${H().cfg.autoAssign}</b> · assignable roles: <b>${esc((H().cfg.assignRoles || []).join(', '))}</b> (edit in ITSM Admin → SLA & routing)` : 'Helpdesk not initialised';
@@ -399,7 +399,7 @@
   UI.on('lc.del', (el) => { const [kind, i] = el.dataset.id.split('|'); D().lifecycles[kind].splice(+i, 1); S.emit(); });
   UI.on('lc.mv', (el) => { const [kind, i, dir] = el.dataset.id.split('|'); const a = D().lifecycles[kind]; const j = +i + (+dir); if (j < 0 || j >= a.length) return; [a[+i], a[j]] = [a[j], a[+i]]; S.emit(); });
   pages.lifecycles = {
-    title: 'Lifecycle Designer', crumb: 'Request · problem · change lifecycles (drag-free ordering)', icon: 'refresh', color: '#7a4dff',
+    title: 'Lifecycle Designer', crumb: 'Request · problem · change lifecycles (drag-free ordering)', icon: 'refresh', color: '#2f6bff',
     render() {
       const lc = D().lifecycles;
       const col = (kind, title) => `<div class="card"><h3>${title}</h3>${lc[kind].map((s, i) => `<div style="display:flex;align-items:center;gap:6px;margin:5px 0"><span class="pill p-violet">${i + 1}</span><b>${esc(s)}</b><span style="margin-left:auto"></span><button class="ibtn" data-act="lc.mv" data-id="${kind}|${i}|-1">▲</button><button class="ibtn" data-act="lc.mv" data-id="${kind}|${i}|1">▼</button><button class="ibtn" style="--c:#ff5c6c" data-act="lc.del" data-id="${kind}|${i}">${ic('trash')}</button></div>`).join('')}<button class="btn sm ghost" data-act="lc.add" data-k="${kind}">${ic('plus')}Add status</button></div>`;
@@ -506,7 +506,7 @@
     UI.form({ title: 'Custom portal domain', icon: 'link', fields: [{ k: 'custom', label: 'Custom URL (https://…)', full: true, req: true }, { k: 'enforced', label: 'Force all portal traffic here', type: 'select', options: ['Yes', 'No'], blank: false }], values: D().domains, onSubmit: (v) => { Object.assign(D().domains, v); S.emit(); UI.toast('Portal domain published'); } });
   });
   pages.sites = {
-    title: 'Sites & Domains', crumb: 'Multi-site support · custom workflows per site · portal domains', icon: 'box', color: '#ffb020',
+    title: 'Sites & Domains', crumb: 'Multi-site support · custom workflows per site · portal domains', icon: 'box', color: '#3b82f6',
     render() {
       const d = D();
       return `<div class="note-box" style="margin-bottom:10px">Scope: <b>${esc(curSite())}</b> · portal: <b>${esc(d.domains.custom || d.domains.portal)}</b>${d.domains.enforced === 'Yes' ? ' (enforced)' : ''}</div>
@@ -521,7 +521,7 @@
   });
   UI.on('roles.as', (el) => { setRole(el.dataset.id); S.emit(); UI.toast('Acting as role: ' + el.dataset.id); });
   pages.roles = {
-    title: 'Roles & Access', crumb: 'Fine-grained authorizations per module', icon: 'shield', color: '#7a4dff',
+    title: 'Roles & Access', crumb: 'Fine-grained authorizations per module', icon: 'shield', color: '#2f6bff',
     render() {
       const d = D();
       return `<div class="note-box" style="margin-bottom:10px">Acting role: <b>${esc(curRole())}</b> — delete/create actions across SDP modules enforce this. Auditors get read-only automatically.</div>
@@ -534,7 +534,7 @@
     UI.form({ title: 'Scheduler entry', icon: 'clock', fields: [{ k: 'title', label: 'Title', req: true, full: true }, { k: 'kind', label: 'Kind', type: 'select', options: ['Request follow-up', 'Task', 'Time off', 'Reminder'], blank: false }, { k: 'date', label: 'Date', type: 'date', req: true }, { k: 'time', label: 'Time' }, { k: 'owner', label: 'Technician', type: 'select', options: () => techs() }, { k: 'link', label: 'Linked ticket', type: 'select', options: () => (H() ? H().requests.slice(0, 50).map((r) => ({ v: r.id, l: `${r.id} · ${r.subject.slice(0, 40)}` })) : []) }], values: { kind: 'Task', date: today() }, onSubmit: (v) => { v.id = nid('sd', 'SCH-', 3); D().schedules.unshift(v); S.emit(); } });
   });
   pages.scheduler = {
-    title: 'Scheduler', crumb: 'Requests · tasks · time off · reminders in one calendar', icon: 'clock', color: '#ffb020',
+    title: 'Scheduler', crumb: 'Requests · tasks · time off · reminders in one calendar', icon: 'clock', color: '#5b8def',
     render() {
       const d = D();
       return `<div class="card">${UI.table({ id: 'sdt', rows: () => d.schedules, sort: 'date', text: (r) => r.title + r.owner, filters: [{ k: 'kind', label: 'Kind', options: ['Request follow-up', 'Task', 'Time off', 'Reminder'] }, { k: 'owner', label: 'Technician', options: () => techs() }], cols: [{ k: 'date', label: 'Date' }, { k: 'time', label: 'Time' }, { k: 'title', label: 'Title', render: (r) => `<b>${esc(r.title)}</b>` }, { k: 'kind', label: 'Kind', render: (r) => P(r.kind, 'violet') }, { k: 'owner', label: 'Owner' }, { k: 'link', label: 'Ticket' }], actions: (r) => `<button class="ibtn" style="--c:#ff5c6c" data-act="sched.del" data-id="${r.id}">${ic('trash')}</button>`, toolbar: tbNew('sched.new', 'Add entry') })}</div>`;
@@ -548,7 +548,7 @@
   UI.on('products.edit', (el) => { const r = D().products.find((x) => x.id === el.dataset.id); if (!r) return; UI.form({ title: 'Edit ' + r.id, icon: 'box', fields: [{ k: 'brand', label: 'Brand', req: true }, { k: 'model', label: 'Model', req: true }, { k: 'price', label: 'Std price', type: 'number' }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
   UI.on('instances.edit', (el) => { const r = D().instances.find((x) => x.id === el.dataset.id); if (!r) return; UI.form({ title: 'Edit ' + r.id, icon: 'spark', fields: [{ k: 'name', label: 'Desk name', req: true }, { k: 'dept', label: 'Department' }, { k: 'status', label: 'Status', type: 'select', options: ['Draft', 'Live'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); r.portal = r.status === 'Live' ? 'Yes' : 'No'; S.emit(); } }); });
   pages.surveys = {
-    title: 'Surveys', crumb: 'General + request-linked surveys with reports', icon: 'trend', color: '#10d9a0',
+    title: 'Surveys', crumb: 'General + request-linked surveys with reports', icon: 'trend', color: '#00a8e8',
     render() {
       const d = D();
       const rep = d.surveys.map((s) => { const rs = d.responses.filter((r) => r.surveyId === s.id); const avg = rs.length ? (rs.reduce((a, r) => a + (+r.score || 0), 0) / rs.length) : 0; return { s, n: rs.length, avg }; });
@@ -560,7 +560,7 @@
 
   /* ================= 16. ADVANCED REPORTS ================= */
   pages.reportsplus = {
-    title: 'Advanced Reports', crumb: 'Native · insightful · inventory reports across modules', icon: 'receipt', color: '#7a4dff',
+    title: 'Advanced Reports', crumb: 'Native · insightful · inventory reports across modules', icon: 'receipt', color: '#2f6bff',
     render() {
       const h = H(); const R = h ? h.requests : [];
       const closed = R.filter((r) => r.resolvedAt);
@@ -619,7 +619,7 @@
   });
   UI.on('arc.wipe', async () => { if (deny('admin')) return; if (await UI.confirm('Delete ALL ServiceDesk Plus demo/transaction data? Core assets stay untouched.', 'Wipe SDP data', true)) { const d = db(); d.sdp = null; ensure(); S.emit(); UI.toast('SDP data reset to defaults'); } });
   pages.archiving = {
-    title: 'Archiving & Audit', crumb: 'Automatic data archiving · full audit trail', icon: 'box', color: '#7a4dff',
+    title: 'Archiving & Audit', crumb: 'Automatic data archiving · full audit trail', icon: 'box', color: '#2f6bff',
     render() {
       const d = D(); const log = (db().log || []).slice(0, 60);
       return `<div class="card"><h3>Archive policies & runs</h3>${UI.table({ id: 'arct', rows: () => d.archives, sort: 'at', dir: -1, text: (r) => r.id + r.module, cols: [{ k: 'id', label: 'Run', mono: true }, { k: 'module', label: 'Module' }, { k: 'before', label: 'Older than' }, { k: 'count', label: 'Records', num: true }, { k: 'at', label: 'At', render: (r) => fdt(r.at) }, { k: 'by', label: 'By' }], actions: (r) => `<button class="btn xs" data-act="arc.restore" data-id="${r.id}">Restore</button>`, toolbar: `<button class="btn" data-act="arc.run">${ic('box')}Run archiving</button> <button class="btn ghost" data-act="arc.wipe">${ic('trash')}Reset SDP data</button>` })}</div>

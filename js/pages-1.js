@@ -12,7 +12,7 @@
 
   /* ===================== DASHBOARD ===================== */
   pages.dashboard = {
-    title: 'Dashboard', crumb: 'Live command centre — every figure is computed from your modules', icon: 'grid', color: '#7a4dff', group: 'Overview',
+    title: 'Dashboard', crumb: 'Live command centre — every figure is computed from your modules', icon: 'grid', color: '#2f6bff', group: 'Overview',
     render() {
       const s = L.stats(); const k = s.kpi; const d = db(); const a = s.alerts;
       const kp = (icon, val, label, sub, c, g, href, dec) => `<div class="card kpi tilt glow" style="--c:${c};--g:${g}" ${go(href)}><div class="gem">${ic(icon)}</div><div><div class="v" data-count="${val}" ${dec ? 'data-dec="2"' : ''}>${val}</div><div class="l">${label}</div><div class="s">${sub}</div></div></div>`;
@@ -27,49 +27,49 @@
       const maxHeat = Math.max(1, ...s.dist.map((r) => Math.max(...Object.values(r.counts))));
       const heat = `<div class="heat" style="grid-template-columns:120px repeat(${s.distTypes.length + 1},1fr)"><span></span>${s.distTypes.map((t) => `<span class="hh">${t.replace('_', ' ').slice(0, 7)}</span>`).join('')}<span class="hh">Total</span>${s.dist.filter((r) => r.total).map((r) => `<span class="hl">${esc(r.dept)}</span>${s.distTypes.map((t) => `<span class="hc" style="--a:${r.counts[t] / maxHeat}">${r.counts[t] || ''}</span>`).join('')}<span class="hc" style="--a:0;background:#ece9ff;color:#5a3df0">${r.total}</span>`).join('')}</div>`;
       const topSpare = a.spare.slice(0, 6);
-      const act = d.log.slice(0, 7).map((x) => `<li style="--c:${{ PR: '#2f6bff', PO: '#7a4dff', GRN: '#10d9a0', Issue: '#00c2ff', Return: '#ffb020', Transfer: '#ff3d9a' }[x.kind] || '#7a4dff'}"><b>${esc(x.text)}</b><small>${esc(x.kind)} · ${new Date(x.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</small></li>`).join('');
+      const act = d.log.slice(0, 7).map((x) => `<li style="--c:${{ PR: '#2f6bff', PO: '#2f6bff', GRN: '#10d9a0', Issue: '#00c2ff', Return: '#ffb020', Transfer: '#1d4ed8' }[x.kind] || '#2f6bff'}"><b>${esc(x.text)}</b><small>${esc(x.kind)} · ${new Date(x.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</small></li>`).join('');
       return `
       <div class="hero"><div class="gem" style="width:64px;height:64px;border-radius:21px;background:rgba(255,255,255,.22)">${ic('cpu')}</div><div><h1>IT Service &amp; Asset Control Tower</h1><p>${esc(d.company.name)} · ${esc(d.company.address)} · ${fmtDate(L.today())}</p></div>
         <div class="hbtns"><button class="btn" data-act="pr.new">${ic('plus')}New PR</button><button class="btn" data-act="po.convert">${ic('link')}PR → PO</button><button class="btn" data-act="mv.new" data-type="Issue">${ic('swap')}Issue Asset</button></div></div>
       <div class="grid g4">
-        ${kp('laptop', k.assets, 'Hardware assets', `${k.active} active · ${k.disposed} disposed`, '#7a4dff', 'linear-gradient(135deg,#7a4dff,#9d7bff)', '#/hardware')}
+        ${kp('laptop', k.assets, 'Hardware assets', `${k.active} active · ${k.disposed} disposed`, '#2f6bff', 'linear-gradient(135deg,#2f6bff,#7aa5ff)', '#/hardware')}
         ${kp('users', k.inUse, 'In use', `${k.employees} active employees`, '#2f6bff', 'linear-gradient(135deg,#2f6bff,#00c2ff)', '#/hardware?status=In Use')}
         ${kp('box', k.inStock, 'In stock (spare)', 'ready to issue', '#10d9a0', 'linear-gradient(135deg,#10d9a0,#00c2ff)', '#/hardware?status=In Stock')}
-        ${kp('wrench', k.repair, 'Under repair', 'needs attention', '#ffb020', 'linear-gradient(135deg,#ffb020,#ff7a45)', '#/hardware?status=Under Repair')}
-        ${kp('key', k.licUsed + '/' + k.licences, 'Licences used', Math.round(swPct) + '% utilisation', '#ff3d9a', 'linear-gradient(135deg,#ff3d9a,#ff7a45)', '#/software')}
+        ${kp('wrench', k.repair, 'Under repair', 'needs attention', '#ffb020', 'linear-gradient(135deg,#ffb020,#00a8e8)', '#/hardware?status=Under Repair')}
+        ${kp('key', k.licUsed + '/' + k.licences, 'Licences used', Math.round(swPct) + '% utilisation', '#1d4ed8', 'linear-gradient(135deg,#1d4ed8,#00a8e8)', '#/software')}
         ${kp('filePlus', pl.prOpen, 'Open purchase requests', 'awaiting PO', '#00a8e8', 'linear-gradient(135deg,#00a8e8,#2f6bff)', '#/requests')}
-        ${kp('cart', pl.poDraft + pl.poApproved, 'POs to action', `${pl.poDraft} draft · ${pl.poApproved} awaiting goods`, '#8f5cff', 'linear-gradient(135deg,#8f5cff,#ff3d9a)', '#/orders')}
+        ${kp('cart', pl.poDraft + pl.poApproved, 'POs to action', `${pl.poDraft} draft · ${pl.poApproved} awaiting goods`, '#3b82f6', 'linear-gradient(135deg,#3b82f6,#1d4ed8)', '#/orders')}
         ${kp('dollar', fmtNum(k.spend), 'PO value (incl. VAT)', d.company.currency + ' · ' + pl.unpaid + ' unpaid', '#ff5c6c', 'linear-gradient(135deg,#ff5c6c,#ffb020)', '#/orders')}
       </div>
       <div class="grid g-main mt">
         <div class="card glow" style="--c:#2f6bff"><h3><span class="pip"></span>Hardware assets by type &amp; status<span class="tag">click a bar to drill in</span></h3>${UI.stackBars(stack, ['In Use', 'In Stock', 'Under Repair', 'Disposed'], ['#2f6bff', '#10d9a0', '#ffb020', '#ff5c6c'])}
           <div class="legend">${['In Use|#2f6bff', 'In Stock|#10d9a0', 'Under Repair|#ffb020', 'Disposed|#ff5c6c'].map((x) => `<span><i style="--c:${x.split('|')[1]}"></i>${x.split('|')[0]}</span>`).join('')}</div></div>
-        <div class="card glow" style="--c:#ff3d9a"><h3><span class="pip"></span>Attention centre<span class="tag">auto-generated</span></h3>
+        <div class="card glow" style="--c:#1d4ed8"><h3><span class="pip"></span>Attention centre<span class="tag">auto-generated</span></h3>
           ${alertRow(a.warranty30.length, 'Warranty expiring ≤ 30 days', 'hardware', '#ffb020', '#/hardware?warranty=expiring')}
-          ${alertRow(a.sw30.length + a.swExpired.length, 'Licences expiring / expired', `${a.sw30.length} expiring · ${a.swExpired.length} expired`, '#ff3d9a', '#/software?exp=1')}
-          ${alertRow(a.amc30.length + a.amcExpired.length, 'AMC contracts due', `${a.amc30.length} expiring · ${a.amcExpired.length} lapsed`, '#7a4dff', '#/amc')}
+          ${alertRow(a.sw30.length + a.swExpired.length, 'Licences expiring / expired', `${a.sw30.length} expiring · ${a.swExpired.length} expired`, '#1d4ed8', '#/software?exp=1')}
+          ${alertRow(a.amc30.length + a.amcExpired.length, 'AMC contracts due', `${a.amc30.length} expiring · ${a.amcExpired.length} lapsed`, '#2f6bff', '#/amc')}
           ${alertRow(lowN, 'Consumables at / below reorder level', 'raise a purchase request', '#ff5c6c', '#/consumables?low=1')}
           ${alertRow(a.retention.length, 'Assets past retention period', 'plan replacement', '#2f6bff', '#/hardware?retention=1')}
         </div>
       </div>
       <div class="grid g3 mt">
         <div class="card glow" style="--c:#10d9a0"><h3><span class="pip"></span>Asset status</h3>${UI.donut(statusItems, { big: k.assets, small: 'assets' })}</div>
-        <div class="card glow" style="--c:#7a4dff"><h3><span class="pip"></span>Assets by type</h3>${UI.bars3d(typeBars, { w: 520, h: 270 })}</div>
+        <div class="card glow" style="--c:#2f6bff"><h3><span class="pip"></span>Assets by type</h3>${UI.bars3d(typeBars, { w: 520, h: 270 })}</div>
         <div class="card glow" style="--c:#00c2ff"><h3><span class="pip"></span>Procurement pipeline</h3>
-          <div class="flow" style="flex-wrap:wrap">${[['Open PR', pl.prOpen, '#2f6bff', '#/requests'], ['Draft PO', pl.poDraft, '#8f5cff', '#/orders'], ['Awaiting goods', pl.poApproved, '#ffb020', '#/orders'], ['Received', pl.poReceived, '#10d9a0', '#/orders'], ['Paid', pl.paid, '#00a8e8', '#/orders']].map((x) => `<div class="st" style="--c:${x[2]}" ${go(x[3])}><b>${x[1]}</b><span>${x[0]}</span></div>`).join('')}</div>
-          <h3 style="margin-top:12px"><span class="pip" style="--c:#ff3d9a"></span>PO value by month<span class="tag">${d.company.currency}</span></h3>${UI.area(s.months, { div: 1000, suffix: 'k' })}</div>
+          <div class="flow" style="flex-wrap:wrap">${[['Open PR', pl.prOpen, '#2f6bff', '#/requests'], ['Draft PO', pl.poDraft, '#3b82f6', '#/orders'], ['Awaiting goods', pl.poApproved, '#ffb020', '#/orders'], ['Received', pl.poReceived, '#10d9a0', '#/orders'], ['Paid', pl.paid, '#00a8e8', '#/orders']].map((x) => `<div class="st" style="--c:${x[2]}" ${go(x[3])}><b>${x[1]}</b><span>${x[0]}</span></div>`).join('')}</div>
+          <h3 style="margin-top:12px"><span class="pip" style="--c:#1d4ed8"></span>PO value by month<span class="tag">${d.company.currency}</span></h3>${UI.area(s.months, { div: 1000, suffix: 'k' })}</div>
       </div>
       <div class="grid g-main2 mt">
         <div class="card"><h3><span class="pip" style="--c:#2f6bff"></span>Hardware assets summary</h3>
           <div class="twrap" style="max-height:340px"><table class="t"><thead><tr><th>Asset type</th><th class="num">Total</th><th class="num">In use</th><th class="num">In stock</th><th class="num">Repair</th><th class="num">Disposed</th><th class="num">Warranty this month</th><th class="num">Warranty expired</th></tr></thead><tbody>
           ${hwRows.map((r) => `<tr style="cursor:pointer" ${go('#/hardware?type=' + r.type)}><td><b>${esc(r.type.replace('_', ' '))}</b></td><td class="num">${r.total}</td><td class="num">${r.inUse}</td><td class="num">${r.inStock}</td><td class="num">${r.repair}</td><td class="num">${r.disposed}</td><td class="num">${r.warrantyMonth || '–'}</td><td class="num">${r.warrantyExpired || '–'}</td></tr>`).join('')}</tbody>
           <tfoot><tr><td>Total</td><td class="num">${s.byType.reduce((x, r) => x + r.total, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.inUse, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.inStock, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.repair, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.disposed, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.warrantyMonth, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.warrantyExpired, 0)}</td></tr></tfoot></table></div></div>
-        <div class="card"><h3><span class="pip" style="--c:#ff3d9a"></span>Software licences summary<div style="margin-left:auto">${UI.ring(swPct, '#ff3d9a')}</div></h3>
+        <div class="card"><h3><span class="pip" style="--c:#1d4ed8"></span>Software licences summary<div style="margin-left:auto">${UI.ring(swPct, '#1d4ed8')}</div></h3>
           <div class="twrap" style="max-height:340px"><table class="t"><thead><tr><th>Software type</th><th class="num">Total</th><th class="num">Used</th><th class="num">Available</th><th class="num">Exp. ≤30d</th><th class="num">Expired</th></tr></thead><tbody>
           ${s.swByType.map((r) => `<tr style="cursor:pointer" ${go('#/software?type=' + r.type)}><td><b>${esc(r.type)}</b></td><td class="num">${r.total}</td><td class="num">${r.used}</td><td class="num">${r.available}</td><td class="num">${r.exp30 || '–'}</td><td class="num">${r.expired || '–'}</td></tr>`).join('')}</tbody></table></div></div>
       </div>
       <div class="grid g-main mt">
-        <div class="card"><h3><span class="pip" style="--c:#7a4dff"></span>Asset distribution by department<span class="tag">issued assets</span></h3><div style="overflow:auto">${heat}</div></div>
+        <div class="card"><h3><span class="pip" style="--c:#2f6bff"></span>Asset distribution by department<span class="tag">issued assets</span></h3><div style="overflow:auto">${heat}</div></div>
         <div class="card"><h3><span class="pip" style="--c:#10d9a0"></span>Consumables summary</h3>
           ${s.consRows.length ? s.consRows.map((r, i) => `<div style="margin:9px 0;cursor:pointer" ${go('#/consumables')}><div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:600"><span>${esc(r.type.replace('_', ' '))} ${r.low ? pill('Low', 'coral') : ''}</span><span>${r.available} left of ${r.purchased}</span></div><div class="bar3"><i style="--c:${r.low ? '#ff5c6c' : UI.PAL[i % 8]};width:${r.purchased ? (r.available / r.purchased) * 100 : 0}%"></i></div></div>`).join('') : '<div class="empty">No consumables recorded yet</div>'}</div>
       </div>

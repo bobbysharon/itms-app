@@ -5,14 +5,14 @@
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
     { id: 'dashboard', single: true },
-    { id: 'helpdesk', title: 'IT Helpdesk', icon: 'bell', color: '#ff5c6c', items: ['itsm', 'tickets', 'itil', 'projects', 'kb', 'itsmadmin'] },
-    { id: 'people', title: 'People & Access', icon: 'users', color: '#10d9a0', items: ['employees', 'lifecycle'] },
+    { id: 'helpdesk', title: 'IT Helpdesk', icon: 'bell', color: '#2f6bff', items: ['itsm', 'tickets', 'itil', 'projects', 'kb', 'itsmadmin'] },
+    { id: 'people', title: 'People & Access', icon: 'users', color: '#00a8e8', items: ['employees', 'lifecycle'] },
     { id: 'assets', title: 'Assets & Inventory', icon: 'laptop', color: '#2f6bff', items: ['hardware', 'movements', 'software', 'consumables', 'amc'] },
     { id: 'proc', title: 'Procurement', icon: 'cart', color: '#00a8e8', items: ['requests', 'orders', 'vendors'] },
-    { id: 'govern', title: 'Plan & Govern', icon: 'shield', color: '#7a4dff', items: ['workflow', 'budget', 'compliance'] },
-    { id: 'sdp', title: 'ServiceDesk Plus', icon: 'spark', color: '#ff3d9a', items: ['portal', 'chat', 'automation', 'lifecycles', 'pmtasks', 'mailticket', 'cmdb', 'contracts'] },
+    { id: 'govern', title: 'Plan & Govern', icon: 'shield', color: '#2f6bff', items: ['workflow', 'budget', 'compliance'] },
+    { id: 'sdp', title: 'ServiceDesk Plus', icon: 'spark', color: '#1d4ed8', items: ['portal', 'chat', 'automation', 'lifecycles', 'pmtasks', 'mailticket', 'cmdb', 'contracts'] },
     { id: 'ent', title: 'Enterprise & Control', icon: 'grid', color: '#00c2ff', items: ['templates', 'discovery', 'loans', 'sites', 'roles', 'scheduler', 'surveys', 'reportsplus', 'esm', 'archiving'] },
-    { id: 'admin', title: 'Administration', icon: 'cog', color: '#ffb020', items: ['masters', 'integrations', 'settings'] },
+    { id: 'admin', title: 'Administration', icon: 'cog', color: '#5b8def', items: ['masters', 'integrations', 'settings'] },
   ];
   const ORDER = MENU.reduce((a, g) => a.concat(g.single ? [g.id] : g.items), []);
   const NAVKEY = 'itms.nav'; const navState = (() => { try { return JSON.parse(localStorage.getItem(NAVKEY)) || {}; } catch (e) { return {}; } })();

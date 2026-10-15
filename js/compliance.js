@@ -8,7 +8,7 @@
   /* ==================== FRAMEWORK LIBRARY ==================== */
   const FW = {
     iso27001: {
-      name: 'ISO/IEC 27001:2022', short: 'ISO 27001', color: '#7a4dff',
+      name: 'ISO/IEC 27001:2022', short: 'ISO 27001', color: '#2f6bff',
       desc: 'Information security management — Annex A controls across Organisational, People, Physical and Technological themes.',
       controls: [
         ['A.5.1', 'Policies for information security', 'ISMS policy defined, approved, published and acknowledged.', 'Approved ISMS policy + acknowledgement records'],
@@ -48,7 +48,7 @@
       ].map((x) => ({ id: x[0], title: x[1], guidance: x[2], evidenceHint: x[3] })),
     },
     nesa: {
-      name: 'UAE NESA IA / ISR', short: 'NESA', color: '#10d9a0',
+      name: 'UAE NESA IA / ISR', short: 'NESA', color: '#1d4ed8',
       desc: 'UAE Information Assurance controls — management, technical and operational families.',
       controls: [
         ['M1', 'Security management & governance', 'Security function, policies and compliance monitoring.', 'Security policy + committee minutes'],
@@ -64,7 +64,7 @@
       ].map((x) => ({ id: x[0], title: x[1], guidance: x[2], evidenceHint: x[3] })),
     },
     itil: {
-      name: 'ITIL 4 / COBIT-style IT practices', short: 'ITIL', color: '#ffb020',
+      name: 'ITIL 4 / COBIT-style IT practices', short: 'ITIL', color: '#5b8def',
       desc: 'Service management practices — incident, change, asset, service level and continual improvement.',
       controls: [
         ['P1', 'Incident management', 'Incidents logged, prioritised, SLA-tracked.', 'Helpdesk SLA report'],
@@ -98,7 +98,7 @@
 
   /* ==================== END-TO-END WORKFLOW PAGE ==================== */
   pages.workflow = {
-    title: 'IT Workflow', crumb: 'End-to-end operating model — from plan to dispose, every stage linked live', icon: 'spark', color: '#7a4dff', group: 'Governance',
+    title: 'IT Workflow', crumb: 'End-to-end operating model — from plan to dispose, every stage linked live', icon: 'spark', color: '#2f6bff', group: 'Governance',
     render() {
       const d = db(); const s = L.stats();
       const openPR = d.prs.filter((p) => ['Open', 'Partially Ordered'].includes(L.prStatus(p))).length;
@@ -113,13 +113,13 @@
       <div class="hero"><div class="gem" style="width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,.22)">${ic('spark')}</div>
         <div><h1>End-to-end IT management workflow</h1><p>Plan → Procure → Receive → Deploy → Operate → Govern → Retire — click any stage to work in it. Figures are live.</p></div>
         <div class="hbtns"><button class="btn" data-go="#/budget">${ic('trend')}Budget</button><button class="btn" data-go="#/compliance">${ic('shield')}Compliance</button></div></div>
-      <div class="flow" style="margin:4px 0 14px">${['Plan', 'Procure', 'Receive', 'Deploy', 'Operate', 'Govern', 'Retire'].map((x, i) => `<div class="st" style="--c:${['#00a8e8', '#2f6bff', '#10d9a0', '#7a4dff', '#ff3d9a', '#ffb020', '#ff5c6c'][i]}"><b>${i + 1}</b><span>${x}</span></div>`).join('')}</div>
+      <div class="flow" style="margin:4px 0 14px">${['Plan', 'Procure', 'Receive', 'Deploy', 'Operate', 'Govern', 'Retire'].map((x, i) => `<div class="st" style="--c:${['#00a8e8', '#2f6bff', '#1d4ed8', '#3b82f6', '#5b8def', '#7aa5ff', '#ff5c6c'][i]}"><b>${i + 1}</b><span>${x}</span></div>`).join('')}</div>
       <div class="grid g3">
         ${stage('trend', 1, 'Plan — IT budget', money(Math.round(budTot), ''), '#00a8e8', '#/budget', 'Open budget')}
         ${stage('filePlus', 2, 'Procure — requests & orders', openPR + ' open PR · ' + poAction + ' PO to action', '#2f6bff', '#/requests', 'Open procurement')}
         ${stage('box', 3, 'Receive — GRN to stock', s.pipeline.poReceived + ' POs received', '#10d9a0', '#/orders', 'Receive goods')}
-        ${stage('users', 4, 'Deploy — issue & onboard', inStock + ' spare · ' + inUse + ' in use', '#7a4dff', '#/lifecycle', 'Onboard / issue')}
-        ${stage('bell', 5, 'Operate — helpdesk & AMC', openT + ' open tickets · ' + s.kpi.amcActive + ' AMCs', '#ff3d9a', '#/tickets', 'Open helpdesk')}
+        ${stage('users', 4, 'Deploy — issue & onboard', inStock + ' spare · ' + inUse + ' in use', '#2f6bff', '#/lifecycle', 'Onboard / issue')}
+        ${stage('bell', 5, 'Operate — helpdesk & AMC', openT + ' open tickets · ' + s.kpi.amcActive + ' AMCs', '#1d4ed8', '#/tickets', 'Open helpdesk')}
         ${stage('shield', 6, 'Govern — policy compliance', compTxt, '#ffb020', '#/compliance', 'Assess compliance')}
         ${stage('undo', 7, 'Retire — return & dispose', s.kpi.disposed + ' disposed · ' + s.kpi.repair + ' in repair', '#ff5c6c', '#/movements', 'Movements')}
       </div>
@@ -129,7 +129,7 @@
 
   /* ==================== COMPLIANCE PAGE ==================== */
   pages.compliance = {
-    title: 'Policy Compliance', crumb: 'Pick a framework, confirm, then assess each control one-by-one with owner, actions and evidence', icon: 'shield', color: '#10d9a0', group: 'Governance',
+    title: 'Policy Compliance', crumb: 'Pick a framework, confirm, then assess each control one-by-one with owner, actions and evidence', icon: 'shield', color: '#2f6bff', group: 'Governance',
     render() {
       const c = comp(); const d = db();
       // Step 1: choose framework
@@ -137,7 +137,7 @@
         const sel = c.active || 'iso27001';
         return `<div class="hero"><div class="gem" style="width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,.22)">${ic('shield')}</div>
           <div><h1>Policy compliance</h1><p>Select a framework and confirm — then assess each control as Compliant / Non-compliant with actions and evidence.</p></div></div>
-        <div class="card glow" style="--c:#7a4dff;max-width:860px"><h3><span class="pip"></span>1 · Choose the framework to assess</h3>
+        <div class="card glow" style="--c:#2f6bff;max-width:860px"><h3><span class="pip"></span>1 · Choose the framework to assess</h3>
           <div class="fgrid"><label class="f full">Framework<select class="in" id="fwSel">${Object.keys(FW).map((k) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${esc(FW[k].name)} (${FW[k].controls.length} controls)</option>`).join('')}</select></label></div>
           <div id="fwDesc" style="margin-top:10px"></div>
           <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn" data-act="cp.confirm">${ic('check')}Confirm & start assessment</button></div>
@@ -166,7 +166,7 @@
         <div class="card kpi" style="--c:${fw.color}"><div class="gem">${ic('shield')}</div><div><div class="v">${pct}%</div><div class="l">Readiness score</div><div class="s">compliant + ½ partial</div></div></div>
       </div>
       <div class="grid g-main mt">
-        <div class="card glow" style="--c:${fw.color}"><h3><span class="pip"></span>Compliance status</h3>${UI.donut([{ label: 'Compliant', value: nC, color: '#10d9a0' }, { label: 'Partial', value: nP, color: '#ffb020' }, { label: 'Non-compliant', value: nN, color: '#ff5c6c' }, { label: 'Not assessed', value: nT, color: '#c9c9e0' }, { label: 'N/A', value: nA, color: '#7a4dff' }], { big: pct + '%', small: 'ready' })}</div>
+        <div class="card glow" style="--c:${fw.color}"><h3><span class="pip"></span>Compliance status</h3>${UI.donut([{ label: 'Compliant', value: nC, color: '#10d9a0' }, { label: 'Partial', value: nP, color: '#ffb020' }, { label: 'Non-compliant', value: nN, color: '#ff5c6c' }, { label: 'Not assessed', value: nT, color: '#b9c6e8' }, { label: 'N/A', value: nA, color: '#2f6bff' }], { big: pct + '%', small: 'ready' })}</div>
         <div class="card"><h3><span class="pip" style="--c:#ff5c6c"></span>Action items — what must be fixed <span class="tag">${open.length}</span></h3>
         ${open.length ? `<div style="max-height:300px;overflow:auto"><table class="t"><thead><tr><th>Control</th><th>Issue / action</th><th>Owner</th><th>Due</th></tr></thead><tbody>${open.map((r) => `<tr><td><b class="mono">${esc(r.id)}</b> ${esc(r.title)}<br>${pill(r.status, STC[r.status])}</td><td>${esc(r.action) || '<span style="color:var(--muted)">— add action —</span>'}</td><td>${esc(r.owner) || '–'}</td><td>${fmtD(r.due) || '–'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty"><b>No open actions</b>Assess controls below; non-compliant items appear here.</div>'}
         <small style="color:var(--muted)">Tip: work top-to-bottom — open each control, set status, owner, due date, action and the evidence document.</small></div>

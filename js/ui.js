@@ -158,7 +158,7 @@
   };
 
   /* ---------- charts (inline SVG, 3D-ish) ---------- */
-  const PAL = ['#7a4dff', '#00c2ff', '#ff3d9a', '#10d9a0', '#ffb020', '#2f6bff', '#ff5c6c', '#9be22d'];
+  const PAL = ['#2f6bff', '#00a8e8', '#1d4ed8', '#00c2ff', '#3b82f6', '#10d9a0', '#ffb020', '#ff5c6c'];
   UI.PAL = PAL;
   let cid = 0;
   const shade = (hex, p) => { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255; const f = (c) => Math.max(0, Math.min(255, Math.round(c + (p < 0 ? c * p : (255 - c) * p)))); return '#' + ((1 << 24) | (f(r) << 16) | (f(g) << 8) | f(b)).toString(16).slice(1); };
@@ -179,7 +179,7 @@
   UI.legend = (items) => `<div class="legend">${items.map((it, i) => `<span><i style="--c:${it.color || PAL[i % PAL.length]}"></i>${esc(it.label)} <b>${it.value}</b></span>`).join('')}</div>`;
   UI.bars3d = function (items, o) {
     o = o || {}; const id = 'b' + ++cid; const W = o.w || 560, H = o.h || 250, pl = 34, pb = 54, pt = 18, n = items.length || 1; const max = Math.max(1, ...items.map((i) => i.value)) * 1.12; const bw = Math.min(46, ((W - pl - 10) / n) * 0.52), gap = (W - pl - 10) / n, d = Math.min(11, bw * 0.34);
-    const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => { const y = pt + (H - pb - pt) * (1 - t); return `<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#7a4dff" stroke-opacity=".1"/><text x="${pl - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#9aa0c6">${Math.round(max * t)}</text>`; }).join('');
+    const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => { const y = pt + (H - pb - pt) * (1 - t); return `<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#2f6bff" stroke-opacity=".1"/><text x="${pl - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#9aa0c6">${Math.round(max * t)}</text>`; }).join('');
     const bars = items.map((it, i) => {
       const c = it.color || PAL[i % PAL.length]; const h = Math.max(it.value ? 4 : 0, (it.value / max) * (H - pb - pt)); const x = pl + i * gap + (gap - bw) / 2 - d / 2, y = H - pb - h;
       return `<g class="bar3" style="cursor:${it.href ? 'pointer' : 'default'}" ${it.href ? `data-go="${it.href}"` : ''}><defs><linearGradient id="${id}f${i}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${shade(c, .3)}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs>
@@ -198,8 +198,8 @@
     o = o || {}; const id = 'a' + ++cid; const W = 560, H = 210, pl = 44, pb = 30, pt = 14; if (!items.length) return '<div class="empty">No data</div>'; const max = Math.max(1, ...items.map((i) => i.value)) * 1.1; const step = items.length > 1 ? (W - pl - 14) / (items.length - 1) : 0;
     const pts = items.map((it, i) => [pl + i * step + (items.length === 1 ? (W - pl) / 2 : 0), pt + (H - pb - pt) * (1 - it.value / max)]);
     const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' '); const area = line + ` L${pts[pts.length - 1][0]} ${H - pb} L${pts[0][0]} ${H - pb}Z`;
-    const grid = [0, .5, 1].map((t) => { const y = pt + (H - pb - pt) * (1 - t); return `<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#7a4dff" stroke-opacity=".12" stroke-dasharray="4 4"/><text x="${pl - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#9aa0c6">${fmtNum(max * t / (o.div || 1), 0)}${o.suffix || ''}</text>`; }).join('');
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a4dff" stop-opacity=".45"/><stop offset="1" stop-color="#00c2ff" stop-opacity="0"/></linearGradient><linearGradient id="${id}l" x1="0" x2="1"><stop offset="0" stop-color="#7a4dff"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#${id})"/><path d="${line}" fill="none" stroke="url(#${id}l)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 6px 8px rgba(122,77,255,.5))"/>${pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="#fff" stroke="#7a4dff" stroke-width="3" style="filter:drop-shadow(0 0 6px #7a4dff)"><title>${items[i].label}: ${money(items[i].value)}</title></circle><text x="${p[0]}" y="${H - 10}" text-anchor="middle" font-size="10" fill="#7077a1">${items[i].label.slice(2)}</text>`).join('')}</svg>`;
+    const grid = [0, .5, 1].map((t) => { const y = pt + (H - pb - pt) * (1 - t); return `<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="#2f6bff" stroke-opacity=".12" stroke-dasharray="4 4"/><text x="${pl - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#9aa0c6">${fmtNum(max * t / (o.div || 1), 0)}${o.suffix || ''}</text>`; }).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6bff" stop-opacity=".45"/><stop offset="1" stop-color="#00c2ff" stop-opacity="0"/></linearGradient><linearGradient id="${id}l" x1="0" x2="1"><stop offset="0" stop-color="#2f6bff"/><stop offset="1" stop-color="#00c2ff"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#${id})"/><path d="${line}" fill="none" stroke="url(#${id}l)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>${pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="#fff" stroke="#2f6bff" stroke-width="3"><title>${items[i].label}: ${money(items[i].value)}</title></circle><text x="${p[0]}" y="${H - 10}" text-anchor="middle" font-size="10" fill="#7077a1">${items[i].label.slice(2)}</text>`).join('')}</svg>`;
   };
   UI.ring = function (pct, color, label) {
     const R = 26, C = 2 * Math.PI * R; const id = 'r' + ++cid; pct = Math.max(0, Math.min(100, pct));

@@ -277,7 +277,7 @@
   /* ================= PAGES ================= */
   const kpi = (n, label, c) => `<div class="card" style="border-left:4px solid ${c}"><div style="font:700 28px var(--head)">${n}</div><small style="color:var(--muted)">${label}</small></div>`;
   pages.lifecycle = {
-    title: 'Onboarding & Offboarding', crumb: 'One workflow: employee → assets → AD · biometric · ERP IDs → signed forms', icon: 'swap', color: '#10d9a0', group: 'Workflow',
+    title: 'Onboarding & Offboarding', crumb: 'One workflow: employee → assets → AD · biometric · ERP IDs → signed forms', icon: 'swap', color: '#00a8e8', group: 'Workflow',
     render() {
       const d = db(); const tab = UI.curTab('lifecycle', 'emp'); const pend = pendingOff(); const act = d.employees.filter((e) => e.status === 'Active'); const noAcc = act.filter((e) => missingSys(e.no).length);
       const top = `<div class="grid g3">${kpi(act.length, 'Active employees', '#2f6bff')}${kpi(pend.length, 'Left / inactive still holding assets or IDs', pend.length ? '#ff5c6c' : '#10d9a0')}${kpi(noAcc.length, 'Active employees missing a system ID', noAcc.length ? '#ffb020' : '#10d9a0')}</div>
@@ -347,7 +347,7 @@
   UI.on('sys.del', async (el) => { const s = sysOf(el.dataset.id); if (db().accounts.some((a) => a.sysId === s.id && a.status !== 'Disabled')) return UI.toast('Disable its active accounts first', 'err'); if (await UI.confirm(`Delete <b>${esc(s.name)}</b>?`, 'Delete', true)) { db().systems = db().systems.filter((x) => x.id !== s.id); S.emit(); } });
 
   pages.masters = {
-    title: 'Masters', crumb: 'Single source for every dropdown — edit here and all forms follow', icon: 'tag', color: '#ffb020', group: 'Masters',
+    title: 'Masters', crumb: 'Single source for every dropdown — edit here and all forms follow', icon: 'tag', color: '#5b8def', group: 'Masters',
     render() {
       const d = db(); const card = (m) => { const vals = d.lists[m.key] || []; return `<div class="card"><h3><span class="pip" style="--c:#ffb020"></span>${m.title}<button class="btn xs" style="margin-left:auto" data-act="ms.edit" data-key="${m.key}">${ic('edit')}Edit</button></h3><small style="color:var(--muted)">Feeds: ${m.note}</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${vals.map((v) => `<span class="pill p-blue">${esc(v)} <small>${m.used(v)}</small></span>`).join('') || '<span style="color:var(--muted)">Empty</span>'}</div></div>`; };
       return `<div class="note-box">Numbers show how many records use each value. A value that is in use cannot be removed. Other masters: <a class="link" data-go="#/vendors">Vendors</a>, <a class="link" data-go="#/employees">Employees</a>, and hardware / software / consumable types under <a class="link" data-go="#/settings">Lists &amp; Settings</a>.</div><div class="grid g2 mt">${MASTERS.map(card).join('')}</div>`;

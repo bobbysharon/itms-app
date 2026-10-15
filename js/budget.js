@@ -6,7 +6,7 @@
   const db = () => S.db;
 
   const CATS = ['Hardware', 'Software & Licences', 'Consumables', 'AMC & Maintenance', 'Network & Infrastructure', 'Cloud & Services', 'Security', 'Staffing & Training', 'Other'];
-  const CAT_COLOR = { 'Hardware': '#7a4dff', 'Software & Licences': '#ff3d9a', 'Consumables': '#ffb020', 'AMC & Maintenance': '#10d9a0', 'Network & Infrastructure': '#2f6bff', 'Cloud & Services': '#00c2ff', 'Security': '#ff5c6c', 'Staffing & Training': '#9be22d', 'Other': '#8f8fb0' };
+  const CAT_COLOR = { 'Hardware': '#2f6bff', 'Software & Licences': '#1d4ed8', 'Consumables': '#00a8e8', 'AMC & Maintenance': '#10d9a0', 'Network & Infrastructure': '#3b82f6', 'Cloud & Services': '#00c2ff', 'Security': '#ff5c6c', 'Staffing & Training': '#5b8def', 'Other': '#64748b' };
 
   function ensure() {
     const d = db(); if (!d) return;
@@ -113,7 +113,7 @@
 
       <div class="grid g4">
         <div class="card kpi tilt" style="--c:#00a8e8"><div class="gem">${ic('tag')}</div><div><div class="v">${money(Math.round(totP), d.company.currency)}</div><div class="l">Planned ${yr}</div><div class="s">${prev ? `FY ${prev}: ${money(Math.round(totPrevP), '')} (${totPrevP ? (((totP - totPrevP) / totPrevP) * 100).toFixed(1) : '–'}%)` : 'No previous year'}</div></div></div>
-        <div class="card kpi tilt" style="--c:${util > 100 ? '#ff5c6c' : '#7a4dff'}"><div class="gem">${ic('cart')}</div><div><div class="v">${money(Math.round(totA), d.company.currency)}</div><div class="l">Actual ${yr} (live)</div><div class="s">${prev ? `FY ${prev}: ${money(Math.round(totPrevA), '')}` : 'POs + AMC + adjustments'}</div></div></div>
+        <div class="card kpi tilt" style="--c:${util > 100 ? '#ff5c6c' : '#2f6bff'}"><div class="gem">${ic('cart')}</div><div><div class="v">${money(Math.round(totA), d.company.currency)}</div><div class="l">Actual ${yr} (live)</div><div class="s">${prev ? `FY ${prev}: ${money(Math.round(totPrevA), '')}` : 'POs + AMC + adjustments'}</div></div></div>
         <div class="card kpi tilt" style="--c:${totP - totA < 0 ? '#ff5c6c' : '#10d9a0'}"><div class="gem">${ic('check')}</div><div><div class="v">${money(Math.round(totP - totA), d.company.currency)}</div><div class="l">Variance (P − A)</div><div class="s">${totP ? ((totP - totA) / totP * 100).toFixed(1) + '% of plan remaining' : 'Set a plan first'}</div></div></div>
         <div class="card kpi tilt" style="--c:#ffb020"><div class="gem">${ic('clock')}</div><div><div class="v">${util.toFixed(1)}%</div><div class="l">Budget utilisation</div><div class="s">${util > 100 ? 'Over budget — review spend' : util >= 90 ? 'Almost fully utilised' : 'Within plan'}</div></div></div>
       </div>
@@ -124,8 +124,8 @@
             <div><div class="bar3" style="height:12px"><i style="--c:${CAT_COLOR[r.c]};width:${totP ? Math.max(2, (r.p / Math.max(totP, totA)) * 100) : 0}%;opacity:.45" title="Planned ${fmtNum(r.p, 0)}"></i></div>
             <div class="bar3" style="height:12px;margin-top:3px"><i style="--c:${r.a > r.p && r.p > 0 ? '#ff5c6c' : CAT_COLOR[r.c]};width:${Math.max(totP, totA) ? Math.max(2, (r.a / Math.max(totP, totA)) * 100) : 0}%" title="Actual ${fmtNum(r.a, 0)}"></i></div></div>
             <span style="font-size:12px;text-align:right"><b>P:</b> ${fmtNum(Math.round(r.p))}<br><b>A:</b> ${fmtNum(Math.round(r.a))}</span></div>`).join('')}
-          <div class="legend"><span><i style="--c:#c9c9e0;opacity:.6"></i>Planned (faded)</span><span><i style="--c:#00a8e8"></i>Actual (solid · red when over)</span></div></div>
-        <div class="card glow" style="--c:#7a4dff"><h3><span class="pip"></span>Overall utilisation</h3><div style="text-align:center">${UI.ring(Math.min(100, util), util > 100 ? '#ff5c6c' : '#00c2ff', util.toFixed(0) + '%')}<div style="font-weight:700;margin-top:6px">${money(Math.round(totA))} of ${money(Math.round(totP))}</div><small style="color:var(--muted)">Planned vs Actual · FY ${yr}</small></div>
+          <div class="legend"><span><i style="--c:#b9c6e8;opacity:.6"></i>Planned (faded)</span><span><i style="--c:#00a8e8"></i>Actual (solid · red when over)</span></div></div>
+        <div class="card glow" style="--c:#2f6bff"><h3><span class="pip"></span>Overall utilisation</h3><div style="text-align:center">${UI.ring(Math.min(100, util), util > 100 ? '#ff5c6c' : '#00c2ff', util.toFixed(0) + '%')}<div style="font-weight:700;margin-top:6px">${money(Math.round(totA))} of ${money(Math.round(totP))}</div><small style="color:var(--muted)">Planned vs Actual · FY ${yr}</small></div>
           <h3 style="margin-top:14px"><span class="pip" style="--c:#10d9a0"></span>How actuals are built</h3><small style="color:var(--muted)">PO lines (incl. VAT) grouped by item type → Hardware / Software / Consumables · AMC contract value → AMC &amp; Maintenance · anything else + your manual “additional actual” → its category. Edit a row to add off-system spend.</small></div>
       </div>
 

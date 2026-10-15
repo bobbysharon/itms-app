@@ -55,7 +55,7 @@
   ];
   const conItemOpts = () => db().cons.map((c) => ({ v: c.id, l: `${c.desc} (${L.consTotals(c.id).available} ${c.uom} avail.)` }));
   pages.consumables = {
-    title: 'Consumables', crumb: 'Master, purchases and issues in one place — available stock is always purchased minus issued', icon: 'box', color: '#ffb020', group: 'Inventory',
+    title: 'Consumables', crumb: 'Master, purchases and issues in one place — available stock is always purchased minus issued', icon: 'box', color: '#00a8e8', group: 'Inventory',
     render() {
       const d = db(); const tab = UI.curTab('consumables', 'stock'); if (fresh()) pf.con = { low: !!P().low }; let body;
       if (tab === 'stock') {
@@ -94,7 +94,7 @@
 
   /* ===================== SETTINGS ===================== */
   pages.settings = {
-    title: 'Lists & Settings', crumb: 'Company profile, validation lists, payment terms, backup', icon: 'cog', color: '#6b7bff', group: 'System',
+    title: 'Lists & Settings', crumb: 'Company profile, validation lists, payment terms, backup', icon: 'cog', color: '#5b8def', group: 'System',
     render() {
       const d = db(); const tab = UI.curTab('settings', 'co'); let b = '';
       if (tab === 'co') {
@@ -103,7 +103,7 @@
       } else if (tab === 'hw') {
         b = `<div class="card"><h3><span class="pip"></span>Hardware asset types <span class="tag">prefix builds asset IDs · retention = expected life</span></h3><div class="tbar"><span class="grow"></span><button class="btn" data-act="lt.hw">${ic('plus')}Add type</button></div><table class="t"><thead><tr><th>Type</th><th>ID prefix</th><th class="num">Retention (yrs)</th><th>Subtypes</th><th></th></tr></thead><tbody>${d.lists.hwTypes.map((t, i) => `<tr><td><b>${esc(t.type)}</b></td><td class="mono">${esc(t.prefix)}</td><td class="num">${t.retention}</td><td>${esc(t.subtypes.join(', '))}</td><td><div class="row-actions"><button class="ibtn" data-act="lt.hw" data-i="${i}">${ic('edit')}</button></div></td></tr>`).join('')}</tbody></table></div>`;
       } else if (tab === 'lists') {
-        b = `<div class="grid g2"><div class="card"><h3><span class="pip" style="--c:#ff3d9a"></span>Software types<button class="btn xs" style="margin-left:auto" data-act="lt.sw">${ic('edit')}Edit</button></h3>${d.lists.swTypes.map((t) => `<div class="chk"><span class="mono" style="min-width:100px">${t.prefix}</span>${esc(t.type)}</div>`).join('')}<h3 style="margin-top:14px"><span class="pip" style="--c:#7a4dff"></span>Subscription types<button class="btn xs" style="margin-left:auto" data-act="lt.sub">${ic('edit')}Edit</button></h3><p>${esc(d.lists.subscriptionTypes.join(' · '))}</p></div>
+        b = `<div class="grid g2"><div class="card"><h3><span class="pip" style="--c:#1d4ed8"></span>Software types<button class="btn xs" style="margin-left:auto" data-act="lt.sw">${ic('edit')}Edit</button></h3>${d.lists.swTypes.map((t) => `<div class="chk"><span class="mono" style="min-width:100px">${t.prefix}</span>${esc(t.type)}</div>`).join('')}<h3 style="margin-top:14px"><span class="pip" style="--c:#2f6bff"></span>Subscription types<button class="btn xs" style="margin-left:auto" data-act="lt.sub">${ic('edit')}Edit</button></h3><p>${esc(d.lists.subscriptionTypes.join(' · '))}</p></div>
         <div class="card"><h3><span class="pip" style="--c:#ffb020"></span>Consumable types &amp; subtypes<button class="btn xs" style="margin-left:auto" data-act="lt.con">${ic('edit')}Edit</button></h3>${d.lists.consTypes.map((t) => `<p style="margin:6px 0"><b>${esc(t.type.replace('_', ' '))}</b><br><small style="color:var(--muted)">${esc(t.subtypes.join(', ')) || '—'}</small></p>`).join('')}<h3 style="margin-top:14px"><span class="pip" style="--c:#10d9a0"></span>Units of measure (${d.lists.uom.length})<button class="btn xs" style="margin-left:auto" data-act="lt.uom">${ic('edit')}Edit</button></h3><p style="color:var(--muted)">${esc(d.lists.uom.map((u) => u.code).join(', '))}</p></div></div>`;
       } else if (tab === 'terms') {
         b = `<div class="card"><h3><span class="pip"></span>Payment terms</h3>${UI.table({ id: 'terms', rows: () => d.terms, cols: [{ k: 'id', label: 'Terms ID', render: (t) => `<b>${esc(t.id)}</b>` }, { k: 'desc', label: 'Description' }], actions: (t) => `<button class="ibtn" data-act="pt.edit" data-id="${esc(t.id)}">${ic('edit')}</button><button class="ibtn" style="--c:#ff5c6c" data-act="pt.del" data-id="${esc(t.id)}">${ic('trash')}</button>`, toolbar: `<button class="btn" data-act="pt.edit">${ic('plus')}Add terms</button>` })}</div>`;
