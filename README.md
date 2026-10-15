@@ -54,6 +54,31 @@ Build command: *(none)* · Publish directory: `.`
 - **Sample data**: Helpdesk Home → *Load sample data* adds 24 tickets (all statuses and SLA states), 4 problems, 5 changes, 2 releases, 6 solutions, 7 catalog items, announcements, 10 follow-up items, 4 sample employees (two leavers still holding assets and IDs), 36 system accounts, onboarding/offboarding records and software installs. *Remove sample data* deletes only those flagged records and restores asset custody. A brand-new install loads it automatically once.
 - **Assigned to**: tickets can only be assigned to staff whose role is assignable (default: *Technician*; change under ITSM Admin → SLA & routing).
 
+## ServiceDesk Plus extension (js/sdp-plus.js) — ITIL / audit coverage
+Sidebar groups **ServiceDesk Plus** and **Enterprise & Control** (18 pages, data in `db.sdp`):
+
+| Requested option | Page in app |
+|---|---|
+| Self-service portal, knowledge base, service catalog | Self-Service Portal (`#/portal`) + Solutions & Catalog |
+| AD user self-service (password reset / unlock) | Portal → Password/unlock (auto-creates ticket + AD queue) |
+| Live chat technician ↔ user | Live Chat (`#/chat`), convertible to ticket |
+| CMDB + relationship / impact analysis | CMDB (`#/cmdb`) — CIs, relationship map, 4-hop blast radius for change evidence |
+| Purchase & contract management | Contracts (`#/contracts`) — expiry/renewal tracking (AMC stays separate) |
+| Preventive maintenance tasks | Preventive Maintenance (`#/pmtasks`) — scheduled tasks generate real tickets |
+| Email to ticket + auto routing | Email to Ticket (`#/mailticket`) — mailbox rules, simulate + convert |
+| Business rules, tech auto-assign, smart notifications, SLA escalations | Automation & SLA (`#/automation`) — rules engine runs on open tickets + 30 s auto-check, escalation + notification log |
+| Request / problem / change lifecycle designer | Lifecycle Designer (`#/lifecycles`) |
+| Custom request templates, custom actions, custom apps (PaaS) | Templates & Apps (`#/templates`) — templates raise tickets with default tasks |
+| IT asset discovery, tracking, inventory catalog, remote tools | Discovery & Catalog (`#/discovery`) — scans, import → asset, product catalog, remote-tool audit log |
+| Asset loan tracking | Asset Loans (`#/loans`) — issue/return writes custody history |
+| Multi-site support, custom domains | Sites & Domains (`#/sites`) — site scope switcher + custom portal URL |
+| Fine-grained authorizations | Roles & Access (`#/roles`) — enforced on create/delete, incl. read-only Auditor; “Act as” to test |
+| Service desk scheduler | Scheduler (`#/scheduler`) — requests, tasks, time off, reminders |
+| Surveys + survey reports | Surveys (`#/surveys`) — CSAT on resolved tickets + averages |
+| Native / insightful / inventory reports | Advanced Reports (`#/reportsplus`) — MTTR, vendor spend, inventory, contracts, surveys (every table also exports CSV) |
+| ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start desks, mobile registry, portal checklist |
+| Data archiving + audit trail | Archiving & Audit (`#/archiving`) — archive/restore old tickets, full event log |
+
 ## Data
 First launch loads your workbook (100 employees, 50 vendors, 97 PRs, 100 POs) and posts the GRNs so stock exists; a few consumables, AMCs and allocations are **sample** records. *Settings → Data* can reset to sample, workbook‑only (nothing received) or empty.
 
