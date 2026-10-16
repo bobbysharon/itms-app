@@ -191,7 +191,7 @@
     after() {
       const sel = document.getElementById('fwSel');
       const desc = document.getElementById('fwDesc');
-      const paint = () => { if (desc && sel) { const f = FW[sel.value]; desc.innerHTML = `<div class="note-box"><b>${esc(f.name)}</b> — ${esc(f.desc)}<br><small>${f.controls.length} controls, e.g. ${esc(f.controls[0].id)} ${esc(f.controls[0].title)} · ${esc(f.controls[1].id)} ${esc(f.controls[1].title)} …</small></div>`; } };
+      const paint = () => { if (desc && sel) { const f = FW[sel.value]; desc.innerHTML = ''; } };
       if (sel) { paint(); sel.addEventListener('change', paint); }
       document.querySelectorAll('[data-fw]').forEach((el) => el.addEventListener('click', () => { const s = document.getElementById('fwSel'); if (s) { s.value = el.dataset.fw; paint(); } }));
       const sw = document.getElementById('fwSwap');
@@ -230,7 +230,6 @@
         { k: 'evidence', label: 'Evidence document / location (e.g. policy v1.2, ticket HD-001, scan report path)', type: 'textarea', full: true },
       ],
       values: Object.assign({}, r, { info: r.guidance, need: r.evidenceHint }),
-      extra: next ? `<div class="note-box">Next up: <b class="mono">${esc(next.id)}</b> ${esc(next.title)} — save to continue.</div>` : '<div class="note-box">This is the last control in this framework.</div>',
       submit: next ? 'Save & next control →' : 'Save assessment',
       onSubmit: (v) => {
         Object.assign(r, { status: v.status, owner: v.owner, due: v.due, action: v.action, evidence: v.evidence, updated: L.today() });
