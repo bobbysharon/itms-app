@@ -2,7 +2,7 @@
 (function () {
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
-  ITMS.BUILD = '2026-10-16 · top-up-samples';
+  ITMS.BUILD = '2026-10-16 · icon-rail sidebar';
   try { console.info('%cITMS build ' + ITMS.BUILD, 'color:#2f6bff;font-weight:bold'); } catch (e) { /* ignore */ }
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
@@ -62,7 +62,7 @@
   }
   function renderNav() {
     const b = badges(); const cur = ITMS.nav.page; let h = '';
-    const item = (id) => { const p = ITMS.pages[id] || { title: id, icon: 'grid', color: '#2f6bff' }; return `<a data-nav="${id}" class="${cur === id ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${p.title}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`; };
+    const item = (id) => { const p = ITMS.pages[id] || { title: id, icon: 'grid', color: '#2f6bff' }; return `<a data-nav="${id}" title="${esc(p.title)}" class="${cur === id ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${p.title}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`; };
     MENU.forEach((g) => {
       if (g.single) { h += item(g.id); return; }
       const canP = (id) => { try { return ITMS.sdp.canPage(id); } catch (e) { return true; } };
@@ -73,9 +73,10 @@
       const sub = g.sections
         ? g.sections.filter((s) => s.items.some(canP)).map((s) => `<div class="sec-label">${esc(s.title)}</div>${s.items.filter(canP).map(item).join('')}`).join('')
         : gItems.map(item).join('');
-      h += `<div class="grp ${open ? 'open' : ''}" style="--c:${g.color}"><div class="gh ${has ? 'has' : ''}" data-grp="${g.id}"><span class="gi">${ic(g.icon)}</span><span class="gt">${g.title}</span>${sum && !open ? `<span class="bd">${sum}</span>` : ''}<i class="chev"></i></div><div class="sub">${sub}</div></div>`;
+      h += `<div class="grp ${open ? 'open' : ''}" style="--c:${g.color}"><div class="gh ${has ? 'has' : ''}" data-grp="${g.id}" title="${esc(g.title)}"><span class="gi">${ic(g.icon)}</span><span class="gt">${g.title}</span>${sum && !open ? `<span class="bd">${sum}</span>` : ''}<i class="chev"></i></div><div class="sub">${sub}</div></div>`;
     });
     document.getElementById('nav').innerHTML = h + `<div class="navver" title="Deployed code version — quote this when reporting issues">build ${esc(ITMS.BUILD || '?')}</div>`; if (navState._last !== cur) { navState._last = cur; saveNav(); }
+    try { document.body.classList.toggle('navmin', !!navState._min); } catch (e) { /* ignore */ }
     const total = Object.keys(b).reduce((s, k) => s + (typeof b[k][0] === 'number' ? b[k][0] : 0), 0);
     const bell = document.getElementById('bellN'); if (bell) { bell.textContent = total; bell.style.display = total ? '' : 'none'; }
   }
@@ -111,7 +112,7 @@
   /* ---- delegated events ---- */
   document.addEventListener('click', (e) => {
     const t = e.target;
-    const gh = t.closest('[data-grp]'); if (gh) { const id = gh.dataset.grp; const was = !!navState[id]; MENU.forEach((g) => { if (!g.single) navState[g.id] = false; }); navState[id] = !was; saveNav(); renderNav(); return; }
+    const gh = t.closest('[data-grp]'); if (gh) { const id = gh.dataset.grp; if (navState._min) { navState._min = false; MENU.forEach((g) => { if (!g.single) navState[g.id] = false; }); navState[id] = true; } else { const was = !!navState[id]; MENU.forEach((g) => { if (!g.single) navState[g.id] = false; }); navState[id] = !was; } saveNav(); renderNav(); return; }
     const nv = t.closest('[data-nav]'); if (nv) { const target = '#/' + nv.dataset.nav; if (location.hash === target) route(); else location.hash = target; return; }
     const act = t.closest('[data-act]');
     if (act) {
@@ -124,6 +125,7 @@
     const ts = t.closest('[data-ts]'); if (ts) { const x = UI.tbl[ts.dataset.ts].st; if (x.sort === ts.dataset.k) x.dir *= -1; else { x.sort = ts.dataset.k; x.dir = 1; } UI.redrawTable(ts.dataset.ts); return; }
     const tp = t.closest('[data-tp]'); if (tp && !tp.disabled) { UI.tbl[tp.dataset.tp].st.page = +tp.dataset.p; UI.redrawTable(tp.dataset.tp); return; }
     if (t.closest('#ham')) document.querySelector('.side').classList.toggle('open');
+    if (t.closest('#navtoggle')) { navState._min = !navState._min; saveNav(); renderNav(); return; }
     if (t.closest('#bell')) { if (document.getElementById('bellpop')) closeBell(); else openBell(); return; }
     if (!t.closest('.search')) document.getElementById('sres').style.display = 'none';
   });

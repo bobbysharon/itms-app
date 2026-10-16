@@ -70,6 +70,25 @@ body {
 .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .top { display: flex; align-items: center; gap: 14px; padding: 18px 26px 10px; flex-wrap: wrap; }
 .top .ham { display: none; }
+.top .deskonly { display: grid; }
+@media (max-width: 900px) { .top .deskonly { display: none; } }
+
+/* ---------- collapsed icon-only sidebar (desktop) ---------- */
+@media (min-width: 901px) {
+  body.navmin .app { grid-template-columns: 84px 1fr; }
+  body.navmin .side { padding: 16px 8px 10px; margin: 14px 0 14px 14px; }
+  body.navmin .brand { justify-content: center; padding: 2px 0 10px; }
+  body.navmin .brand > div:last-child { display: none; }
+  body.navmin .brand .gem { width: 40px; height: 40px; }
+  body.navmin .nav a { font-size: 0; justify-content: center; padding: 6px 4px; gap: 0; }
+  body.navmin .nav a .ni { margin: 0; }
+  body.navmin .nav a .bd { position: absolute; top: 1px; right: 4px; font-size: 9.5px; padding: 0 5px; }
+  body.navmin .nav .gh { justify-content: center; padding: 8px 4px; }
+  body.navmin .nav .gt, body.navmin .nav .chev { display: none; }
+  body.navmin .nav .gh .bd { display: none; }
+  body.navmin .nav .sec-label, body.navmin .nav .sub { display: none; }
+  body.navmin .navver { display: none; }
+}
 .top h2 { margin: 0; font: 700 26px/1.1 var(--head); letter-spacing: -.3px; }
 .top .crumb { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
 .top .grow { flex: 1; }
