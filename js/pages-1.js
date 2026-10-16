@@ -30,7 +30,7 @@
       const act = d.log.slice(0, 7).map((x) => `<li style="--c:${{ PR: '#2f6bff', PO: '#2f6bff', GRN: '#10d9a0', Issue: '#00c2ff', Return: '#ffb020', Transfer: '#1d4ed8' }[x.kind] || '#2f6bff'}"><b>${esc(x.text)}</b><small>${esc(x.kind)} · ${new Date(x.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</small></li>`).join('');
       return `
       <div class="hero"><div class="gem" style="width:64px;height:64px;border-radius:21px;background:rgba(255,255,255,.22)">${ic('cpu')}</div><div><h1>IT Service &amp; Asset Control Tower</h1><p>${esc(d.company.name)} · ${esc(d.company.address)} · ${fmtDate(L.today())}</p></div>
-        <div class="hbtns"><button class="btn" data-act="pr.new">${ic('plus')}New PR</button><button class="btn" data-act="po.convert">${ic('link')}PR → PO</button><button class="btn" data-act="mv.new" data-type="Issue">${ic('swap')}Issue Asset</button></div></div>
+        <div class="hbtns"><button class="btn" data-act="rq.new">${ic('plus')}New request</button><button class="btn" data-act="pr.new">${ic('plus')}New PR</button><button class="btn" data-act="po.convert">${ic('link')}PR → PO</button><button class="btn" data-act="mv.new" data-type="Issue">${ic('swap')}Issue Asset</button></div></div>
       <div class="grid g4">
         ${kp('laptop', k.assets, 'Hardware assets', `${k.active} active · ${k.disposed} disposed`, '#2f6bff', 'linear-gradient(135deg,#2f6bff,#7aa5ff)', '#/hardware')}
         ${kp('users', k.inUse, 'In use', `${k.employees} active employees`, '#2f6bff', 'linear-gradient(135deg,#2f6bff,#00c2ff)', '#/hardware?status=In Use')}

@@ -114,7 +114,7 @@
     const ts = t.closest('[data-ts]'); if (ts) { const x = UI.tbl[ts.dataset.ts].st; if (x.sort === ts.dataset.k) x.dir *= -1; else { x.sort = ts.dataset.k; x.dir = 1; } UI.redrawTable(ts.dataset.ts); return; }
     const tp = t.closest('[data-tp]'); if (tp && !tp.disabled) { UI.tbl[tp.dataset.tp].st.page = +tp.dataset.p; UI.redrawTable(tp.dataset.tp); return; }
     if (t.closest('#ham')) document.querySelector('.side').classList.toggle('open');
-    if (t.closest('#bell')) { location.hash = '#/dashboard'; }
+    if (t.closest('#bell')) { openBell(); return; }
     if (!t.closest('.search')) document.getElementById('sres').style.display = 'none';
   });
   document.addEventListener('input', (e) => {
@@ -143,6 +143,36 @@
     grp('Vendors', d.vendors.filter((v) => m(v.name) || m(v.id)).map((v) => `<a data-act="ven.view" data-id="${v.id}">${ic('truck')}<span><b>${esc(v.name)}</b> ${v.id}</span></a>`));
     return out.join('') || '<div class="empty">No matches</div>';
   }
+  /* ---- notification center ---- */
+  function openBell() {
+    const d = S.db; const rows = [];
+    const add = (n, t, go) => { if (n) rows.push(`<a data-go="${go}" class="alert-row" style="--c:#2f6bff"><b>${n}</b><span>${t}</span></a>`); };
+    try {
+      const s = L.stats(); const a = s.alerts;
+      add(a.lowStock.length, 'Consumables below reorder level', '#/consumables');
+      add(a.sw30.length + a.swExpired.length, 'Licences expiring / expired', '#/software');
+      add(a.amc30.length + a.amcExpired.length, 'AMC contracts expiring / lapsed', '#/amc');
+      let openLines = 0; d.prs.forEach((p) => { if (p.status !== 'Cancelled') p.lines.forEach((l) => { if (L.prRemaining(p.prNo, l.line, l.qty) > 0) openLines++; }); });
+      add(openLines, 'PR lines awaiting order', '#/requests');
+      if (ITMS.hdOverdue) add(ITMS.hdOverdue(), 'Tickets past SLA', '#/tickets');
+      if (d.hd) {
+        add(d.hd.requests.filter((r) => (r.status === 'Open' || r.status === 'Assigned') && !r.tech).length, 'Unassigned tickets', '#/tickets');
+        add(['requests', 'changes'].reduce((n, k) => n + (d.hd[k] || []).reduce((m, r) => m + ((r.approvals || []).filter((x) => x.status === 'Pending').length), 0), 0), 'Approvals waiting (tickets + changes)', '#/itsm');
+        if (ITMS.sdp && ITMS.sdp.D) {
+          const sdp = S.db.sdp || {};
+          add((sdp.escalations || []).filter((e) => e.status === 'Open').length, 'Open escalations', '#/automation');
+          add((sdp.chats || []).filter((c) => c.status === 'Open' && !c.tech).length, 'Chats waiting for agent', '#/chat');
+          add((sdp.maint || []).filter((m) => m.status === 'Scheduled' && m.next && m.next < L.today()).length, 'Preventive tasks overdue', '#/pmtasks');
+          add((sdp.contracts || []).filter((c) => c.end && L.diffDays(c.end, L.today()) <= 30 && L.diffDays(c.end, L.today()) >= 0).length, 'Contracts expiring within 30 days', '#/contracts');
+          add((sdp.loans || []).filter((l) => l.status === 'On loan' && l.dueDate < L.today()).length, 'Asset loans overdue', '#/loans');
+        }
+      }
+      if (ITMS.pendingOffboarding) add(ITMS.pendingOffboarding().length, 'Leavers holding assets / IDs', '#/lifecycle');
+    } catch (e) { /* never break boot */ }
+    const ov = UI.modal(`<header><span class="gem" style="width:38px;height:38px;border-radius:13px">${ic('bell')}</span><div><h3>Notifications</h3><small>${rows.length ? rows.length + ' item' + (rows.length === 1 ? '' : 's') + ' need attention' : 'Everything is up to date'}</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body">${rows.join('') || '<div class="empty"><b>All clear</b>Nothing needs attention.</div>'}</div>`, {});
+    ov.addEventListener('click', (e) => { if (e.target.closest('[data-x]') || e.target.closest('[data-go]')) UI.close(ov); });
+  }
+
   function boot() {
     S.init();
     try { Object.keys(navState).forEach((k) => { if (k !== '_last') delete navState[k]; }); saveNav(); } catch (e) { /* start collapsed */ }

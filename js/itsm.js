@@ -308,7 +308,7 @@ Other: General Query, Feedback`;
     title: 'Helpdesk Home', crumb: 'ITSM dashboard — requests, SLA, workload, approvals and follow-ups', icon: 'spark', color: '#2f6bff', group: 'Helpdesk',
     render() {
       const tab = UI.curTab('itsm', 'dash'); const ap = pendingApprovals(); const tabs = UI.tabs('itsm', [{ id: 'dash', label: 'Dashboard' }, { id: 'apr', label: 'My approvals', count: ap.length }, { id: 'rep', label: 'Reports' }]);
-      const top = `<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn" data-act="rq.new">${ic('plus')}New request</button><button class="btn ghost" data-act="pi.new">${ic('plus')}New follow-up item</button><span style="margin-left:auto"></span>${hasSample() ? `<button class="btn ghost" data-act="sample.rm">${ic('trash')}Remove sample data</button>` : `<button class="btn ghost" data-act="sample.load">${ic('download')}Load sample data</button>`}</div>`;
+      const top = `<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn" data-act="rq.new">${ic('plus')}New request</button><button class="btn ghost" data-act="pi.new">${ic('plus')}New follow-up item</button></div>`;
       const body = tab === 'rep' ? reports() : tab === 'apr' ? `<div class="card"><table class="t"><thead><tr><th>Record</th><th>Title</th><th>Approver</th><th>Requested</th><th>Comment</th><th></th></tr></thead><tbody>${ap.map((a) => `<tr><td class="mono">${a.id}</td><td>${esc(a.title)}</td><td>${esc(a.approver)}</td><td>${fdt(a.at)}</td><td>${esc(a.comment)}</td><td><button class="btn xs" data-act="apr.yes" data-k="${a.k}" data-id="${a.id}" data-i="${a.i}">Approve</button> <button class="btn xs ghost" data-act="apr.no" data-k="${a.k}" data-id="${a.id}" data-i="${a.i}">Reject</button></td></tr>`).join('') || '<tr><td colspan="6"><div class="empty">No pending approvals</div></td></tr>'}</tbody></table></div>` : home();
       return top + tabs + body;
     },
@@ -318,6 +318,7 @@ Other: General Query, Feedback`;
   /* ---------- sample data (for testing; every record is flagged and can be removed) ---------- */
   const SAMPLE_KEYS = ['requests', 'problems', 'changes', 'releases', 'solutions', 'catalog', 'news', 'items', 'techs'];
   const hasSample = () => !!db() && !!H() && (SAMPLE_KEYS.some((k) => H()[k].some((x) => x.sample)) || db().employees.some((e) => e.sample));
+  ITMS.hdSample = { has: hasSample };
   const addD = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const ago = (days, hrs) => new Date(Date.now() - days * 864e5 - (hrs || 0) * 36e5).toISOString();
   async function loadSample(quiet) {
