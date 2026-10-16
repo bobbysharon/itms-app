@@ -523,7 +523,7 @@
   function build(mode) {
     const S = clone(window.SEED);
     db = {
-      v: 1, company: { name: 'TAFASEEL GROUP HOLDING', address: 'DUBAI, UAE', vat: 5, currency: 'AED', warrantyDays: 365, logo: '' }, seq: {},
+      v: 1, company: { name: 'BOBBY SHARON', address: 'DUBAI, UAE', vat: 5, currency: 'AED', warrantyDays: 365, logo: '' }, seq: {},
       employees: [], vendors: [], terms: [], lists: S.lists, prs: [], pos: [], grns: [], hw: [], sw: [], installs: [], amcs: [], cons: [], consPurch: [], consIssue: [], moves: [], log: [],
     };
     if (mode === 'empty') { db.lists = S.lists; db.terms = S.terms; return db; }

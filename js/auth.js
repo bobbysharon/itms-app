@@ -20,19 +20,21 @@
     return (h2 >>> 0).toString(16) + (h1 >>> 0).toString(16);
   }
 
-  /* ---------- users store + admin bootstrap ---------- */
-  const ADMIN_EMAIL = 'bobby.sharon@example.com';
+  /* ---------- users store + admin bootstrap (self-heals after any reset) ---------- */
+  const ADMIN_EMAILS = ['bobby.sharon@example.com', 'bobby.sharon@esample.com'];
   function ensure() {
     const d = db(); if (!d) return;
     d.users = d.users || [];
-    let emp = d.employees.find((e) => (e.email || '').toLowerCase() === ADMIN_EMAIL);
+    let emp = d.employees.find((e) => ADMIN_EMAILS.indexOf((e.email || '').toLowerCase()) >= 0 || /^bobby sharon$/i.test(e.name || ''));
     if (!emp) {
-      L.saveEmployee({ name: 'Bobby Sharon', designation: 'IT Manager', manager: '', doj: L.today(), dol: '', dept: 'IT', location: 'Dubai, UAE', email: ADMIN_EMAIL, mobile: '', tel: '', ext: '', status: 'Active' });
-      emp = d.employees.find((e) => (e.email || '').toLowerCase() === ADMIN_EMAIL);
+      L.saveEmployee({ name: 'Bobby Sharon', designation: 'IT Manager', manager: '', doj: L.today(), dol: '', dept: 'IT', location: 'Dubai, UAE', email: ADMIN_EMAILS[0], mobile: '', tel: '', ext: '', status: 'Active' });
+      emp = d.employees.find((e) => ADMIN_EMAILS.indexOf((e.email || '').toLowerCase()) >= 0);
     }
-    if (emp && !d.users.some((u) => u.email.toLowerCase() === ADMIN_EMAIL)) {
-      d.users.push({ email: ADMIN_EMAIL, hash: pwHash('Admin@12345', SALT), empNo: emp.no, role: 'Administrator', created: L.today() });
-    }
+    ADMIN_EMAILS.forEach((am) => {
+      if (emp && !d.users.some((u) => u.email.toLowerCase() === am)) {
+        d.users.push({ email: am, hash: pwHash('Admin@12345', SALT), empNo: emp.no, role: 'Administrator', created: L.today() });
+      }
+    });
   }
   const oi = S.init; S.init = function () { oi.apply(S, arguments); try { ensure(); } catch (e) { /* ignore */ } };
   S.subscribe(ensure);

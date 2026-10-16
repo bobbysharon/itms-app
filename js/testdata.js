@@ -52,7 +52,22 @@
       L.saveEmployee({ name: x[0], designation: x[1], manager: x[5], doj: x[4], dol: '', dept: x[2], location: 'Dubai, UAE', email: x[3], mobile: '9715000' + (110 + i), tel: '', ext: '', status: 'Active' });
     });
     const newEmps = ROSTER.map((x) => d.employees.find((e) => (e.email || '').toLowerCase() === x[3])).filter(Boolean);
-    Object.assign(d.company, { name: 'TAFASEEL GROUP HOLDING', address: 'DUBAI, UAE', vat: 5, currency: 'AED', warrantyDays: 365, logo: '' });
+    /* ---------- employee states for behavior testing (resigned / terminated / inactive) ---------- */
+    const STATES = [
+      ['Test Resigned', 'Driver (Resigned)', 'Operations', 'test.resigned@tafaseel.ae', '2021-02-01', 'Left', agoD(30)],
+      ['Test Terminated', 'Guard (Terminated)', 'Security', 'test.terminated@tafaseel.ae', '2022-05-15', 'Left', agoD(60)],
+      ['Test Inactive', 'Coordinator (Inactive)', 'Administration', 'test.inactive@tafaseel.ae', '2023-09-01', 'Inactive', ''],
+    ];
+    STATES.forEach((x) => {
+      if (d.employees.some((e) => (e.email || '').toLowerCase() === x[3])) return;
+      L.saveEmployee({ name: x[0], designation: x[1], manager: ceo.name || '', doj: x[4], dol: x[6], dept: x[2], location: 'Dubai, UAE', email: x[3], mobile: '', tel: '', ext: '', status: x[5] });
+    });
+    const resigned = d.employees.find((e) => e.email === 'test.resigned@tafaseel.ae');
+    if (resigned && !db().hw.some((a) => a.holder === resigned.no)) {
+      const ra = L.saveHW({ type: 'Monitor', desc: 'TEST: Monitor still held by resigned staff', purchaseDate: agoD(300), price: 700, condition: 'Fair' });
+      L.issueAssets(resigned.no, [ra.id], agoD(200), 'Issued before resignation — tests return/delete guards');
+    }
+    Object.assign(d.company, { name: 'BOBBY SHARON', address: 'DUBAI, UAE', vat: 5, currency: 'AED', warrantyDays: 365, logo: '' });
     const E = emps.filter((e) => e.status === 'Active');
     const pick = (i) => E[i % E.length];
     const T = () => L.today();
