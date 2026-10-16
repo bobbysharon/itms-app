@@ -145,6 +145,7 @@
   }
   function boot() {
     S.init();
+    try { Object.keys(navState).forEach((k) => { if (k !== '_last') delete navState[k]; }); saveNav(); } catch (e) { /* start collapsed */ }
     document.getElementById('sinput').addEventListener('input', (e) => { const r = document.getElementById('sres'); const h = search(e.target.value); r.innerHTML = h; r.style.display = h ? '' : 'none'; });
     document.getElementById('sres').addEventListener('click', () => { document.getElementById('sres').style.display = 'none'; document.getElementById('sinput').value = ''; });
     document.getElementById('today').textContent = UI.fmtDate(L.today());

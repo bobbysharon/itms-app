@@ -48,6 +48,7 @@
       { id: 'ESM-FAC', name: 'Facilities Desk', dept: 'Admin', status: 'Draft', catalog: 0, portal: 'No', created: today() },
     ];
     s.domains = s.domains || { portal: 'https://servicedesk.company.ae', custom: '', enforced: 'No' };
+    s.escth = Object.assign({ apprHours: 48, probDays: 0, chatMins: 30, pmDays: 0 }, s.escth || {});
     if (!s.rules.length && !s.seeded) {
       s.rules = [
         { id: 'BR-01', name: 'Critical → Tier 1 + SMS', active: 'Yes', when: 'VIP / critical incidents', matchF: 'priority', matchV: 'Critical', doAssign: 'Tier 1', doGroup: '', doNotify: 'Email + SMS', doPr: '' },
@@ -164,12 +165,55 @@
       if ((over || noResp) && !(r._esc || []).includes(over ? 'L1-overdue' : 'L1-noresp')) {
         const lvl = over ? 'L1-overdue' : 'L1-noresp';
         r._esc = (r._esc || []).concat(lvl);
-        d.escalations.unshift({ id: nid('es', 'ESC-', 3), at: now(), req: r.id, level: 'Level 1 → Group Lead', reason: over ? 'Resolution SLA breached' : 'Response SLA breached', to: r.group || '', status: 'Open' });
+        d.escalations.unshift({ id: nid('es', 'ESC-', 3), at: now(), module: 'Ticket', req: r.id, level: 'Level 1 → Group Lead', reason: over ? 'Resolution SLA breached' : 'Response SLA breached', to: r.group || '', status: 'Open' });
         notify('Email', r.group || r.tech || 'Service Desk', `[ESCALATED ${r.id}] ${over ? 'Resolution' : 'Response'} SLA breached`, `${r.id} · ${r.subject} · priority ${r.priority}`);
         (r.hist = r.hist || []).unshift({ at: now(), text: 'Auto-escalated to Group Lead (SLA breach)' });
         applied++;
       }
     });
+    // ---- cross-module escalation matrix (service desk operations) ----
+    try {
+      const th = D().escth || {};
+      const escAdd = (module, ref, to, level, reason, extra) => {
+        d.escalations.unshift({ id: nid('es', 'ESC-', 3), at: now(), module, req: ref, level, reason, to: to || '', status: 'Open' });
+        notify('Email', to || 'Service Desk', `[ESCALATED ${ref}] ${reason}`, `${ref} · ${extra || ''} · ${level}`);
+        applied++;
+      };
+      (h.changes || []).forEach((c) => {
+        if (['Submission', 'Planning', 'Approval'].indexOf(c.status) < 0) return;
+        (c.approvals || []).forEach((a) => {
+          if (a.status !== 'Pending' || a._esc || !a.at) return;
+          const hrs = (Date.now() - new Date(a.at).getTime()) / 36e5;
+          const lim = th.apprHours != null ? th.apprHours : 48;
+          if (hrs >= lim) {
+            a._esc = true;
+            escAdd('Change', c.id, c.owner || c.group, 'Level 2 → Change Manager', `CAB approval pending ${Math.round(hrs)}h (limit ${lim}h)`, c.title);
+            (c.hist = c.hist || []).unshift({ at: now(), text: `Auto-escalated: CAB approval from ${a.approver} pending ${Math.round(hrs)}h` });
+          }
+        });
+      });
+      (h.problems || []).forEach((p) => {
+        if (['Resolved', 'Closed'].indexOf(p.status) >= 0 || !p.due || p._escProb) return;
+        if (L.diffDays(p.due, today()) < -((th.probDays != null ? th.probDays : 0))) {
+          p._escProb = true;
+          escAdd('Problem', p.id, p.owner || p.group, 'Level 1 → Group Lead', `Problem past due date (${p.due})`, p.title);
+        }
+      });
+      D().chats.filter((c) => c.status === 'Open' && !c.tech).forEach((c) => {
+        if (!c.at || c._escChat) return;
+        const mins = (Date.now() - new Date(c.at).getTime()) / 6e4;
+        const lim = th.chatMins != null ? th.chatMins : 30;
+        if (mins >= lim) {
+          c._escChat = true; const agent = pickAgent();
+          if (agent) { c.tech = agent; escAdd('Chat', c.id, agent, 'Level 1 → agent (auto-assigned)', `Chat waiting ${Math.round(mins)}min`, c.user); }
+          else escAdd('Chat', c.id, 'Service Desk', 'Level 1 → Service Desk', `Chat waiting ${Math.round(mins)}min, no agent free`, c.user);
+        }
+      });
+      D().maint.filter((m) => m.status === 'Scheduled' && m.next && !m._esc && L.diffDays(m.next, today()) < -((th.pmDays != null ? th.pmDays : 0))).forEach((m) => {
+        m._esc = true;
+        escAdd('PM task', m.id, m.group, 'Level 1 → Group Lead', `Preventive task past due (${m.next})`, m.title);
+      });
+    } catch (err) { /* matrix never breaks ticket flow */ }
     if (applied) S.emit();
     return { applied };
   }
@@ -440,7 +484,7 @@
     const m = D().maint.find((x) => x.id === el.dataset.id);
     const r = mkTicket({ requester: (techs()[0] ? (db().employees.find((e) => e.name === techs()[0]) || {}).no : ''), subject: `PM: ${m.title}`, desc: m.desc || m.title, category: 'Other', type: 'Service Request', source: 'Preventive Maintenance' });
     const days = { Weekly: 7, Monthly: 30, Quarterly: 91, 'Half-Yearly': 182, Yearly: 365 }[m.freq] || 30;
-    m.next = L.addDays(m.next || today(), days); m.lastRun = today(); m.lastTicket = r.id;
+    m.next = L.addDays(m.next || today(), days); m.lastRun = today(); m.lastTicket = r.id; m._esc = false;
     S.emit(); UI.toast(`Ticket ${r.id} generated · next due ${m.next}`);
   });
   pages.pmtasks = {
@@ -478,6 +522,20 @@
   });
   UI.on('rules.edit', (el) => { const r = D().rules.find((x) => x.id === el.dataset.id); UI.form({ title: 'Edit ' + r.id, icon: 'spark', fields: [{ k: 'name', label: 'Rule name', req: true, full: true }, { k: 'matchF', label: 'Match field', type: 'select', options: ['priority', 'category', 'type', 'group', 'level'], blank: false }, { k: 'matchV', label: 'Contains value', req: true }, { k: 'doGroup', label: 'Set group', type: 'select', options: () => groups() }, { k: 'doNotify', label: 'Notify', type: 'select', options: ['None', 'Email', 'Email + SMS'], blank: false }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
   UI.on('rules.run', () => { const r = runRules('manual'); UI.toast(r.applied ? `${r.applied} action(s) applied` : 'Nothing to apply — all rules already evaluated'); });
+  function matrixRows() {
+    const th = D().escth || {};
+    return [
+      ['Tickets', 'Response or resolution SLA breached (hold pauses clock)', 'Level 1 → Group Lead', 'Email'],
+      ['Change approvals', `CAB approval pending over ${th.apprHours != null ? th.apprHours : 48}h`, 'Level 2 → Change Manager', 'Email'],
+      ['Problems', `Unresolved past due date${(th.probDays || 0) ? ` by over ${th.probDays}d` : ''}`, 'Level 1 → Group Lead', 'Email'],
+      ['Live chats', `Waiting unassigned over ${th.chatMins != null ? th.chatMins : 30}min`, 'Level 1 → least-loaded agent (auto-assigned)', 'Email'],
+      ['PM tasks', `Scheduled task past due${(th.pmDays || 0) ? ` by over ${th.pmDays}d` : ''}`, 'Level 1 → Group Lead', 'Email'],
+    ];
+  }
+  UI.on('esc.edit', () => {
+    const th = D().escth || {};
+    UI.form({ title: 'Escalation thresholds', icon: 'clock', fields: [{ k: 'apprHours', label: 'CAB approval wait before escalation (hours)', type: 'number', req: true }, { k: 'probDays', label: 'Problem overdue grace (days past due)', type: 'number', req: true }, { k: 'chatMins', label: 'Chat wait before auto-assign + escalation (minutes)', type: 'number', req: true }, { k: 'pmDays', label: 'PM task overdue grace (days past due)', type: 'number', req: true }], values: th, onSubmit: (v) => { Object.assign(D().escth, { apprHours: +v.apprHours || 0, probDays: +v.probDays || 0, chatMins: +v.chatMins || 0, pmDays: +v.pmDays || 0 }); S.emit(); UI.toast('Matrix updated — applies on next evaluation'); } });
+  });
   UI.on('esc.close', (el) => { const e = D().escalations.find((x) => x.id === el.dataset.id); e.status = 'Closed'; S.emit(); });
   pages.automation = {
     title: 'Automation & SLA', crumb: 'Business rules · auto-assign · smart notifications · escalations', icon: 'spark', color: '#1d4ed8',
@@ -485,9 +543,10 @@
       const d = D(); const tab = UI.curTab('automation', 'rules');
       let body = '';
       if (tab === 'rules') body = UI.table({ id: 'brt', rows: () => d.rules, sort: 'id', text: (r) => r.id + r.name + r.matchV, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'name', label: 'Rule', render: (r) => `<b>${esc(r.name)}</b><br><small>${esc(r.when || '')}</small>` }, { k: 'matchF', label: 'When' }, { k: 'matchV', label: 'Contains' }, { k: 'doGroup', label: 'Set group' }, { k: 'doNotify', label: 'Notify' }, { k: 'active', label: 'Active', render: (r) => P(r.active === 'Yes' ? 'Published' : 'Draft') }], actions: (r) => ea('rules', r.id), toolbar: `${tbNew('rules.new', 'New rule')} <button class="btn ghost" data-act="rules.run">${ic('refresh')}Run now on open tickets</button>` });
-      else if (tab === 'esc') body = UI.table({ id: 'esct', rows: () => d.escalations, sort: 'at', dir: -1, text: (r) => r.req + r.reason, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'req', label: 'Ticket' }, { k: 'level', label: 'Escalated to' }, { k: 'reason', label: 'Reason' }, { k: 'at', label: 'At', render: (r) => fdt(r.at) }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Open' ? 'Draft' : 'Closed') }], actions: (r) => (r.status === 'Open' ? `<button class="btn xs" data-act="esc.close" data-id="${r.id}">Close</button>` : ''), toolbar: `<button class="btn ghost" data-act="rules.run">${ic('refresh')}Check SLAs now</button>` });
+      else if (tab === 'esc') body = UI.table({ id: 'esct', rows: () => d.escalations, sort: 'at', dir: -1, text: (r) => r.req + r.reason, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'module', label: 'Module', render: (r) => esc(r.module || 'Ticket') }, { k: 'req', label: 'Reference' }, { k: 'level', label: 'Escalated to' }, { k: 'reason', label: 'Reason' }, { k: 'at', label: 'At', render: (r) => fdt(r.at) }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Open' ? 'Draft' : 'Closed') }], actions: (r) => (r.status === 'Open' ? `<button class="btn xs" data-act="esc.close" data-id="${r.id}">Close</button>` : ''), toolbar: `<button class="btn ghost" data-act="rules.run">${ic('refresh')}Check SLAs now</button>` });
+      else if (tab === 'matrix') body = `<table class="t"><thead><tr><th>Module</th><th>Trigger</th><th>Escalates to</th><th>Notify</th></tr></thead><tbody>${matrixRows().map((m) => `<tr><td><b>${esc(m[0])}</b></td><td>${esc(m[1])}</td><td>${esc(m[2])}</td><td>${esc(m[3])}</td></tr>`).join('')}</tbody></table><div style="margin-top:10px"><button class="btn" data-act="esc.edit">${ic('clock')}Edit thresholds</button> <button class="btn ghost" data-act="rules.run">${ic('refresh')}Evaluate now</button></div>`;
       else body = UI.table({ id: 'ntf', rows: () => d.notiflog, sort: 'at', dir: -1, text: (r) => r.to + r.subject, cols: [{ k: 'at', label: 'Sent', render: (r) => fdt(r.at) }, { k: 'channel', label: 'Channel' }, { k: 'to', label: 'To' }, { k: 'subject', label: 'Subject', render: (r) => `<b>${esc(r.subject)}</b>` }], actions: () => '' });
-      return `<div class="card">${UI.tabs('automation', [{ id: 'rules', label: 'Business rules', count: d.rules.length }, { id: 'esc', label: 'Escalations', count: d.escalations.filter((e) => e.status === 'Open').length }, { id: 'log', label: 'Notifications log', count: d.notiflog.length }])}${body}</div>`;
+      return `<div class="card">${UI.tabs('automation', [{ id: 'rules', label: 'Business rules', count: d.rules.length }, { id: 'esc', label: 'Escalations', count: d.escalations.filter((e) => e.status === 'Open').length }, { id: 'matrix', label: 'Escalation matrix' }, { id: 'log', label: 'Notifications log', count: d.notiflog.length }])}${body}</div>`;
     },
   };
 
