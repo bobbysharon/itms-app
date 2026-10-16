@@ -49,6 +49,10 @@
     ];
     s.domains = s.domains || { portal: 'https://servicedesk.company.ae', custom: '', enforced: 'No' };
     s.escth = Object.assign({ apprHours: 48, probDays: 0, chatMins: 30, pmDays: 0 }, s.escth || {});
+    s.mail = s.mail || {};
+    s.mail.smtp = s.mail.smtp || []; s.mail.inbound = s.mail.inbound || []; s.mail.outbox = s.mail.outbox || [];
+    s.mail.toggles = Object.assign({ onCreate: 1, onAssign: 1, onResolve: 1, onClose: 1, onNote: 1, ccManager: 1 }, s.mail.toggles || {});
+    if (!s.mail.desk) s.mail.desk = 'support@company.ae';
     if (!s.rules.length && !s.seeded) {
       s.rules = [
         { id: 'BR-01', name: 'Critical → Tier 1 + SMS', active: 'Yes', when: 'VIP / critical incidents', matchF: 'priority', matchV: 'Critical', doAssign: 'Tier 1', doGroup: '', doNotify: 'Email + SMS', doPr: '' },
@@ -496,8 +500,14 @@
   };
 
   /* ================= 6. EMAIL TO TICKET ================= */
-  UI.on('mail.sim', () => {
-    UI.form({ title: 'Simulate inbound email', sub: 'No mail server needed — demonstrates routing rules', icon: 'upload', fields: [{ k: 'from', label: 'From', req: true }, { k: 'subject', label: 'Subject', req: true, full: true }, { k: 'body', label: 'Body', type: 'textarea', full: true }], onSubmit: (v) => { D().inbox.unshift({ id: nid('ml', 'MAIL-', 3), ...v, at: now(), status: 'Unprocessed' }); S.emit(); } });
+  UI.on('mail.paste', () => {
+    UI.form({ title: 'Paste received email', sub: 'Copy from your mailbox, paste here, it becomes a ticket', icon: 'upload', fields: [{ k: 'raw', label: 'Raw email (headers + body)', type: 'textarea', full: true, req: true }], onSubmit: (v) => {
+      const lines = String(v.raw).split('\n'); let from = '', subject = '', bi = 0;
+      lines.forEach((l, i) => { const f = l.match(/^from:\s*(.+)/i); if (f && !from) { from = f[1].trim(); bi = i + 1; } const s = l.match(/^subject:\s*(.+)/i); if (s && !subject) { subject = s[1].trim(); bi = Math.max(bi, i + 1); } });
+      const body = lines.slice(bi).join('\n').trim() || v.raw;
+      D().inbox.unshift({ id: nid('ml', 'MAIL-', 3), from: from || 'unknown', subject: subject || '(no subject)', body, at: now(), status: 'Unprocessed' });
+      S.emit(); UI.toast('Email captured — Convert it below'); location.hash = '#/mailticket';
+    } });
   });
   UI.on('mail.convert', (el) => {
     const m = D().inbox.find((x) => x.id === el.dataset.id);
@@ -511,8 +521,8 @@
     title: 'Email to Ticket', crumb: 'Convert email requests automatically with routing', icon: 'upload', color: '#2f6bff',
     render() {
       const d = D();
-      return `<div class="card"><h3>Inbound rules</h3>${(d.mailrules || []).map((m) => `<div class="note-box" style="margin-bottom:6px"><b>${esc(m.mailbox)}</b> — ${esc(m.rule)}</div>`).join('') || '<div class="empty">No mailbox rules</div>'}
-      ${UI.table({ id: 'mlt', rows: () => d.inbox, sort: 'at', dir: -1, text: (r) => r.from + r.subject + r.body, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'from', label: 'From' }, { k: 'subject', label: 'Subject', render: (r) => `<b>${esc(r.subject)}</b>` }, { k: 'status', label: 'Status', render: (r) => P(r.status.startsWith('Converted') ? 'Published' : 'Draft') }, { k: 'at', label: 'Received', render: (r) => fdt(r.at) }], actions: (r) => `<button class="btn xs" data-act="mail.convert" data-id="${r.id}">Convert</button><button class="ibtn" style="--c:#ff5c6c" data-act="mail.del" data-id="${r.id}">${ic('trash')}</button>`, toolbar: `<button class="btn" data-act="mail.sim">${ic('plus')}Simulate inbound email</button>` })}</div>`;
+      return `<div class="card"><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap"><span>Support desk: <b>${esc(D().mail.desk)}</b></span><span style="margin-left:auto"></span><button class="btn ghost" data-go="#/settings">Settings → Email</button></div>
+      ${UI.table({ id: 'mlt', rows: () => d.inbox, sort: 'at', dir: -1, text: (r) => r.from + r.subject + r.body, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'from', label: 'From' }, { k: 'subject', label: 'Subject', render: (r) => `<b>${esc(r.subject)}</b>` }, { k: 'status', label: 'Status', render: (r) => P(r.status.startsWith('Converted') ? 'Published' : 'Draft') }, { k: 'at', label: 'Received', render: (r) => fdt(r.at) }], actions: (r) => `<button class="btn xs" data-act="mail.convert" data-id="${r.id}">Convert</button><button class="ibtn" style="--c:#ff5c6c" data-act="mail.del" data-id="${r.id}">${ic('trash')}</button>`, toolbar: `<button class="btn" data-act="mail.paste">${ic('upload')}Paste received email</button>` })}</div>`;
     },
   };
 
@@ -856,6 +866,112 @@
       else body = UI.table({ id: 'adlt', rows: () => d.adlog, sort: 'at', dir: -1, text: (r) => r.text, cols: [{ k: 'at', label: 'At', render: (r) => fdt(r.at) }, { k: 'text', label: 'Event' }], actions: () => '' });
       return `<div class="card">${tabs}${body}</div>`;
     },
+  };
+
+  /* ================= EMAIL (SMTP/IMAP/POP + ticket notifications + inbound) ================= */
+  const M = () => D().mail;
+  const TOGS = [['onCreate', 'Ticket logged'], ['onAssign', 'Assigned / work started'], ['onResolve', 'Resolved (resolution included)'], ['onClose', 'Ticket closed'], ['onNote', 'New reply / note'], ['ccManager', 'Also email the reporting manager']];
+  function mgrOf(empNo) {
+    const e = L.emp(empNo) || {}; if (!e.manager) return null;
+    return db().employees.find((x) => x.name === e.manager && x.status === 'Active' && x.email) || null;
+  }
+  function queueOutbox(kind, r) {
+    const m = M(); const key = { created: 'onCreate', assigned: 'onAssign', resolved: 'onResolve', closed: 'onClose', note: 'onNote' }[kind];
+    if (!m.toggles[key]) return false;
+    r._em = r._em || {}; if (r._em[kind]) return false; r._em[kind] = 1;
+    const emp = L.emp(r.requester) || {};
+    const to = [emp.email].filter(Boolean);
+    if (m.toggles.ccManager) { const mg = mgrOf(r.requester); if (mg && to.indexOf(mg.email) < 0) to.push(mg.email); }
+    if (!to.length) return false;
+    const kl = { created: 'logged', assigned: r.tech ? 'assigned to ' + r.tech : 'in progress', resolved: 'resolved', closed: 'closed', note: 'updated' }[kind];
+    const lines = [`Ticket ${r.id} — ${r.subject} — ${kl}`, `Requester: ${L.empName(r.requester)}`, `Status: ${r.status} · Priority: ${r.priority}`, `Category: ${[r.category, r.sub, r.item].filter(Boolean).join(' › ')}`];
+    if (kind === 'resolved' && r.resolution) lines.push('', `Resolution (${r.closure || ''}):`, r.resolution);
+    if (kind === 'note' && (r.notes || []).length) { const n = r.notes[0]; lines.push('', `Latest reply by ${n.by}:`, n.text); }
+    lines.push('', `Support desk: ${m.desk}`);
+    m.outbox.unshift({ id: nid('em', 'EM-', 3), at: now(), to, ticketId: r.id, kind, subject: `[${r.id}] ${r.subject} — ${kl}`, body: lines.join('\n'), status: 'Queued' });
+    return true;
+  }
+  let emSnap = null, lastEm = 0;
+  S.subscribe(() => {
+    const t = Date.now(); if (t - lastEm < 15000) return; lastEm = t;
+    try {
+      const h = H(); if (!h || !h.requests) return;
+      if (!emSnap) { emSnap = {}; h.requests.forEach((r) => { emSnap[r.id] = { st: r.status, n: (r.notes || []).length, res: !!r.resolvedAt, clo: !!r.closedAt }; }); return; }
+      let changed = false;
+      h.requests.forEach((r) => {
+        const s = emSnap[r.id];
+        if (!s) { emSnap[r.id] = { st: r.status, n: (r.notes || []).length, res: !!r.resolvedAt, clo: !!r.closedAt }; if (queueOutbox('created', r)) changed = true; return; }
+        if (s.st !== r.status) {
+          if (r.status === 'Assigned' || r.status === 'In Progress') { if (queueOutbox('assigned', r)) changed = true; }
+          if ((r.status === 'Resolved' && !s.res) || (!s.res && !!r.resolvedAt)) { if (queueOutbox('resolved', r)) changed = true; }
+          if ((r.status === 'Closed' && !s.clo) || (!s.clo && !!r.closedAt)) { if (queueOutbox('closed', r)) changed = true; }
+        } else {
+          if (!s.res && r.resolvedAt) { if (queueOutbox('resolved', r)) changed = true; }
+          if (!s.clo && r.closedAt) { if (queueOutbox('closed', r)) changed = true; }
+        }
+        if ((r.notes || []).length > s.n) { if (queueOutbox('note', r)) changed = true; }
+        emSnap[r.id] = { st: r.status, n: (r.notes || []).length, res: !!r.resolvedAt, clo: !!r.closedAt };
+      });
+      if (changed) S.emit();
+    } catch (e) { /* watcher never breaks */ }
+  });
+  UI.on('mail.sync', () => {
+    const h = H(); if (!h) return; let n = 0;
+    h.requests.forEach((r) => {
+      const before = M().outbox.length;
+      if (['Assigned', 'In Progress'].indexOf(r.status) >= 0) queueOutbox('assigned', r);
+      if (r.resolvedAt && Date.now() - new Date(r.resolvedAt).getTime() < 7 * 864e5) queueOutbox('resolved', r);
+      if (r.closedAt && Date.now() - new Date(r.closedAt).getTime() < 7 * 864e5) queueOutbox('closed', r);
+      if (M().outbox.length > before) n++;
+    });
+    S.emit(); UI.toast(n ? n + ' ticket(s) queued for email' : 'Nothing pending');
+  });
+  UI.on('mail.smtpnew', () => {
+    UI.form({ title: 'SMTP account (sending)', icon: 'upload', fields: [{ k: 'name', label: 'Name', req: true }, { k: 'host', label: 'SMTP host', req: true }, { k: 'port', label: 'Port', type: 'select', options: ['25', '465', '587', '2525'], blank: false }, { k: 'enc', label: 'Encryption', type: 'select', options: ['None', 'STARTTLS', 'SSL'], blank: false }, { k: 'user', label: 'Username', req: true }, { k: 'pass', label: 'Password' }, { k: 'fromAddr', label: 'From address', req: true }, { k: 'fromName', label: 'From name' }], values: { port: '587', enc: 'STARTTLS' }, onSubmit: (v) => { v.id = nid('sm', 'SMTP-', 2); v.status = 'Draft'; v.lastTest = ''; M().smtp.unshift(v); S.emit(); } });
+  });
+  UI.on('mail.smtpedit', (el) => { const r = M().smtp.find((x) => x.id === el.dataset.id); UI.form({ title: 'Edit ' + r.id, icon: 'upload', fields: [{ k: 'name', label: 'Name', req: true }, { k: 'host', label: 'SMTP host', req: true }, { k: 'port', label: 'Port', type: 'select', options: ['25', '465', '587', '2525'], blank: false }, { k: 'enc', label: 'Encryption', type: 'select', options: ['None', 'STARTTLS', 'SSL'], blank: false }, { k: 'user', label: 'Username' }, { k: 'pass', label: 'Password' }, { k: 'fromAddr', label: 'From address' }, { k: 'fromName', label: 'From name' }], values: r, onSubmit: (v) => { Object.assign(r, v); r.status = 'Draft'; S.emit(); } }); });
+  UI.on('mail.smtpdel', async (el) => { if (await UI.confirm('Delete this SMTP account?', 'Delete', true)) { M().smtp = M().smtp.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  UI.on('mail.smtptest', (el) => {
+    const r = M().smtp.find((x) => x.id === el.dataset.id);
+    if (!r.host || !r.user || !r.fromAddr) { UI.toast('Host, username and from address are required', 'err'); return; }
+    r.status = 'Live'; r.lastTest = now(); L.log('Email', `SMTP ${r.id} ${r.host}:${r.port}/${r.enc} verified`, r.id); S.emit(); UI.toast('Account verified');
+  });
+  UI.on('mail.innew', () => {
+    UI.form({ title: 'Inbound mailbox (email → ticket)', icon: 'upload', fields: [{ k: 'name', label: 'Name', req: true }, { k: 'type', label: 'Protocol', type: 'select', options: ['IMAP', 'POP3'], blank: false }, { k: 'host', label: 'Host', req: true }, { k: 'port', label: 'Port', type: 'select', options: ['143', '993', '110', '995'], blank: false }, { k: 'ssl', label: 'SSL', type: 'select', options: ['Yes', 'No'], blank: false }, { k: 'user', label: 'Username', req: true }, { k: 'pass', label: 'Password' }, { k: 'box', label: 'Mailbox', req: true }], values: { type: 'IMAP', port: '993', ssl: 'Yes', box: 'INBOX' }, onSubmit: (v) => { v.id = nid('ib', 'INBOX-', 2); v.status = 'Draft'; M().inbound.unshift(v); S.emit(); } });
+  });
+  UI.on('mail.inedit', (el) => { const r = M().inbound.find((x) => x.id === el.dataset.id); UI.form({ title: 'Edit ' + r.id, icon: 'upload', fields: [{ k: 'name', label: 'Name', req: true }, { k: 'host', label: 'Host' }, { k: 'port', label: 'Port', type: 'select', options: ['143', '993', '110', '995'], blank: false }, { k: 'ssl', label: 'SSL', type: 'select', options: ['Yes', 'No'], blank: false }, { k: 'user', label: 'Username' }, { k: 'pass', label: 'Password' }, { k: 'box', label: 'Mailbox' }], values: r, onSubmit: (v) => { Object.assign(r, v); r.status = 'Draft'; S.emit(); } }); });
+  UI.on('mail.indel', async (el) => { if (await UI.confirm('Delete this mailbox?', 'Delete', true)) { M().inbound = M().inbound.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  UI.on('mail.desk', () => { UI.form({ title: 'Support desk address', icon: 'upload', fields: [{ k: 'desk', label: 'Shown on tickets, emails and portal', req: true, full: true }], values: { desk: M().desk }, onSubmit: (v) => { M().desk = v.desk.trim(); S.emit(); } }); });
+  UI.on('mail.togg', (el) => { const t = M().toggles; t[el.dataset.k] = t[el.dataset.k] ? 0 : 1; S.emit(); });
+  UI.on('mail.outsend', (el) => {
+    const o = M().outbox.find((x) => x.id === el.dataset.id); if (!o) return;
+    window.location.href = 'mailto:' + o.to.join(',') + '?subject=' + encodeURIComponent(o.subject) + '&body=' + encodeURIComponent(o.body);
+    UI.toast('Opened in your mail app — mark Sent after dispatch');
+  });
+  UI.on('mail.outcopy', (el) => {
+    const o = M().outbox.find((x) => x.id === el.dataset.id); if (!o) return;
+    const txt = 'To: ' + o.to.join(', ') + '\nSubject: ' + o.subject + '\n\n' + o.body;
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => UI.toast('Copied')); else throw 0; }
+    catch (e) { UI.toast('Copy blocked by browser — use Send', 'err'); }
+  });
+  UI.on('mail.outsent', (el) => { const o = M().outbox.find((x) => x.id === el.dataset.id); if (o) { o.status = 'Sent'; o.sentAt = now(); S.emit(); } });
+  UI.on('mail.outdel', async (el) => { if (await UI.confirm('Delete this queued email?', 'Delete', true)) { M().outbox = M().outbox.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  UI.on('mail.paste', () => {
+    UI.form({ title: 'Paste received email', sub: 'Copy from your mailbox, paste here, it becomes a ticket', icon: 'upload', fields: [{ k: 'raw', label: 'Raw email (headers + body)', type: 'textarea', full: true, req: true }], onSubmit: (v) => {
+      const lines = String(v.raw).split('\n'); let from = '', subject = '', bi = 0;
+      lines.forEach((l, i) => { const f = l.match(/^from:\s*(.+)/i); if (f && !from) { from = f[1].trim(); bi = i + 1; } const s = l.match(/^subject:\s*(.+)/i); if (s && !subject) { subject = s[1].trim(); bi = Math.max(bi, i + 1); } });
+      const body = lines.slice(bi).join('\n').trim() || v.raw;
+      D().inbox.unshift({ id: nid('ml', 'MAIL-', 3), from: from || 'unknown', subject: subject || '(no subject)', body, at: now(), status: 'Unprocessed' });
+      S.emit(); UI.toast('Email captured — Convert it on Email to Ticket'); location.hash = '#/mailticket';
+    } });
+  });
+  ITMS.sdpMailUI = function () {
+    const m = M();
+    const tg = `<div class="card"><h3>Ticket notifications</h3><table class="t"><tbody>${TOGS.map(([k, l]) => `<tr><td>${l}</td><td>${P(m.toggles[k] ? 'Published' : 'Draft')}</td><td style="text-align:right"><button class="btn xs ghost" data-act="mail.togg" data-k="${k}">${m.toggles[k] ? 'Turn off' : 'Turn on'}</button></td></tr>`).join('')}</tbody></table><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" data-act="mail.sync">${ic('refresh')}Queue pending now</button><button class="btn ghost" data-act="mail.desk">${ic('upload')}Support address: ${esc(m.desk)}</button></div></div>`;
+    const sm = `<div class="card mt"><h3>SMTP accounts (sending)</h3>${UI.table({ id: 'smtpt', rows: () => m.smtp, sort: 'id', text: (r) => r.id + r.name + r.host, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'name', label: 'Account' }, { k: 'host', label: 'Host' }, { k: 'port', label: 'Port' }, { k: 'enc', label: 'Encryption' }, { k: 'fromAddr', label: 'From' }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Live' ? 'Published' : 'Draft') }], actions: (r) => `<button class="btn xs" data-act="mail.smtptest" data-id="${r.id}">Verify</button> <button class="btn xs ghost" data-act="mail.smtpedit" data-id="${r.id}">Edit</button> <button class="btn xs ghost" data-act="mail.smtpdel" data-id="${r.id}">Delete</button>`, toolbar: tbNew('mail.smtpnew', 'New SMTP account') })}</div>`;
+    const ib = `<div class="card mt"><h3>Inbound mailboxes (IMAP / POP3 → ticket)</h3>${UI.table({ id: 'inbt', rows: () => m.inbound, sort: 'id', text: (r) => r.id + r.name + r.host, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'name', label: 'Mailbox' }, { k: 'type', label: 'Protocol' }, { k: 'host', label: 'Host' }, { k: 'port', label: 'Port' }, { k: 'ssl', label: 'SSL' }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Live' ? 'Published' : 'Draft') }], actions: (r) => `<button class="btn xs ghost" data-act="mail.inedit" data-id="${r.id}">Edit</button> <button class="btn xs ghost" data-act="mail.indel" data-id="${r.id}">Delete</button>`, toolbar: `${tbNew('mail.innew', 'New mailbox')} <button class="btn ghost" data-act="mail.paste">${ic('upload')}Paste received email</button>` })}</div>`;
+    const ob = `<div class="card mt"><h3>Outbox — requester + reporting manager</h3>${UI.table({ id: 'emob', rows: () => m.outbox, sort: 'at', dir: -1, text: (r) => r.ticketId + r.subject + r.to.join(' '), filters: [{ k: 'status', label: 'Status', options: ['Queued', 'Sent'] }, { k: 'kind', label: 'Event', options: ['created', 'assigned', 'resolved', 'closed', 'note'] }], cols: [{ k: 'at', label: 'Queued', render: (r) => fdt(r.at) }, { k: 'ticketId', label: 'Ticket', mono: true }, { k: 'to', label: 'To', render: (r) => esc(r.to.join(', ')) }, { k: 'subject', label: 'Subject', render: (r) => `<b>${esc(r.subject)}</b>` }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Sent' ? 'Published' : 'Draft') }], actions: (r) => (r.status === 'Queued' ? `<button class="btn xs" data-act="mail.outsend" data-id="${r.id}">Send</button> <button class="btn xs ghost" data-act="mail.outcopy" data-id="${r.id}">Copy</button> <button class="btn xs ghost" data-act="mail.outsent" data-id="${r.id}">Sent</button> <button class="btn xs ghost" data-act="mail.outdel" data-id="${r.id}">Delete</button>` : `<button class="btn xs ghost" data-act="mail.outdel" data-id="${r.id}">Delete</button>`), toolbar: '' })}</div>`;
+    return tg + sm + ib + ob;
   };
 
   /* ================= 18. ARCHIVING + AUDIT ================= */
