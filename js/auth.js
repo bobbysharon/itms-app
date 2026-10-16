@@ -38,6 +38,11 @@
         d.users.push({ email: am, hash: pwHash('Admin@12345', SALT), empNo: 'sysadmin', role: 'Administrator', created: L.today() });
       }
     });
+    try {
+      const roles = (((db() || {}).sdp) || {}).roles || [];
+      const adm = roles.find((x) => x.name === 'Administrator');
+      if (adm) { adm.active = 'Yes'; adm.perms = adm.perms || []; if (adm.perms.indexOf('admin') < 0) adm.perms.push('admin'); adm.access = null; }
+    } catch (e) { /* sdp not ready yet */ }
     (d.employees || []).forEach((e) => {
       if (e.role) return;
       const u = d.users.find((x) => x.empNo === e.no);
@@ -178,6 +183,7 @@
         rows.forEach((r, i) => {
           try {
             if (!r.name || !r.name.trim()) throw new Error('name is required');
+            if (ADMIN_EMAILS.indexOf(String(r.email || '').toLowerCase()) >= 0) throw new Error('reserved admin email — manage it via Login access');
             const data = { name: r.name.trim(), designation: r.designation || '', manager: r.manager || '', doj: r.doj || '', dol: r.dol || '', dept: r.dept || '', location: r.location || '', email: (r.email || '').trim(), mobile: r.mobile || '', status: ['Active', 'Inactive', 'Left'].indexOf(r.status) >= 0 ? r.status : 'Active', role: validRoles.indexOf(r.role) >= 0 ? r.role : 'Requester' };
             let e = (r.no && L.emp(r.no.trim())) || (data.email && db().employees.find((x) => !x.sys && (x.email || '').toLowerCase() === data.email.toLowerCase()));
             if (e) { if (!r.role) delete data.role; L.saveEmployee(data, e.no); updated++; } else { L.saveEmployee(data); created++; }

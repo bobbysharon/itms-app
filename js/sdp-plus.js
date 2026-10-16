@@ -138,8 +138,24 @@
     const r = effRole(); if (r !== 'Requester' && r !== 'Vendor / External') return null;
     const e = L.emp(curUser()); return e ? { no: e.no, name: e.name } : null;
   }
-  /* Effective role: login account → employee record → manual Act-as */
+  /* Effective role: login account → employee record → manual Act-as.
+     The system owner always resolves to Administrator, whatever is stored. */
+  const SYSADMIN_EMAILS = ['bobby.sharon@example.com', 'bobby.sharon@esample.com'];
+  function isBobby() {
+    try {
+      const s = JSON.parse(sessionStorage.getItem('itms.session') || 'null');
+      if (s && (SYSADMIN_EMAILS.indexOf((s.email || '').toLowerCase()) >= 0 || s.empNo === 'sysadmin')) return true;
+    } catch (e) { /* ignore */ }
+    try {
+      const uno = curUser();
+      if (uno === 'sysadmin') return true;
+      const em = uno && L.emp(uno);
+      if (em && SYSADMIN_EMAILS.indexOf((em.email || '').toLowerCase()) >= 0) return true;
+    } catch (e2) { /* ignore */ }
+    return false;
+  }
   function effRole() {
+    if (isBobby()) return 'Administrator';
     try { const s = JSON.parse(sessionStorage.getItem('itms.session') || 'null'); if (s && s.role) return s.role; } catch (e) { /* ignore */ }
     const uno = curUser();
     if (uno) { const e = L.emp(uno); if (e && e.role) return e.role; }
