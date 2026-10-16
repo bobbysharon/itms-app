@@ -47,15 +47,13 @@
     const needAcc = s.roles.some((x) => !x.access);
     if (needAcc) {
       const ALL = Object.keys(ITMS.pages || {});
-      const noAdmin = ['roles', 'settings'];
       const TECH = ['dashboard', 'itsm', 'tickets', 'portal', 'itil', 'cmdb', 'kb', 'mailticket', 'pmtasks', 'templates', 'projects', 'scheduler', 'hardware', 'movements', 'software', 'consumables', 'loans', 'discovery', 'employees', 'lifecycle', 'workflow'];
+      const byName = { 'Group Lead': null, Technician: TECH, Requester: ['dashboard', 'portal', 'kb'], 'Vendor / External': ['dashboard', 'tickets', 'itil', 'kb', 'projects'] };
       s.roles.forEach((x) => {
         if (x.access) return;
-        if (x.name === 'Group Lead') x.access = ALL.filter((id) => noAdmin.indexOf(id) < 0);
-        else if (x.name === 'Technician') x.access = TECH.filter((id) => ALL.indexOf(id) >= 0);
-        else if (x.name === 'Requester') x.access = ['dashboard', 'portal', 'kb'].filter((id) => ALL.indexOf(id) >= 0);
-        else if (x.name === 'Vendor / External') x.access = ['dashboard', 'tickets', 'itil', 'kb', 'projects'].filter((id) => ALL.indexOf(id) >= 0);
-        else x.access = null;
+        if (x.name === 'Group Lead') { x.access = ALL.filter((id) => id !== 'roles' && id !== 'settings'); return; }
+        if (byName[x.name]) { x.access = byName[x.name].filter((id) => ALL.indexOf(id) >= 0); return; }
+        x.access = null;
       });
     }
     if (!s.instances || !s.instances.length) s.instances = [
@@ -98,26 +96,22 @@
       });
     }
     if (!s.rules.length && !s.seeded) {
-      s.rules = [
-        { id: 'BR-01', name: 'Critical → Tier 1 + SMS', active: 'Yes', when: 'VIP / critical incidents', matchF: 'priority', matchV: 'Critical', doAssign: 'Tier 1', doGroup: '', doNotify: 'Email + SMS', doPr: '' },
-        { id: 'BR-02', name: 'Access requests → L1 queue', active: 'Yes', when: 'Category is Accounts & Access', matchF: 'category', matchV: 'Accounts & Access', doAssign: '', doGroup: 'Service Desk (L1)', doNotify: 'Email', doPr: '' },
-      ];
-      s.mailrules = s.mailrules || [{ id: 'MR-01', mailbox: 'support@company.ae', active: 'Yes', rule: 'Subject contains "password" → Accounts & Access / Password Reset; else → General Query', created: today() }];
-      s.surveys = [{ id: 'SV-01', title: 'Ticket satisfaction (CSAT)', desc: 'Sent when a ticket is resolved', active: 'Yes', q: 'How satisfied are you with the support? (1-5)' }];
-      s.templates = [{ id: 'TPL-01', name: 'New laptop request', category: 'Service Request', desc: 'Standard laptop + docking station', impact: 'Medium', urgency: 'Normal', group: '', tasks: 'Manager approval; Procurement check', active: 'Yes' }];
-      s.products = [
-        { id: 'PRD-01', brand: 'Dell', model: 'Latitude 5440', type: 'Laptop', uom: 'Nos', price: 4200, vendor: '', active: 'Yes' },
-        { id: 'PRD-02', brand: 'HP', model: 'LaserJet M404', type: 'Printer', uom: 'Nos', price: 1100, vendor: '', active: 'Yes' },
-      ];
+      s.rules.push({ id: 'BR-01', name: 'Critical Tier 1 SMS', active: 'Yes', when: 'VIP and critical incidents', matchF: 'priority', matchV: 'Critical', doAssign: 'Tier 1', doGroup: '', doNotify: 'Email + SMS', doPr: '' });
+      s.rules.push({ id: 'BR-02', name: 'Access requests to L1 queue', active: 'Yes', when: 'Category is Accounts and Access', matchF: 'category', matchV: 'Accounts & Access', doAssign: '', doGroup: 'Service Desk (L1)', doNotify: 'Email', doPr: '' });
+      s.mailrules = s.mailrules || [];
+      s.mailrules.push({ id: 'MR-01', mailbox: 'support@company.ae', active: 'Yes', rule: 'Password in subject routes to Accounts and Access', created: today() });
+      s.surveys.push({ id: 'SV-01', title: 'Ticket satisfaction (CSAT)', desc: 'Sent when a ticket is resolved', active: 'Yes', q: 'How satisfied are you with the support? (1-5)' });
+      s.templates.push({ id: 'TPL-01', name: 'New laptop request', category: 'Service Request', desc: 'Standard laptop and docking station', impact: 'Medium', urgency: 'Normal', group: '', tasks: 'Manager approval; Procurement check', active: 'Yes' });
+      s.products.push({ id: 'PRD-01', brand: 'Dell', model: 'Latitude 5440', type: 'Laptop', uom: 'Nos', price: 4200, vendor: '', active: 'Yes' });
+      s.products.push({ id: 'PRD-02', brand: 'HP', model: 'LaserJet M404', type: 'Printer', uom: 'Nos', price: 1100, vendor: '', active: 'Yes' });
       s.seeded = true;
     }
     s.mailrules = s.mailrules || [];
     if (!s.adSeeded) {
       s.adconns = [{ id: 'ADC-001', name: 'HQ Domain Controller', host: 'dc01.company.ae', port: '636', enc: 'SSL', baseDN: 'DC=company,DC=ae', bindUser: 'svc_itms@company.ae', cert: '', status: 'Draft', lastTest: '' }];
-      s.adgroups = [
-        { id: 'ADG-01', name: 'Domain Admins', scope: 'Global', category: 'Security', desc: 'Full control of the domain — membership audited', members: [] },
-        { id: 'ADG-02', name: 'IT Support', scope: 'Global', category: 'Security', desc: 'Service desk technicians — ticket, asset and user admin', members: [] },
-      ];
+      s.adgroups = [];
+      s.adgroups.push({ id: 'ADG-01', name: 'Domain Admins', scope: 'Global', category: 'Security', desc: 'Full control of the domain', members: [] });
+      s.adgroups.push({ id: 'ADG-02', name: 'IT Support', scope: 'Global', category: 'Security', desc: 'Service desk technicians', members: [] });
       s.adSeeded = true;
     }
   }
