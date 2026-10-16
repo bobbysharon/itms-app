@@ -175,7 +175,7 @@
     return r.perms.includes(perm);
   }
   function deny(perm) { if (!can(perm)) { UI.toast(`Role "${curRole()}" has no "${perm}" permission (see Roles & Access)`, 'err'); return true; } return false; }
-  ITMS.sdp = { D, can, curRole, setRole, curSite, setSite, curUser, setUser, lockedRequester };
+  ITMS.sdp = { D, can, canPage, effRole, isBobby, curRole, setRole, curSite, setSite, curUser, setUser, lockedRequester };
 
   /* ================= shared helpers ================= */
   function notify(channel, to, subject, body) {

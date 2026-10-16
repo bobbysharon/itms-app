@@ -2,7 +2,7 @@
 (function () {
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
-  ITMS.BUILD = '2026-10-16 · systemadmin login';
+  ITMS.BUILD = '2026-10-16 · gate export plus selfcheck';
   try { console.info('%cITMS build ' + ITMS.BUILD, 'color:#2f6bff;font-weight:bold'); } catch (e) { /* ignore */ }
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
@@ -90,6 +90,25 @@
     const total = Object.keys(b).reduce((s, k) => s + (typeof b[k][0] === 'number' ? b[k][0] : 0), 0);
     const bell = document.getElementById('bellN'); if (bell) { bell.textContent = total; bell.style.display = total ? '' : 'none'; }
   }
+  function healthHtml() {
+    try {
+      const missing = ORDER.filter((id) => id !== 'dashboard' && !ITMS.pages[id]);
+      const errs = (window.ITMS_LOAD_ERRORS || []).slice(-8);
+      let gate = 'gate code missing';
+      try {
+        if (ITMS.sdp && ITMS.sdp.canPage) {
+          const who = (ITMS.sdp.effRole ? ITMS.sdp.effRole() : '?');
+          gate = 'you=' + who + ' · tickets ' + (ITMS.sdp.canPage('tickets') ? 'ALLOWED' : 'BLOCKED') + ' · hr ' + (ITMS.sdp.canPage('hr') ? 'ALLOWED' : 'BLOCKED');
+        }
+      } catch (e) { gate = 'gate error: ' + e.message; }
+      if (!missing.length && !errs.length) return '';
+      return `<div class="card" style="border-left:4px solid #ff5c6c;margin-bottom:16px"><h3>Self-check — send this to support</h3>`
+        + `<div>Pages registered: <b>${ORDER.length - missing.length - 1} / ${ORDER.length - 1}</b> · ${esc(gate)}</div>`
+        + (missing.length ? `<div style="margin-top:6px">Missing screens: <b>${missing.slice(0, 14).map(esc).join(', ')}</b>${missing.length > 14 ? ' …' : ''}</div>` : '')
+        + (errs.length ? `<div style="margin-top:6px">Script errors:<br>${errs.map((x) => `<span class="mono">${esc(x)}</span>`).join('<br>')}</div>` : '')
+        + `</div>`;
+    } catch (e) { return ''; }
+  }
   function countUp() {
     document.querySelectorAll('[data-count]').forEach((el) => {
       const raw = el.dataset.count; const n = parseFloat(String(raw).replace(/,/g, '')); if (isNaN(n) || /\//.test(raw)) return; const dec = +el.dataset.dec || 0; const t0 = performance.now();
@@ -100,6 +119,7 @@
   function render() {
     const nav = ITMS.nav; const page = ITMS.pages[nav.page] || ITMS.pages.dashboard; const view = document.getElementById('view'); const sc = view.scrollTop;
     try { view.innerHTML = page.render(); } catch (e) { console.error(e); view.innerHTML = `<div class="card"><div class="empty"><b>Something went wrong rendering this page</b>${esc(e.message)}</div></div>`; }
+    if (nav.page === 'dashboard') { try { const hh = healthHtml(); if (hh) view.innerHTML = hh + view.innerHTML; } catch (e) { /* ignore */ } }
     document.getElementById('ptitle').textContent = page.title; document.getElementById('pcrumb').textContent = page.crumb;
     document.title = page.title + ' · ITMS'; renderNav();
     if (page.after) page.after();
