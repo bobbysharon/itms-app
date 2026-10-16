@@ -42,6 +42,8 @@
       { id: 'SITE-01', name: 'Head Office — Dubai', code: 'DXB-HO', group: 'Service Desk (L1)', tz: 'Asia/Dubai', active: 'Yes' },
       { id: 'SITE-02', name: 'Abu Dhabi Branch', code: 'AUH-BR', group: 'Desktop Support (L2)', tz: 'Asia/Dubai', active: 'Yes' },
     ];
+    if (!s.roles.some((x) => x.name === 'HR Officer')) s.roles.push({ id: 'ROLE-07', name: 'HR Officer', scope: 'HR module only — no identity admin', perms: ['view', 'create', 'edit'], access: ['dashboard', 'hr', 'portal', 'kb', 'scheduler'], active: 'Yes' });
+    if (!s.roles.some((x) => x.name === 'Finance Officer')) s.roles.push({ id: 'ROLE-08', name: 'Finance Officer', scope: 'Finance module only', perms: ['view', 'create', 'edit'], access: ['dashboard', 'finance', 'portal', 'kb'], active: 'Yes' });
     const needAcc = s.roles.some((x) => !x.access);
     if (needAcc) {
       const ALL = Object.keys(ITMS.pages || {});
@@ -70,6 +72,7 @@
     s.hr = s.hr || {};
     s.hr.leaveTypes = s.hr.leaveTypes || [{ type: 'Annual', days: 30 }, { type: 'Sick', days: 15 }, { type: 'Emergency', days: 5 }, { type: 'Unpaid', days: 0 }];
     s.hr.leaves = s.hr.leaves || []; s.hr.clear = s.hr.clear || [];
+    s.hr.onb = s.hr.onb || []; s.hr.offb = s.hr.offb || [];
     s.fin = s.fin || {}; s.fin.expenses = s.fin.expenses || []; s.fin.payments = s.fin.payments || [];
     if (!s.accV2) {
       s.accV2 = true;
@@ -1114,6 +1117,44 @@
   };
 
   /* ================= HR MODULE (leave · clearance · desk links) ================= */
+  const empFieldsNoRole = () => { try { return ITMS.forms.empFields().filter((f) => f.k !== 'role'); } catch (e) { return [{ k: 'name', label: 'Employee name', req: true }, { k: 'designation', label: 'Designation' }, { k: 'dept', label: 'Department' }, { k: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'Left'], blank: false }]; } };
+  UI.on('hrstaff.new', () => UI.form({ title: 'New employee', icon: 'users', fields: empFieldsNoRole(), values: { status: 'Active', role: undefined }, onSubmit: (v) => { delete v.role; L.saveEmployee(v); UI.toast('Employee added'); } }));
+  UI.on('hr.onboard', () => {
+    UI.form({
+      title: 'HR onboarding request', sub: 'Add or pick the joiner — IT completes assets, IDs and the signature form', icon: 'plus',
+      fields: [{ k: 'empNo', label: 'Existing employee (or add new below)', type: 'select', options: () => [{ v: '', l: '— new joiner —' }].concat(empOpts()) }, { section: 'New joiner details (leave blank if picked above)' }, { k: 'name', label: 'Full name', full: true }, { k: 'designation', label: 'Designation' }, { k: 'dept', label: 'Department' }, { k: 'doj', label: 'Date of joining', type: 'date' }, { k: 'email', label: 'Email' }, { k: 'mobile', label: 'Mobile' }, { k: 'date', label: 'Start date', type: 'date', req: true }],
+      values: { date: today(), doj: today() },
+      submit: 'Submit to IT',
+      onSubmit: (v) => {
+        let no = v.empNo;
+        if (!no) {
+          if (!String(v.name || '').trim() || !String(v.dept || '').trim()) throw new Error('Pick an employee, or enter name + department for a new joiner');
+          const data = { name: v.name.trim(), designation: v.designation || '', manager: '', doj: v.doj || v.date, dol: '', dept: v.dept.trim(), location: '', email: v.email || '', mobile: v.mobile || '', status: 'Active' };
+          L.saveEmployee(data); no = data.no;
+        }
+        const e = L.emp(no);
+        if (e.status !== 'Active') { e.status = 'Active'; if (!e.doj) e.doj = v.date; }
+        D().hr.onb.unshift({ id: nid('hrb', 'HRB-', 3), empNo: no, date: v.date, status: 'Pending IT', ref: '', at: now(), by: chatMe() || curRole() });
+        notify('Email', 'IT Technicians', `[HRB] Onboarding requested for ${e.name}`, `${e.name} (${no}) · ${e.dept} · start ${v.date} — accept it under Onboarding & Offboarding`);
+        S.emit(); UI.toast('Sent to IT for completion');
+      },
+    });
+  });
+  UI.on('hr.offboard', () => {
+    UI.form({
+      title: 'HR offboarding request', sub: 'Pick the leaver — IT collects assets, disables IDs and prints clearance', icon: 'undo',
+      fields: [{ k: 'empNo', label: 'Employee', type: 'select', options: empOpts, req: true }, { k: 'date', label: 'Last working day', type: 'date', req: true }],
+      values: { date: today() },
+      submit: 'Submit to IT',
+      onSubmit: (v) => {
+        const e = L.emp(v.empNo);
+        D().hr.offb.unshift({ id: nid('hrf', 'HRF-', 3), empNo: v.empNo, date: v.date, status: 'Pending IT', ref: '', at: now(), by: chatMe() || curRole() });
+        notify('Email', 'IT Technicians', `[HRF] Offboarding requested for ${e.name}`, `${e.name} (${v.empNo}) · last day ${v.date} — accept it under Onboarding & Offboarding`);
+        S.emit(); UI.toast('Sent to IT for completion');
+      },
+    });
+  });
+  UI.on('hrstaff.edit', (el) => { const e = L.emp(el.dataset.id); if (!e) return; UI.form({ title: 'Edit ' + e.name, sub: e.no, icon: 'edit', fields: empFieldsNoRole(), values: e, onSubmit: (v) => { delete v.role; L.saveEmployee(v, e.no); UI.toast('Employee updated'); } }); });
   const leaveDays = (f, t) => Math.max(0, Math.round((new Date(t) - new Date(f)) / 864e5) + 1);
   function hrBal(empNo, type) {
     const yr = String(new Date().getFullYear());
@@ -1148,15 +1189,17 @@
     D().hr.clear.unshift({ empNo: no, at: now(), by: chatMe() || curRole() }); S.emit(); UI.toast('Clearance signed');
   });
   pages.hr = {
-    title: 'HR Management', crumb: 'Leave · exit clearance · HR service desk', icon: 'users', color: '#3b82f6',
+    title: 'HR Management', crumb: 'Staff directory · leave · exit clearance · HR service desk', icon: 'users', color: '#00c2ff',
     render() {
-      const d = D(); const tab = UI.curTab('hr', 'leave');
-      const tabs = UI.tabs('hr', [{ id: 'leave', label: 'Leave', count: d.hr.leaves.filter((l) => l.status === 'Pending').length }, { id: 'bal', label: 'Balances' }, { id: 'clear', label: 'Exit clearance' }, { id: 'desk', label: 'HR desk' }]);
+      const d = D(); const tab = UI.curTab('hr', 'staff');
+      const tabs = UI.tabs('hr', [{ id: 'staff', label: 'Staff directory' }, { id: 'req', label: 'On/offboarding requests', count: d.hr.onb.filter((x) => x.status !== 'Completed').length + d.hr.offb.filter((x) => x.status !== 'Completed').length }, { id: 'leave', label: 'Leave', count: d.hr.leaves.filter((l) => l.status === 'Pending').length }, { id: 'bal', label: 'Balances' }, { id: 'clear', label: 'Exit clearance' }, { id: 'desk', label: 'HR desk' }]);
       let body = '';
-      if (tab === 'leave') body = UI.table({ id: 'lvt', rows: () => d.hr.leaves.map((l) => Object.assign({ who: L.empName(l.empNo) }, l)), sort: 'from', dir: -1, text: (r) => r.id + r.who + r.type, filters: [{ k: 'status', label: 'Status', options: ['Pending', 'Approved', 'Rejected'] }, { k: 'type', label: 'Type', options: () => d.hr.leaveTypes.map((x) => x.type) }], cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'who', label: 'Employee' }, { k: 'type', label: 'Type' }, { k: 'from', label: 'From' }, { k: 'to', label: 'To' }, { k: 'days', label: 'Days', num: true }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Approved' ? 'Published' : r.status === 'Rejected' ? 'Expired' : 'Draft') }], actions: (r) => (r.status === 'Pending' ? `<button class="btn xs" data-act="leave.ok" data-id="${r.id}">Approve</button> <button class="btn xs ghost" data-act="leave.no" data-id="${r.id}">Reject</button> <button class="btn xs ghost" data-act="leave.del" data-id="${r.id}">Delete</button>` : `<button class="btn xs ghost" data-act="leave.del" data-id="${r.id}">Delete</button>`), toolbar: `${tbNew('leave.apply', 'Apply leave')} <button class="btn ghost" data-act="ltypes.edit">${ic('cal')}Leave types</button>` });
+      if (tab === 'staff') body = UI.table({ id: 'hrst', rows: () => db().employees, sort: 'no', text: (r) => [r.no, r.name, r.designation, r.dept, r.email].join(' '), filters: [{ k: 'dept', label: 'Department', options: () => L.uniq(db().employees.map((e) => e.dept)).sort() }, { k: 'status', label: 'Status', options: ['Active', 'Inactive', 'Left'] }], cols: [{ k: 'no', label: 'Emp No', mono: true }, { k: 'name', label: 'Name', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'designation', label: 'Designation' }, { k: 'dept', label: 'Department' }, { k: 'manager', label: 'Manager' }, { k: 'email', label: 'Email' }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Active' ? 'Published' : r.status === 'Left' ? 'Expired' : 'Draft') }], actions: (r) => `<button class="ibtn" data-act="hrstaff.edit" data-id="${r.no}">${ic('edit')}</button>`, toolbar: `<button class="btn" data-act="hr.onboard">${ic('plus')}Onboard request</button> <button class="btn hot" data-act="hr.offboard">${ic('undo')}Offboard request</button> <button class="btn ghost" data-act="hrstaff.new">${ic('plus')}New employee</button>` });
+      else if (tab === 'req') body = UI.table({ id: 'hrq', rows: () => d.hr.onb.map((x) => Object.assign({ kind: 'Onboarding', who: L.empName(x.empNo) }, x)).concat(d.hr.offb.map((x) => Object.assign({ kind: 'Offboarding', who: L.empName(x.empNo) }, x))), sort: 'at', dir: -1, text: (r) => r.id + r.who + r.kind, filters: [{ k: 'kind', label: 'Type', options: ['Onboarding', 'Offboarding'] }, { k: 'status', label: 'Status', options: ['Pending IT', 'Accepted', 'Completed'] }], cols: [{ k: 'id', label: 'Request', mono: true }, { k: 'kind', label: 'Type' }, { k: 'who', label: 'Employee', render: (r) => `<b>${esc(r.who)}</b>` }, { k: 'date', label: 'Start / last day' }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Completed' ? 'Published' : r.status === 'Accepted' ? 'Draft' : 'Draft') }, { k: 'ref', label: 'IT record' }], actions: (r) => (r.status === 'Completed' && r.ref ? `<button class="btn xs ghost" data-act="lc.doc" data-id="${r.ref}">Print form</button>` : ''), toolbar: `<button class="btn" data-act="hr.onboard">${ic('plus')}Onboard request</button> <button class="btn hot" data-act="hr.offboard">${ic('undo')}Offboard request</button>` });
+      else if (tab === 'leave') body = UI.table({ id: 'lvt', rows: () => d.hr.leaves.map((l) => Object.assign({ who: L.empName(l.empNo) }, l)), sort: 'from', dir: -1, text: (r) => r.id + r.who + r.type, filters: [{ k: 'status', label: 'Status', options: ['Pending', 'Approved', 'Rejected'] }, { k: 'type', label: 'Type', options: () => d.hr.leaveTypes.map((x) => x.type) }], cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'who', label: 'Employee' }, { k: 'type', label: 'Type' }, { k: 'from', label: 'From' }, { k: 'to', label: 'To' }, { k: 'days', label: 'Days', num: true }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Approved' ? 'Published' : r.status === 'Rejected' ? 'Expired' : 'Draft') }], actions: (r) => (r.status === 'Pending' ? `<button class="btn xs" data-act="leave.ok" data-id="${r.id}">Approve</button> <button class="btn xs ghost" data-act="leave.no" data-id="${r.id}">Reject</button> <button class="btn xs ghost" data-act="leave.del" data-id="${r.id}">Delete</button>` : `<button class="btn xs ghost" data-act="leave.del" data-id="${r.id}">Delete</button>`), toolbar: `${tbNew('leave.apply', 'Apply leave')} <button class="btn ghost" data-act="ltypes.edit">${ic('cal')}Leave types</button>` });
       else if (tab === 'bal') body = UI.table({ id: 'lvb', rows: () => db().employees.filter((e) => e.status === 'Active').map((e) => { const o = { no: e.no, who: e.name }; d.hr.leaveTypes.forEach((t) => { o['b_' + t.type] = hrBal(e.no, t.type).left; }); return o; }), sort: 'who', text: (r) => r.who, cols: [{ k: 'who', label: 'Employee', render: (r) => `<b>${esc(r.who)}</b>` }].concat(d.hr.leaveTypes.map((t) => ({ k: 'b_' + t.type, label: t.type + ' left', num: true, render: (r) => (r['b_' + t.type] < 0 ? P(r['b_' + t.type] + '', 'coral') : r['b_' + t.type]) }))), actions: () => '' });
-      else if (tab === 'clear') body = UI.table({ id: 'lvc', rows: () => db().employees.filter((e) => e.status !== 'Active').map((e) => { const signed = d.hr.clear.find((c) => c.empNo === e.no); return Object.assign({}, e, { nA: db().hw.filter((a) => a.holder === e.no).length, nI: (db().accounts || []).filter((a) => a.empNo === e.no && a.status === 'Active').length, nT: H() ? H().requests.filter((r) => r.requester === e.no && ['Open', 'Assigned', 'In Progress', 'On Hold'].indexOf(r.status) >= 0).length : 0, signed: signed ? fdt(signed.at) + ' by ' + signed.by : '' }); }), sort: 'no', text: (r) => r.no + r.name, cols: [{ k: 'no', label: 'Emp No', mono: true }, { k: 'name', label: 'Leaver', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'status', label: 'State', render: (r) => P(r.status === 'Left' ? 'Expired' : 'Draft') }, { k: 'nA', label: 'Assets held', num: true }, { k: 'nI', label: 'Active IDs', num: true }, { k: 'nT', label: 'Open tickets', num: true }, { k: 'signed', label: 'Clearance' }], actions: (r) => (!r.signed && !r.nA && !r.nI && !r.nT ? `<button class="btn xs" data-act="clear.sign" data-id="${r.no}">Sign clearance</button>` : ''), toolbar: `<button class="btn ghost" data-go="#/lifecycle">Onboarding & offboarding</button>` });
-      else body = `<div class="grid g2"><div class="card"><h3>HR service desk</h3><p style="color:var(--muted)">Leave, letters, onboarding and HR requests run on the HR desk instance.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-go="#/esm">Open Enterprise desks</button><button class="btn ghost" data-go="#/employees">Employees</button><button class="btn ghost" data-go="#/scheduler">Scheduler leave view</button></div></div><div class="card"><h3>Open HR-linked items</h3><table class="t"><tbody>${(H() ? H().items.filter((i) => /hr|human|people/i.test((i.project || '') + (i.category || '')) && ['Open', 'Ongoing', 'Pending'].indexOf(i.status) >= 0) : []).map((i) => `<tr><td>#${i.id}</td><td>${esc(i.desc)}</td><td>${P(i.status)}</td></tr>`).join('') || '<tr><td><div class="empty">Nothing open</div></td></tr>'}</tbody></table></div></div>`;
+      else if (tab === 'clear') body = UI.table({ id: 'lvc', rows: () => db().employees.filter((e) => e.status !== 'Active').map((e) => { const signed = d.hr.clear.find((c) => c.empNo === e.no); return Object.assign({}, e, { nA: db().hw.filter((a) => a.holder === e.no).length, nI: (db().accounts || []).filter((a) => a.empNo === e.no && a.status === 'Active').length, nT: H() ? H().requests.filter((r) => r.requester === e.no && ['Open', 'Assigned', 'In Progress', 'On Hold'].indexOf(r.status) >= 0).length : 0, signed: signed ? fdt(signed.at) + ' by ' + signed.by : '' }); }), sort: 'no', text: (r) => r.no + r.name, cols: [{ k: 'no', label: 'Emp No', mono: true }, { k: 'name', label: 'Leaver', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'status', label: 'State', render: (r) => P(r.status === 'Left' ? 'Expired' : 'Draft') }, { k: 'nA', label: 'Assets held', num: true }, { k: 'nI', label: 'Active IDs', num: true }, { k: 'nT', label: 'Open tickets', num: true }, { k: 'signed', label: 'Clearance' }], actions: (r) => (!r.signed && !r.nA && !r.nI && !r.nT ? `<button class="btn xs" data-act="clear.sign" data-id="${r.no}">Sign clearance</button>` : ''), toolbar: '' });
+      else body = `<div class="grid g2"><div class="card"><h3>HR service desk</h3><p style="color:var(--muted)">Leave, letters, onboarding and HR requests run on the HR desk instance.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-go="#/esm">Open Enterprise desks</button><button class="btn ghost" data-go="#/scheduler">Scheduler leave view</button></div></div><div class="card"><h3>Open HR-linked items</h3><table class="t"><tbody>${(H() ? H().items.filter((i) => /hr|human|people/i.test((i.project || '') + (i.category || '')) && ['Open', 'Ongoing', 'Pending'].indexOf(i.status) >= 0) : []).map((i) => `<tr><td>#${i.id}</td><td>${esc(i.desc)}</td><td>${P(i.status)}</td></tr>`).join('') || '<tr><td><div class="empty">Nothing open</div></td></tr>'}</tbody></table></div></div>`;
       return `<div class="card">${tabs}${body}</div>`;
     },
   };

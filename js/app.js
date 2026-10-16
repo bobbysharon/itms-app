@@ -2,7 +2,7 @@
 (function () {
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
-  ITMS.BUILD = '2026-10-16 · HR Finance modules';
+  ITMS.BUILD = '2026-10-16 · HR IT handoff';
   try { console.info('%cITMS build ' + ITMS.BUILD, 'color:#2f6bff;font-weight:bold'); } catch (e) { /* ignore */ }
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
@@ -29,8 +29,12 @@
       ],
     },
     {
-      id: 'hrfin', title: 'HR & Finance', icon: 'dollar', color: '#3b82f6', sections: [
-        { title: 'Human resources', items: ['hr'] },
+      id: 'hrm', title: 'Human Resources', icon: 'users', color: '#00c2ff', sections: [
+        { title: 'HR', items: ['hr'] },
+      ],
+    },
+    {
+      id: 'fin', title: 'Finance', icon: 'dollar', color: '#64748b', sections: [
         { title: 'Finance', items: ['finance'] },
       ],
     },

@@ -88,6 +88,7 @@
     { section: 'Dates & contact' }, { k: 'doj', label: 'Date of joining', type: 'date' }, { k: 'dol', label: 'Date of leaving', type: 'date' }, { k: 'email', label: 'Email', type: 'email' }, { k: 'mobile', label: 'Mobile', type: 'tel' }, { k: 'tel', label: 'Telephone', type: 'tel' }, { k: 'ext', label: 'Extension' },
   ];
   const heldBy = (no) => db().hw.filter((a) => a.holder === no);
+  forms.empFields = empFields;
   pages.employees = {
     title: 'Employees', crumb: 'Employee master — the owner of every issued asset, licence install and consumable', icon: 'users', color: '#2f6bff', group: 'Masters',
     render() {
