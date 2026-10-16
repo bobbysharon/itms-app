@@ -106,7 +106,7 @@
       })}</div>`;
     },
   };
-  UI.on('emp.new', () => UI.form({ title: 'New employee', icon: 'users', fields: empFields(), values: { status: 'Active', location: 'Dubai, UAE', doj: L.today() }, onSubmit: (v) => { L.saveEmployee(v); UI.toast('Employee added'); } }));
+  UI.on('emp.new', () => UI.form({ title: 'New employee', icon: 'users', fields: empFields(), values: { status: 'Active', location: 'Dubai, UAE', doj: L.today(), role: 'Requester' }, onSubmit: (v) => { L.saveEmployee(v); UI.toast('Employee added'); } }));
   UI.on('emp.edit', (el) => { const e = L.emp(el.dataset.id); UI.form({ title: 'Edit ' + e.name, sub: e.no, icon: 'edit', fields: empFields(), values: e, onSubmit: (v) => { L.saveEmployee(v, e.no); try { const u = db().users.find((x) => x.empNo === e.no); if (u && v.role) u.role = v.role; if ((localStorage.getItem('itms.user') || '') === e.no && v.role && ITMS.sdp) ITMS.sdp.setRole(v.role); const s = JSON.parse(sessionStorage.getItem('itms.session') || 'null'); if (s && s.empNo === e.no && v.role) { s.role = v.role; sessionStorage.setItem('itms.session', JSON.stringify(s)); } } catch (err2) { /* ignore */ } UI.toast('Employee updated'); } }); });
   UI.on('emp.del', async (el) => { const e = L.emp(el.dataset.id); if (await UI.confirm(`Delete <b>${esc(e.name)}</b>?`, 'Delete', true)) UI.run(() => L.deleteEmployee(e.no), 'Employee deleted'); });
   UI.on('emp.view', (el) => {

@@ -35,6 +35,11 @@
         d.users.push({ email: am, hash: pwHash('Admin@12345', SALT), empNo: emp.no, role: 'Administrator', created: L.today() });
       }
     });
+    (d.employees || []).forEach((e) => {
+      if (e.role) return;
+      const u = d.users.find((x) => x.empNo === e.no);
+      e.role = (u && u.role) || 'Requester';
+    });
   }
   const oi = S.init; S.init = function () { oi.apply(S, arguments); try { ensure(); } catch (e) { /* ignore */ } };
   S.subscribe(ensure);
@@ -159,19 +164,20 @@
   const SCHEMAS = {
     employees: {
       file: 'employees-sample.csv',
-      cols: ['no', 'name', 'designation', 'manager', 'doj', 'dol', 'dept', 'location', 'email', 'mobile', 'status'],
+      cols: ['no', 'name', 'designation', 'manager', 'doj', 'dol', 'dept', 'location', 'email', 'mobile', 'status', 'role'],
       sample: [
-        ['', 'Ahmed Khan', 'IT Support', 'Bobby Sharon', '2024-01-15', '', 'IT', 'Dubai, UAE', 'ahmed.khan@tafaseel.ae', '971501234567', 'Active'],
-        ['', 'Sara Ali', 'HR Officer', '', '2023-06-01', '', 'Human Resources', 'Abu Dhabi, UAE', 'sara.ali@tafaseel.ae', '971501234568', 'Active'],
+        ['', 'Ahmed Khan', 'IT Support', 'Bobby Sharon', '2024-01-15', '', 'IT', 'Dubai, UAE', 'ahmed.khan@tafaseel.ae', '971501234567', 'Active', 'Technician'],
+        ['', 'Sara Ali', 'HR Officer', '', '2023-06-01', '', 'Human Resources', 'Abu Dhabi, UAE', 'sara.ali@tafaseel.ae', '971501234568', 'Active', 'Requester'],
       ],
       run(rows) {
         let created = 0, updated = 0; const errors = [];
+        const validRoles = (() => { try { return ITMS.sdp.D().roles.map((r) => r.name); } catch (e) { return []; } })();
         rows.forEach((r, i) => {
           try {
             if (!r.name || !r.name.trim()) throw new Error('name is required');
-            const data = { name: r.name.trim(), designation: r.designation || '', manager: r.manager || '', doj: r.doj || '', dol: r.dol || '', dept: r.dept || '', location: r.location || '', email: (r.email || '').trim(), mobile: r.mobile || '', status: ['Active', 'Inactive', 'Left'].indexOf(r.status) >= 0 ? r.status : 'Active' };
+            const data = { name: r.name.trim(), designation: r.designation || '', manager: r.manager || '', doj: r.doj || '', dol: r.dol || '', dept: r.dept || '', location: r.location || '', email: (r.email || '').trim(), mobile: r.mobile || '', status: ['Active', 'Inactive', 'Left'].indexOf(r.status) >= 0 ? r.status : 'Active', role: validRoles.indexOf(r.role) >= 0 ? r.role : 'Requester' };
             let e = (r.no && L.emp(r.no.trim())) || (data.email && db().employees.find((x) => (x.email || '').toLowerCase() === data.email.toLowerCase()));
-            if (e) { L.saveEmployee(data, e.no); updated++; } else { L.saveEmployee(data); created++; }
+            if (e) { if (!r.role) delete data.role; L.saveEmployee(data, e.no); updated++; } else { L.saveEmployee(data); created++; }
           } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
         });
         return { created, updated, errors };
