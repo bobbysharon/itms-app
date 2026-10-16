@@ -106,7 +106,7 @@
     UI.form({
       title: 'Login access — ' + e.name, sub: e.no + (u ? ' · account exists' : ' · no account yet'), icon: 'key',
       fields: [
-        { k: 'email', label: 'Login email', req: true, ro: !!u }, { k: 'role', label: 'Role', type: 'select', options: ACC_ROLES, blank: false },
+        { k: 'email', label: 'Login email', req: true, ro: !!u }, { k: 'role', label: 'Access role (login + modules)', type: 'select', options: ACC_ROLES, blank: false },
         { k: 'pw1', label: u ? 'New password (blank = keep)' : 'Password', type: 'password' }, { k: 'pw2', label: 'Confirm password', type: 'password' },
       ],
       values: { email: u ? u.email : (e.email || ''), role: u ? u.role : 'Requester' },
@@ -126,6 +126,12 @@
           db().users.push({ email: String(v.email).trim(), hash: pwHash(pw, SALT), empNo: e.no, role: v.role, created: L.today() });
           UI.toast('Login created for ' + e.name);
         }
+        e.role = v.role;
+        try {
+          if ((localStorage.getItem('itms.user') || '') === e.no && ITMS.sdp) ITMS.sdp.setRole(v.role);
+          const s = JSON.parse(sessionStorage.getItem('itms.session') || 'null');
+          if (s && s.empNo === e.no) { s.role = v.role; sessionStorage.setItem('itms.session', JSON.stringify(s)); }
+        } catch (err2) { /* ignore */ }
         S.emit();
       },
     });

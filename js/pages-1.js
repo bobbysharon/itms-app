@@ -96,7 +96,7 @@
         id: 'emp', rows: () => d.employees, text: (r) => [r.no, r.name, r.designation, r.dept, r.location, r.email].join(' '), sort: 'no',
         filters: [{ k: 'dept', label: 'Department', options: () => L.uniq(d.employees.map((e) => e.dept)).sort() }, { k: 'status', label: 'Status', options: ['Active', 'Inactive', 'Left'] }, { k: 'location', label: 'Location', options: () => L.uniq(d.employees.map((e) => e.location)).sort() }],
         cols: [
-          { k: 'no', label: 'Emp No', mono: true, render: (r) => `<a class="link" data-act="emp.view" data-id="${r.no}">${r.no}</a>` }, { k: 'name', label: 'Name', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'designation', label: 'Designation' }, { k: 'dept', label: 'Department' },
+          { k: 'no', label: 'Emp No', mono: true, render: (r) => `<a class="link" data-act="emp.view" data-id="${r.no}">${r.no}</a>` }, { k: 'name', label: 'Name', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'designation', label: 'Designation' }, { k: 'dept', label: 'Department' }, { k: 'role', label: 'Access role', render: (r) => esc(r.role || '—') },
           { k: 'manager', label: 'Manager' }, { k: 'location', label: 'Location' }, { k: 'email', label: 'Email' }, { k: 'ext', label: 'Ext' }, { k: 'doj', label: 'Joined', render: (r) => fmtDate(r.doj) },
           { k: 'assets', label: 'Assets', num: true, val: (r) => heldBy(r.no).length, render: (r) => { const n = heldBy(r.no).length; return n ? `<span class="pill p-blue">${n}</span>` : '–'; } },
           { k: 'status', label: 'Status', render: (r) => pill(r.status) },

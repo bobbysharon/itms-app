@@ -63,11 +63,13 @@
     const item = (id) => { const p = ITMS.pages[id] || { title: id, icon: 'grid', color: '#2f6bff' }; return `<a data-nav="${id}" class="${cur === id ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${p.title}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`; };
     MENU.forEach((g) => {
       if (g.single) { h += item(g.id); return; }
-      const gItems = g.sections ? g.sections.flatMap((s) => s.items) : (g.items || []);
+      const canP = (id) => { try { return ITMS.sdp.canPage(id); } catch (e) { return true; } };
+      const gItems = (g.sections ? g.sections.flatMap((s) => s.items) : (g.items || [])).filter(canP);
+      if (!gItems.length) return;
       const has = gItems.includes(cur); const open = !!navState[g.id];
       const sum = gItems.reduce((n, id) => n + (b[id] && typeof b[id][0] === 'number' ? b[id][0] : (b[id] ? 1 : 0)), 0);
       const sub = g.sections
-        ? g.sections.map((s) => `<div class="sec-label">${esc(s.title)}</div>${s.items.map(item).join('')}`).join('')
+        ? g.sections.filter((s) => s.items.some(canP)).map((s) => `<div class="sec-label">${esc(s.title)}</div>${s.items.filter(canP).map(item).join('')}`).join('')
         : gItems.map(item).join('');
       h += `<div class="grp ${open ? 'open' : ''}" style="--c:${g.color}"><div class="gh ${has ? 'has' : ''}" data-grp="${g.id}"><span class="gi">${ic(g.icon)}</span><span class="gt">${g.title}</span>${sum && !open ? `<span class="bd">${sum}</span>` : ''}<i class="chev"></i></div><div class="sub">${sub}</div></div>`;
     });
@@ -93,6 +95,7 @@
   }
   function route() {
     const h = location.hash.replace(/^#\/?/, ''); const [p, q] = h.split('?'); ITMS.nav.page = ITMS.pages[p] ? p : 'dashboard';
+    if (ITMS.nav.page !== 'dashboard' && ITMS.sdp) { try { if (!ITMS.sdp.canPage(ITMS.nav.page)) { UI.toast('Your role has no access to this module', 'err'); ITMS.nav.page = 'dashboard'; } } catch (e) { /* open on error */ } }
     ITMS.nav.params = {}; if (q) q.split('&').forEach((kv) => { const [k, v] = kv.split('='); ITMS.nav.params[k] = decodeURIComponent(v || ''); });
     ITMS.nav.fresh = true; document.querySelector('.side').classList.remove('open'); render();
   }

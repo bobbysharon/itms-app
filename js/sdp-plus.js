@@ -42,6 +42,23 @@
       { id: 'SITE-01', name: 'Head Office — Dubai', code: 'DXB-HO', group: 'Service Desk (L1)', tz: 'Asia/Dubai', active: 'Yes' },
       { id: 'SITE-02', name: 'Abu Dhabi Branch', code: 'AUH-BR', group: 'Desktop Support (L2)', tz: 'Asia/Dubai', active: 'Yes' },
     ];
+    const needAcc = s.roles.some((x) => !x.access);
+    if (needAcc) {
+      const ALL = Object.keys(ITMS.pages || {});
+      const noAdmin = ['roles', 'settings'];
+      const TECH = ['dashboard', 'itsm', 'tickets', 'portal', 'itil', 'cmdb', 'kb', 'mailticket', 'pmtasks', 'templates', 'projects', 'scheduler', 'hardware', 'movements', 'software', 'consumables', 'loans', 'discovery', 'employees', 'lifecycle', 'workflow'];
+      s.roles.forEach((x) => {
+        if (x.access) return;
+        if (x.name === 'Group Lead') x.access = ALL.filter((id) => noAdmin.indexOf(id) < 0);
+        else if (x.name === 'Technician') x.access = TECH.filter((id) => ALL.indexOf(id) >= 0);
+        else if (x.name === 'Requester') x.access = ['dashboard', 'portal', 'kb'].filter((id) => ALL.indexOf(id) >= 0);
+        else if (x.name === 'Vendor / External') x.access = ['dashboard', 'tickets', 'itil', 'kb', 'projects'].filter((id) => ALL.indexOf(id) >= 0);
+        else x.access = null;
+      });
+    }
+      { id: 'SITE-01', name: 'Head Office — Dubai', code: 'DXB-HO', group: 'Service Desk (L1)', tz: 'Asia/Dubai', active: 'Yes' },
+      { id: 'SITE-02', name: 'Abu Dhabi Branch', code: 'AUH-BR', group: 'Desktop Support (L2)', tz: 'Asia/Dubai', active: 'Yes' },
+    ];
     if (!s.instances || !s.instances.length) s.instances = [
       { id: 'ESM-IT', name: 'IT Service Desk', dept: 'IT', status: 'Live', catalog: 0, portal: 'Yes', created: today() },
       { id: 'ESM-HR', name: 'HR Service Desk', dept: 'HR', status: 'Draft', catalog: 0, portal: 'No', created: today() },
@@ -91,11 +108,24 @@
   const setUser = (no) => { try { localStorage.setItem('itms.user', no || ''); } catch (e) { /* ignore */ } };
   /* Requester + Vendor/External raise tickets only as themselves: returns {no,name} or null */
   function lockedRequester() {
-    const r = curRole(); if (r !== 'Requester' && r !== 'Vendor / External') return null;
+    const r = effRole(); if (r !== 'Requester' && r !== 'Vendor / External') return null;
     const e = L.emp(curUser()); return e ? { no: e.no, name: e.name } : null;
   }
+  /* Effective role: login account → employee record → manual Act-as */
+  function effRole() {
+    try { const s = JSON.parse(sessionStorage.getItem('itms.session') || 'null'); if (s && s.role) return s.role; } catch (e) { /* ignore */ }
+    const uno = curUser();
+    if (uno) { const e = L.emp(uno); if (e && e.role) return e.role; }
+    return curRole();
+  }
+  function canPage(id) {
+    if (id === 'dashboard') return true;
+    const r = D().roles.find((x) => x.name === effRole());
+    if (!r || r.active !== 'Yes' || !r.access) return true;
+    return r.access.indexOf(id) >= 0;
+  }
   function can(perm) {
-    const r = D().roles.find((x) => x.name === curRole());
+    const r = D().roles.find((x) => x.name === effRole());
     if (!r || r.active !== 'Yes') return perm === 'view';
     return r.perms.includes(perm);
   }
@@ -683,9 +713,10 @@
   };
 
   /* ================= 13. ROLES (fine-grained authorizations) ================= */
+  const pageOpts = () => Object.keys(ITMS.pages || {}).sort().map((id) => ({ v: id, l: `${((ITMS.pages || {})[id] || {}).title || id} (${id})` }));
   UI.on('roles.edit', (el) => {
     const r = D().roles.find((x) => x.id === el.dataset.id);
-    UI.form({ title: 'Permissions — ' + r.name, icon: 'shield', fields: [{ k: 'perms', label: 'Allowed actions', type: 'multi', options: ['view', 'create', 'edit', 'delete', 'approve', 'admin'], full: true }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: r, onSubmit: (v) => { r.perms = v.perms && v.perms.length ? v.perms : ['view']; r.active = v.active; S.emit(); } });
+    UI.form({ title: 'Permissions — ' + r.name, icon: 'shield', fields: [{ k: 'perms', label: 'Allowed actions', type: 'multi', options: ['view', 'create', 'edit', 'delete', 'approve', 'admin'], full: true }, { k: 'access', label: 'Allowed modules (empty = all)', type: 'multi', options: pageOpts, full: true }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: r, onSubmit: (v) => { r.perms = v.perms && v.perms.length ? v.perms : ['view']; r.active = v.active; r.access = (v.access && v.access.length) ? v.access : null; S.emit(); UI.toast('Access updated — takes effect on next navigation'); } });
   });
   UI.on('roles.as', (el) => { setRole(el.dataset.id); S.emit(); UI.toast('Acting as role: ' + el.dataset.id); });
   pages.roles = {
