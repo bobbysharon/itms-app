@@ -306,7 +306,7 @@
     if (!chatB.id || !D().chats.find((x) => x.id === chatB.id)) {
       const me = chatMe();
       const mine = D().chats.filter((c) => c.status === 'Open' && (c.user === me || (chatB.who && c.empNo === chatB.who)));
-      mine.sort((a, b) => String(b.at || '').localeCompare(String(a.at || ''));
+      mine.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
       chatB.id = (mine[0] || {}).id || null;
     }
     const p = document.getElementById('chatpanel'); if (p) p.style.display = '';
