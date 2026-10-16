@@ -56,9 +56,6 @@
         else x.access = null;
       });
     }
-      { id: 'SITE-01', name: 'Head Office — Dubai', code: 'DXB-HO', group: 'Service Desk (L1)', tz: 'Asia/Dubai', active: 'Yes' },
-      { id: 'SITE-02', name: 'Abu Dhabi Branch', code: 'AUH-BR', group: 'Desktop Support (L2)', tz: 'Asia/Dubai', active: 'Yes' },
-    ];
     if (!s.instances || !s.instances.length) s.instances = [
       { id: 'ESM-IT', name: 'IT Service Desk', dept: 'IT', status: 'Live', catalog: 0, portal: 'Yes', created: today() },
       { id: 'ESM-HR', name: 'HR Service Desk', dept: 'HR', status: 'Draft', catalog: 0, portal: 'No', created: today() },
