@@ -318,12 +318,14 @@
   function hideBubble() { chatB.show = false; const p = document.getElementById('chatpanel'); if (p) p.style.display = 'none'; }
   ITMS.chatBubble.open = openBubble; ITMS.chatBubble.close = hideBubble;
   function buildBubble() {
-    if (!db() || document.getElementById('chatfab')) return;
-    const f = document.createElement('button'); f.id = 'chatfab'; f.title = 'Live chat';
-    f.innerHTML = ic('users') + '<span class="n" id="chatfabn" style="display:none"></span>';
-    f.addEventListener('click', () => (chatB.show ? hideBubble() : openBubble()));
-    document.body.appendChild(f);
-    const p = document.createElement('div'); p.id = 'chatpanel'; p.style.display = 'none'; document.body.appendChild(p);
+    if (!document.getElementById('chatfab')) {
+      const f = document.createElement('button'); f.id = 'chatfab'; f.title = 'Live chat';
+      f.innerHTML = ic('users') + '<span class="n" id="chatfabn" style="display:none"></span>';
+      f.addEventListener('click', () => (chatB.show ? hideBubble() : openBubble()));
+      document.body.appendChild(f);
+      const p = document.createElement('div'); p.id = 'chatpanel'; p.style.display = 'none'; document.body.appendChild(p);
+    }
+    if (!db()) { setTimeout(buildBubble, 400); return; }
     drawFab();
   }
   function msgHtml(m, me) { return `<div class="msg ${me ? 'me' : 'them'}"><b>${esc(m.by)}</b>${esc(m.text)}<small>${fdt(m.at)}</small></div>`; }

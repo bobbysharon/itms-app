@@ -38,7 +38,7 @@
     },
   ];
   const ORDER = MENU.reduce((a, g) => a.concat(g.single ? [g.id] : g.sections.flatMap((s) => s.items)), []);
-  const NAVKEY = 'itms.nav'; const navState = (() => { try { return JSON.parse(localStorage.getItem(NAVKEY)) || {}; } catch (e) { return {}; } })();
+  const NAVKEY = 'itms.nav.v2'; const navState = (() => { try { return JSON.parse(localStorage.getItem(NAVKEY)) || {}; } catch (e) { return {}; } })();
   const saveNav = () => { try { localStorage.setItem(NAVKEY, JSON.stringify(navState)); } catch (e) { /* ignore */ } };
 
   function badges() {
@@ -64,7 +64,7 @@
     MENU.forEach((g) => {
       if (g.single) { h += item(g.id); return; }
       const gItems = g.sections ? g.sections.flatMap((s) => s.items) : (g.items || []);
-      const has = gItems.includes(cur); if (has && navState._last !== cur) navState[g.id] = true; const open = !!navState[g.id];
+      const has = gItems.includes(cur); const open = !!navState[g.id];
       const sum = gItems.reduce((n, id) => n + (b[id] && typeof b[id][0] === 'number' ? b[id][0] : (b[id] ? 1 : 0)), 0);
       const sub = g.sections
         ? g.sections.map((s) => `<div class="sec-label">${esc(s.title)}</div>${s.items.map(item).join('')}`).join('')
