@@ -140,7 +140,7 @@
   }
   /* Effective role: login account → employee record → manual Act-as.
      The system owner always resolves to Administrator, whatever is stored. */
-  const SYSADMIN_EMAILS = ['bobby.sharon@example.com', 'bobby.sharon@esample.com'];
+  const SYSADMIN_EMAILS = ['systemadmin@example.com', 'bobby.sharon@example.com', 'bobby.sharon@esample.com'];
   function isBobby() {
     try {
       const s = JSON.parse(sessionStorage.getItem('itms.session') || 'null');

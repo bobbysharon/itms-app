@@ -20,24 +20,21 @@
     return (h2 >>> 0).toString(16) + (h1 >>> 0).toString(16);
   }
 
-  /* ---------- users store + admin bootstrap (self-heals after any reset) ---------- */
+  /* ---------- users store + super-admin bootstrap (self-heals after any reset) ----------
+     The super admin (systemadmin@example.com) is NOT an employee record — it lives
+     only here and is managed from Administration. Personal staff rows are untouched. */
+  const SYSADMIN = 'systemadmin@example.com';
   const ADMIN_EMAILS = ['bobby.sharon@example.com', 'bobby.sharon@esample.com'];
   function ensure() {
     const d = db(); if (!d) return;
     d.users = d.users || [];
-    let sys = d.employees.find((e) => e.no === 'sysadmin');
-    if (!sys) {
-      sys = { no: 'sysadmin', name: 'System Administrator', designation: 'System Account', manager: '', doj: L.today(), dol: '', dept: 'IT', location: 'Dubai, UAE', email: ADMIN_EMAILS[0], mobile: '', tel: '', ext: '', status: 'Active', role: 'Administrator', sys: true };
-      d.employees.push(sys); L.log('System', 'sysadmin system account ensured');
-    } else {
-      sys.status = 'Active'; sys.role = 'Administrator'; if (!sys.email) sys.email = ADMIN_EMAILS[0];
+    if (d.employees.some((e) => e.no === 'sysadmin')) {
+      d.employees = d.employees.filter((e) => e.no !== 'sysadmin');
+      L.log('System', 'removed legacy sysadmin staff row (system account needs no employee record)');
     }
-    d.users.forEach((u) => { if (ADMIN_EMAILS.indexOf(u.email.toLowerCase()) >= 0 && u.empNo !== 'sysadmin') u.empNo = 'sysadmin'; });
-    ADMIN_EMAILS.forEach((am) => {
-      if (!d.users.some((u) => u.email.toLowerCase() === am)) {
-        d.users.push({ email: am, hash: pwHash('Admin@12345', SALT), empNo: 'sysadmin', role: 'Administrator', created: L.today() });
-      }
-    });
+    if (!d.users.some((u) => u.email.toLowerCase() === SYSADMIN)) {
+      d.users.push({ email: SYSADMIN, hash: pwHash('Admin@12345', SALT), empNo: '', role: 'Administrator', created: L.today() });
+    }
     try {
       const roles = (((db() || {}).sdp) || {}).roles || [];
       const adm = roles.find((x) => x.name === 'Administrator');
@@ -57,17 +54,18 @@
   const getSession = () => { try { return JSON.parse(sessionStorage.getItem(SES)) || null; } catch (e) { return null; } };
   function validSession() {
     if (!db()) return null;
-    const s = getSession(); if (!s || !s.empNo) return null;
-    if (!db().users.some((u) => u.empNo === s.empNo)) return null;
-    const e = L.emp(s.empNo); if (!e || e.status !== 'Active') return null;
+    const s = getSession(); if (!s || !s.email) return null;
+    const u = db().users.find((x) => x.email.toLowerCase() === String(s.email).toLowerCase());
+    if (!u) return null;
+    if (u.empNo && u.empNo !== 'sysadmin') { const e = L.emp(u.empNo); if (!e || e.status !== 'Active') return null; }
     return s;
   }
   function login(email, pw) {
     const u = db().users.find((x) => x.email.toLowerCase() === String(email || '').trim().toLowerCase());
     if (!u || u.hash !== pwHash(pw, SALT)) return { err: 'Invalid email or password.' };
-    const e = L.emp(u.empNo);
-    if (!e || e.status !== 'Active') return { err: 'This account is disabled. Contact IT.' };
-    const s = { empNo: u.empNo, role: u.role || 'Administrator', email: u.email, at: new Date().toISOString() };
+    const e = (u.empNo && u.empNo !== 'sysadmin') ? L.emp(u.empNo) : null;
+    if (u.empNo && u.empNo !== 'sysadmin' && (!e || e.status !== 'Active')) return { err: 'This account is disabled. Contact IT.' };
+    const s = { empNo: u.empNo || '', role: u.role || 'Administrator', email: u.email, at: new Date().toISOString() };
     try {
       sessionStorage.setItem(SES, JSON.stringify(s));
       localStorage.setItem('itms.user', s.empNo); localStorage.setItem('itms.role', s.role);
@@ -114,6 +112,17 @@
 
   /* ---------- employee login access + password reset (admin only) ---------- */
   const ACC_ROLES = ['Administrator', 'Group Lead', 'Technician', 'Requester', 'Auditor', 'Vendor / External'];
+  UI.on('sysadmin.pw', () => {
+    try { if (!ITMS.sdp.can('admin')) return UI.toast('Your role cannot change this password', 'err'); } catch (e) { /* open on error */ }
+    UI.form({ title: 'System administrator password', sub: 'systemadmin@example.com · super admin', icon: 'key', fields: [{ k: 'pw1', label: 'New password', type: 'password', req: true }, { k: 'pw2', label: 'Confirm password', type: 'password', req: true }], submit: 'Change password', onSubmit: (v) => {
+      const pw = String(v.pw1 || '');
+      if (pw.length < 8) throw new Error('Password must be at least 8 characters');
+      if (pw !== String(v.pw2 || '')) throw new Error('Passwords do not match');
+      const u = db().users.find((x) => x.email === 'systemadmin@example.com');
+      if (!u) throw new Error('System admin account missing — reload the app');
+      u.hash = pwHash(pw, SALT); S.emit(); UI.toast('System admin password changed');
+    } });
+  });
   UI.on('emp.access', (el) => {
     if (!canAdmin()) return UI.toast('Your role cannot manage logins', 'err');
     const e = L.emp(el.dataset.id); if (!e) return;
