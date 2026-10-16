@@ -2,7 +2,7 @@
 (function () {
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
-  ITMS.BUILD = '2026-10-16 · gate export plus selfcheck';
+  ITMS.BUILD = '2026-10-16 · script deepcheck';
   try { console.info('%cITMS build ' + ITMS.BUILD, 'color:#2f6bff;font-weight:bold'); } catch (e) { /* ignore */ }
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
@@ -106,8 +106,29 @@
         + `<div>Pages registered: <b>${ORDER.length - missing.length - 1} / ${ORDER.length - 1}</b> · ${esc(gate)}</div>`
         + (missing.length ? `<div style="margin-top:6px">Missing screens: <b>${missing.slice(0, 14).map(esc).join(', ')}</b>${missing.length > 14 ? ' …' : ''}</div>` : '')
         + (errs.length ? `<div style="margin-top:6px">Script errors:<br>${errs.map((x) => `<span class="mono">${esc(x)}</span>`).join('<br>')}</div>` : '')
+        + `<div style="margin-top:10px"><button class="btn sm" data-diag="1">Deep-check scripts</button></div>`
         + `</div>`;
     } catch (e) { return ''; }
+  }
+  async function runDiag() {
+    const files = ['js/seed.js', 'js/core.js', 'js/ui.js', 'js/pages-1.js', 'js/pages-2.js', 'js/pages-3.js', 'js/pages-4.js', 'js/connectors.js', 'js/workflow.js', 'js/budget.js', 'js/compliance.js', 'js/itsm.js', 'js/sdp-plus.js', 'js/reports.js', 'js/auth.js', 'js/testdata.js', 'js/app.js'];
+    const rows = [];
+    for (const f of files) {
+      try {
+        const r = await fetch(f, { cache: 'no-store' });
+        if (!r.ok) { rows.push([f, 'HTTP ' + r.status + ' (file missing on server)', '']); continue; }
+        const t = await r.text();
+        try { new Function(t); rows.push([f, 'OK', '']); }
+        catch (e) {
+          const m = String((e && e.stack) || (e && e.message) || '').match(/:(\d+):(\d+)/);
+          const ln = m ? +m[1] : 0;
+          const code = ln ? (t.split('\n')[ln - 1] || '').slice(0, 200) : '';
+          rows.push([f, 'BROKEN: ' + String((e && e.message) || e), ln ? ('line ' + ln + ': ' + code) : '']);
+        }
+      } catch (e) { rows.push([f, 'fetch failed: ' + e.message, '']); }
+    }
+    const ov = UI.modal(`<header><div><h3>Script deep-check</h3><small>Parses every app file exactly as served — send this table to support</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><table class="t"><thead><tr><th>File</th><th>Result</th><th>Detail</th></tr></thead><tbody>${rows.map((x) => `<tr><td class="mono">${x[0]}</td><td>${x[1] === 'OK' ? 'OK' : `<b style="color:#ff5c6c">${esc(x[1])}</b>`}</td><td class="mono" style="white-space:normal;word-break:break-all">${esc(x[2])}</td></tr>`).join('')}</tbody></table></div><footer><button class="btn ghost" data-x>Close</button></footer>`, {});
+    ov.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) UI.close(ov); });
   }
   function countUp() {
     document.querySelectorAll('[data-count]').forEach((el) => {
@@ -157,6 +178,7 @@
     if (t.closest('#ham')) document.querySelector('.side').classList.toggle('open');
     if (t.closest('#navtoggle')) { navState._min = !navState._min; saveNav(); renderNav(); return; }
     if (t.closest('#bell')) { if (document.getElementById('bellpop')) closeBell(); else openBell(); return; }
+    if (t.closest('[data-diag]')) { runDiag(); return; }
     if (!t.closest('.search')) document.getElementById('sres').style.display = 'none';
   });
   document.addEventListener('input', (e) => {
