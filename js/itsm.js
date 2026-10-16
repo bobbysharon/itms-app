@@ -86,6 +86,55 @@ Other: General Query, Feedback`;
   ITMS.hdOverdue = () => (H() ? H().requests.filter((r) => slaState(r) === 'Overdue').length : 0);
   const pickTech = (g) => { const c = H().techs.filter((t) => t.active === 'Yes' && H().cfg.assignRoles.includes(t.role) && t.group === g); if (!c.length) return ''; return c.map((t) => [t, H().requests.filter((r) => r.tech === t.name && isOpen(r)).length]).sort((a, b) => a[1] - b[1])[0][0].name; };
 
+  /* ---------- built-in Smart Assist (offline, keyword-based) ---------- */
+  const ASSIST_RULES = [
+    [/password|unlock|login|sign.?in|locked out|mfa|otp/i, 'Accounts & Access'], [/wifi|wi.?fi|vpn|network|internet|lan\b|dns/i, 'Network & Connectivity'],
+    [/printer|toner|scan/i, 'Printing & Scanning'], [/laptop|desktop|monitor|screen|keyboard|mouse|boot|blue screen/i, 'Hardware'],
+    [/outlook|excel|word|teams|mailbox|email/i, 'Email & Collaboration'], [/install|license|licence|activation|software/i, 'Software'],
+    [/phone|genesys|call|queue|voip/i, 'Telephony & Contact Centre'], [/virus|malware|phish|hack|breach/i, 'Security & Compliance'],
+    [/erp|report|dashboard/i, 'ERP & Business Apps'], [/biometric|attendance|door|cctv|camera/i, 'Biometric & Access Control'],
+    [/backup|server|azure|cloud|database/i, 'Cloud & Infrastructure'], [/new joiner|onboard|leaver|offboard|request/i, 'Service Request'],
+  ];
+  const ASSIST_TPL = [
+    ['Acknowledgement', 'Hello, thanks for logging this — I have picked up your ticket and will update you shortly.'],
+    ['Need more info', 'Hello, to proceed I need: a screenshot of the error, the time it happened, and whether colleagues are affected too.'],
+    ['Fix applied, confirm', 'Hello, I have applied a fix — please check and confirm it works at your end.'],
+    ['Closure note', 'Hello, this is resolved from our side. Reply within 48 hours if it reoccurs, else the ticket auto-closes.'],
+  ];
+  ITMS.assist = {
+    suggest(r) {
+      const t = ((r.subject || '') + ' ' + (r.desc || '')).toLowerCase();
+      const hit = ASSIST_RULES.find((x) => x[0].test(t));
+      const hot = /down|outage|all users|critical|breach|data loss|payroll|server/i.test(t);
+      return { category: hit ? hit[1] : '', hot, matched: hit ? hit[0].source.split('|').slice(0, 3).join(', ') : '' };
+    },
+    related(r, n) {
+      const toks = (((r.subject || '') + ' ' + (r.desc || '') + ' ' + (r.category || '')).toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter((w, i, a) => a.indexOf(w) === i);
+      return H().solutions.filter((s) => s.status === 'Published').map((s) => {
+        const hay = ((s.title || '') + ' ' + (s.keywords || '') + ' ' + (s.content || '')).toLowerCase();
+        return { s, score: toks.reduce((a, w) => a + (hay.indexOf(w) >= 0 ? 1 : 0), 0) };
+      }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score).slice(0, n || 3);
+    },
+  };
+  function openAssist(r) {
+    const sug = ITMS.assist.suggest(r); const rel = ITMS.assist.related(r, 3); const me = r.tech || (techNames()[0] || '');
+    const ov = UI.modal(`<header><span class="gem" style="width:38px;height:38px;border-radius:13px">${ic('spark')}</span><div><h3>Smart Assist — ${esc(r.id)}</h3><small>Built-in suggestions (offline, keyword-based)</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body">
+      <div class="grid g2"><div class="card"><h3>Suggested classification</h3><div>Category: <b>${esc(sug.category || '— no confident match —')}</b>${sug.matched ? `<br><small style="color:var(--muted)">matched: ${esc(sug.matched)}</small>` : ''}</div><div style="margin-top:6px">Priority signal: ${sug.hot ? P('High') + ' <small>urgent wording detected</small>' : P(r.priority) + ' <small>current stands</small>'}</div><div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${sug.category ? `<button class="btn sm" data-a="apply">Apply category</button>` : ''}${sug.hot && r.priority !== 'Critical' && r.priority !== 'High' ? `<button class="btn sm ghost" data-a="pri">Raise to High</button>` : ''}</div></div>
+      <div class="card"><h3>Related knowledge (${rel.length})</h3>${rel.map((x) => `<div style="margin-bottom:8px"><b>${esc(x.s.title)}</b><br><small style="color:var(--muted)">${esc((x.s.category || ''))} · ${x.score} keyword hits</small><div style="margin-top:4px;display:flex;gap:6px"><button class="btn xs ghost" data-a="view" data-id="${x.s.id}">View</button><button class="btn xs ghost" data-a="link" data-id="${x.s.id}">Link to ticket</button></div></div>`).join('') || '<div class="empty">No published article matches — try different wording.</div>'}</div></div>
+      <div class="card mt"><h3>Reply templates</h3>${ASSIST_TPL.map((t, i) => `<div style="margin-bottom:8px"><b>${esc(t[0])}</b><br><small style="color:var(--muted)">${esc(t[1])}</small><div style="margin-top:4px"><button class="btn xs ghost" data-a="tpl" data-i="${i}">Insert as public reply</button></div></div>`).join('')}</div>
+      </div><footer><button class="btn ghost" data-x>Close</button></footer>`, { size: 'lg' });
+    ov.addEventListener('click', (e) => {
+      if (e.target.closest('[data-x]')) return UI.close(ov);
+      const b = e.target.closest('[data-a]'); if (!b) return;
+      const k = b.dataset.a;
+      if (k === 'apply' && sug.category) { r.category = sug.category; hist(r, 'Assist applied category: ' + sug.category); done('Category applied'); }
+      else if (k === 'pri') { r.priority = 'High'; calcDue(r); hist(r, 'Assist raised priority to High'); done('Priority raised'); }
+      else if (k === 'view') { const fn = UI.acts['kb.view']; if (fn) fn({ dataset: { id: b.dataset.id } }); }
+      else if (k === 'link') { r.solution = b.dataset.id; hist(r, 'Solution ' + b.dataset.id + ' linked via Assist'); done('Solution linked'); }
+      else if (k === 'tpl') { r.notes.unshift({ at: now(), type: 'Public reply', by: me, text: ASSIST_TPL[+b.dataset.i][1] }); if (!r.firstResp) r.firstResp = now(); hist(r, 'Assist reply template inserted by ' + me); done('Reply inserted'); }
+    });
+  }
+
   /* ---------- requests ---------- */
   function createReq(v) {
     const h = H(), r = Object.assign({ notes: [], work: [], tasks: [], approvals: [], hist: [] }, v); r.id = nid('req', 'REQ-', 5); r.created = now(); r.priority = prio(r.impact, r.urgency);
@@ -145,7 +194,7 @@ Other: General Query, Feedback`;
     if (st === 'Resolved') foot += b('close', 'Close', '');
     if (!isOpen(r)) foot += b('reopen', 'Reopen');
     if (isOpen(r)) foot += b('cancel', 'Cancel');
-    foot += b('edit', 'Edit') + b('prb', 'Raise problem') + b('chg', 'Raise change') + (r.resolution ? b('kb', 'Save as solution') : '');
+    foot += b('assist', 'Assist') + b('edit', 'Edit') + b('prb', 'Raise problem') + b('chg', 'Raise change') + (r.resolution ? b('kb', 'Save as solution') : '');
     box.innerHTML = `<header><span class="gem" style="width:44px;height:44px;background:${C[pc[r.priority]] || C.blue}">${ic('bell')}</span><div><h3>${esc(r.id)} · ${esc(r.subject)}</h3><small>${esc(e.name || '')} · ${esc(r.category)} · created ${fdt(r.created)}</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${P(r.status)} ${P(r.priority)} ${P(sla)} <span class="pill p-violet">${esc(r.level)}</span> <span class="pill p-blue">${esc(r.type)}</span></div><div class="tabs">${T.map((t) => `<a class="${tab === t ? 'on' : ''}" data-t="${t}">${lab[t]}</a>`).join('')}</div>${p}</div><footer style="flex-wrap:wrap;gap:6px">${foot}</footer>`;
   }
   const setFirst = (r) => { if (!r.firstResp) r.firstResp = now(); };
@@ -164,6 +213,7 @@ Other: General Query, Feedback`;
     else if (k === 'reopen') { r.status = 'In Progress'; r.resolvedAt = ''; r.closedAt = ''; r.reopened = (r.reopened || 0) + 1; hist(r, 'Reopened'); done('Reopened'); }
     else if (k === 'cancel') UI.confirm('Cancel this request?', 'Cancel request', true).then((y) => { if (y) { r.status = 'Cancelled'; hist(r, 'Cancelled'); done(); } });
     else if (k === 'edit') UI.form({ title: 'Edit ' + r.id, icon: 'edit', fields: reqFields(), deps: reqDeps, values: r, onSubmit: (v) => { Object.assign(r, v); r.priority = prio(r.impact, r.urgency); r.dept = (L.emp(r.requester) || {}).dept || ''; calcDue(r); hist(r, 'Request edited'); done('Saved'); } });
+    else if (k === 'assist') openAssist(r);
     else if (k === 'note') UI.form({ title: 'Add to conversation', icon: 'edit', fields: [{ k: 'type', label: 'Type', type: 'select', options: ['Public reply', 'Private note'], blank: false }, { k: 'by', label: 'By', type: 'select', options: () => techNames(), blank: false }, { k: 'text', label: 'Message', type: 'textarea', full: true, req: true }], values: { type: 'Public reply', by: me }, onSubmit: (v) => { r.notes.unshift({ at: now(), type: v.type, by: v.by, text: v.text }); if (v.type === 'Public reply') setFirst(r); hist(r, v.type + ' added by ' + v.by); done(); } });
     else if (k === 'work') UI.form({ title: 'Add worklog', icon: 'clock', fields: [{ k: 'by', label: 'Technician', type: 'select', options: () => techNames(), blank: false }, { k: 'date', label: 'Date', type: 'date' }, { k: 'hours', label: 'Hours', type: 'number', req: true }, { k: 'text', label: 'Work done', type: 'textarea', full: true }], values: { by: me, date: today() }, onSubmit: (v) => { r.work.unshift(v); hist(r, `${v.hours} h logged by ${v.by}`); done(); } });
     else if (k === 'task') UI.form({ title: 'Add task', icon: 'check', fields: [{ k: 'title', label: 'Task', req: true, full: true }, { k: 'owner', label: 'Owner', type: 'select', options: people }, { k: 'due', label: 'Due', type: 'date' }], onSubmit: (v) => { r.tasks.push(Object.assign({ done: false }, v)); hist(r, 'Task added: ' + v.title); done(); } });
@@ -184,7 +234,7 @@ Other: General Query, Feedback`;
   const reqMulti = { k: 'requests', label: 'Linked requests', type: 'multi', options: () => H().requests.map((r) => ({ v: r.id, l: `${r.id} · ${r.subject.slice(0, 50)}` })), full: true };
   const own = (k) => ({ k: k || 'owner', label: 'Owner', type: 'select', options: () => techNames() });
   const base = [{ k: 'title', label: 'Title', req: true, full: true }, { k: 'desc', label: 'Description', type: 'textarea', full: true }];
-  E.problems = { label: 'problem', prefix: 'PRB-', icon: 'wrench', defaults: () => ({ status: 'Open', impact: 'Medium', urgency: 'Normal' }), fields: () => base.concat([{ k: 'category', label: 'Category', type: 'select', options: cats }, { k: 'group', label: 'Group', type: 'select', options: () => H().cfg.groups }, own(), { k: 'status', label: 'Status', type: 'select', options: PRS, blank: false }, { k: 'impact', label: 'Impact', type: 'select', options: IMP, blank: false }, { k: 'urgency', label: 'Urgency', type: 'select', options: URG, blank: false }, { k: 'due', label: 'Due date', type: 'date' }, { k: 'symptoms', label: 'Symptoms', type: 'textarea', full: true }, { k: 'rootCause', label: 'Root cause', type: 'textarea', full: true }, { k: 'workaround', label: 'Workaround', type: 'textarea', full: true }, { k: 'solution', label: 'Permanent solution', type: 'textarea', full: true }, reqMulti]), after: (rec) => (rec.requests || []).forEach((id) => { const q = req(id); if (q) q.problem = rec.id; }) };
+  E.problems = { label: 'problem', prefix: 'PRB-', icon: 'wrench', defaults: () => ({ status: 'Open', impact: 'Medium', urgency: 'Normal' }), fields: () => base.concat([{ k: 'category', label: 'Category', type: 'select', options: cats }, { k: 'group', label: 'Group', type: 'select', options: () => H().cfg.groups }, own(), { k: 'status', label: 'Status', type: 'select', options: PRS, blank: false }, { k: 'impact', label: 'Impact', type: 'select', options: IMP, blank: false }, { k: 'urgency', label: 'Urgency', type: 'select', options: URG, blank: false }, { k: 'due', label: 'Due date', type: 'date' }, { k: 'symptoms', label: 'Symptoms', type: 'textarea', full: true }, { k: 'rootCause', label: 'Root cause', type: 'textarea', full: true }, { k: 'fiveWhys', label: '5 Whys analysis (ask why 5 times)', type: 'textarea', full: true }, { k: 'workaround', label: 'Workaround', type: 'textarea', full: true }, { k: 'solution', label: 'Permanent solution', type: 'textarea', full: true }, reqMulti]), after: (rec) => (rec.requests || []).forEach((id) => { const q = req(id); if (q) q.problem = rec.id; }) };
   E.changes = { label: 'change', prefix: 'CHG-', icon: 'refresh', defaults: () => ({ status: 'Submission', changeType: 'Standard', impact: 'Medium', risk: 'Low' }), fields: () => base.concat([{ k: 'changeType', label: 'Change type', type: 'select', options: ['Minor', 'Standard', 'Major', 'Emergency'], blank: false }, { k: 'status', label: 'Status', type: 'select', options: CHS, blank: false }, { k: 'category', label: 'Category', type: 'select', options: cats }, { k: 'group', label: 'Group', type: 'select', options: () => H().cfg.groups }, own(), { k: 'impact', label: 'Impact', type: 'select', options: IMP, blank: false }, { k: 'risk', label: 'Risk', type: 'select', options: ['Low', 'Medium', 'High'], blank: false }, { k: 'start', label: 'Scheduled start', type: 'date' }, { k: 'end', label: 'Scheduled end', type: 'date' }, { k: 'reason', label: 'Reason for change', type: 'textarea', full: true }, { k: 'rollout', label: 'Roll-out plan', type: 'textarea', full: true }, { k: 'backout', label: 'Back-out plan', type: 'textarea', full: true }, reqMulti, { k: 'assets', label: 'Affected assets', type: 'multi', options: () => db().hw.map((a) => ({ v: a.id, l: `${a.id} · ${a.desc}` })), full: true }]), after: (rec) => (rec.requests || []).forEach((id) => { const q = req(id); if (q) q.change = rec.id; }) };
   E.releases = { label: 'release', prefix: 'REL-', icon: 'upload', defaults: () => ({ status: 'Planning', relType: 'Minor' }), fields: () => base.concat([{ k: 'relType', label: 'Type', type: 'select', options: ['Minor', 'Major', 'Emergency'], blank: false }, { k: 'status', label: 'Status', type: 'select', options: RLS, blank: false }, own(), { k: 'start', label: 'Start', type: 'date' }, { k: 'end', label: 'End', type: 'date' }, { k: 'changes', label: 'Included changes', type: 'multi', options: () => H().changes.map((c) => ({ v: c.id, l: `${c.id} · ${c.title}` })), full: true }]) };
   E.solutions = { label: 'solution', prefix: 'KB-', icon: 'receipt', defaults: () => ({ status: 'Draft' }), fields: () => [{ k: 'title', label: 'Topic', req: true, full: true }, { k: 'category', label: 'Category', type: 'select', options: cats }, { k: 'sub', label: 'Subcategory', type: 'select', options: (v) => subsOf(v.category) }, { k: 'status', label: 'Status', type: 'select', options: KBS, blank: false }, { k: 'author', label: 'Author', type: 'select', options: () => techNames() }, { k: 'keywords', label: 'Keywords', full: true }, { k: 'content', label: 'Content / steps', type: 'textarea', full: true }], deps: { category: 1 } };

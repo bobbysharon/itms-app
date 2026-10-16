@@ -90,6 +90,7 @@ Extra pages (data in `db.sdp`):
 | Native / insightful / inventory reports | Advanced Reports (`#/reportsplus`) — MTTR, vendor spend, inventory, contracts, surveys (every table also exports CSV) |
 | ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start desks, mobile registry, portal checklist |
 | Data archiving + audit trail | Archiving & Audit (`#/archiving`) — archive/restore old tickets, full event log |
+| AI assistance (built-in, offline) | Ticket detail → **Assist**: keyword-based category suggestion, urgency signal, related-KB finder with one-click link, and reply templates inserted as public notes |
 
 ## Active Directory & Group Policy (`#/addirectory`, js/sdp-plus.js)
 - **Connections**: LDAP/LDAPS profiles — host, port (389 / 636 / 3268 / 3269), encryption (None / STARTTLS / **SSL**), Base DN, bind account, DC certificate thumbprint. **Test** validates and shows the exact PowerShell as audit evidence.
@@ -119,6 +120,7 @@ Extra pages (data in `db.sdp`):
 | Native / insightful / inventory reports | Advanced Reports (`#/reportsplus`) — MTTR, vendor spend, inventory, contracts, surveys (every table also exports CSV) |
 | ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start desks, mobile registry, portal checklist |
 | Data archiving + audit trail | Archiving & Audit (`#/archiving`) — archive/restore old tickets, full event log |
+| AI assistance (built-in, offline) | Ticket detail → **Assist**: keyword-based category suggestion, urgency signal, related-KB finder with one-click link, and reply templates inserted as public notes |
 
 ## Sign-in, logins & CSV migration (js/auth.js)
 - **Login screen**: full-admin `bobby.sharon@example.com` (alias `bobby.sharon@esample.com`) / `Admin@12345`, auto-linked to employee Bobby Sharon (created if missing). The bootstrap self-heals on **every** store change — any master reset recreates the admin with the default password, so you can never be locked out. Session per browser tab; sign-out button top-right. Demo-grade local gate — production use needs server-side auth.
