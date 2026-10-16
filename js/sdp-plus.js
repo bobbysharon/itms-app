@@ -640,7 +640,14 @@
     c.status = 'Live'; c.lastTest = now(); alog(`Connection ${c.id} tested OK (${c.host}:${c.port}/${c.enc})`); S.emit();
     showPs(`Test connection — ${c.name}`, c.host + ':' + c.port + ' · ' + c.enc + ' · run this on the admin host as evidence', psConn(c));
   });
-  const mkSam = (name) => { const p = String(name || '').toLowerCase().split(/\s+/); const base = ((p[0] || 'user').replace(/[^a-z0-9]/g, '') + '.' + (p.slice(1).join('').replace(/[^a-z0-9]/g, '')).replace(/^\.|\.$/g, '') || 'user'; let s = base, i = 1; const taken = new Set(D().adusers.map((u) => u.sam)); while (taken.has(s)) s = base + (++i); return s; };
+  const mkSam = (name) => {
+    const parts = String(name || '').toLowerCase().split(/\s+/);
+    const first = (parts[0] || 'user').replace(/[^a-z0-9]/g, '');
+    const rest = parts.slice(1).join('').replace(/[^a-z0-9]/g, '');
+    const base = (first + '.' + rest).replace(/^\.|\.$/g, '') || 'user';
+    let s = base, i = 1; const taken = new Set(D().adusers.map((u) => u.sam));
+    while (taken.has(s)) s = base + (++i); return s;
+  };
   UI.on('aduser.sync', () => {
     UI.form({ title: 'Provision from employees', sub: 'Creates AD accounts for active staff missing one — linked by employee no.', icon: 'users', fields: [{ k: 'domain', label: 'UPN domain', req: true }, { k: 'ou', label: 'Target OU', req: true }], values: { domain: 'company.ae', ou: 'OU=Users,' + (adLive() ? adLive().baseDN : 'DC=company,DC=ae') }, onSubmit: (v) => {
       let n = 0; db().employees.filter((e) => e.status === 'Active').forEach((e) => { if (D().adusers.some((u) => u.empNo === e.no)) return; const sam = mkSam(e.name); D().adusers.unshift({ id: nid('adu', 'ADU-', 3), sam, upn: sam + '@' + v.domain, empNo: e.no, ou: v.ou, groups: ['IT Support'], status: 'Enabled', mustChange: 'Yes', lastSync: today() }); alog(`Provisioned ${sam} for ${e.name} (${e.no}) → ${v.ou}`); n++; });
