@@ -84,7 +84,7 @@
   /* ===================== EMPLOYEES ===================== */
   const empFields = () => [
     { section: 'Employee' }, { k: 'name', label: 'Employee name', req: true }, { k: 'designation', label: 'Designation', type: 'select', options: () => db().lists.designations || [] }, { k: 'dept', label: 'Department', type: 'select', options: () => db().lists.departments || [], req: true },
-    { k: 'manager', label: 'Reporting manager', type: 'select', options: () => db().employees.map((e) => e.name) }, { k: 'location', label: 'Location', type: 'select', options: () => db().lists.locations || [] }, { k: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'Left'], blank: false },
+    { k: 'manager', label: 'Reporting manager', type: 'select', options: () => db().employees.map((e) => e.name) }, { k: 'location', label: 'Location', type: 'select', options: () => db().lists.locations || [] }, { k: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'Left'], blank: false }, { k: 'role', label: 'Access role', type: 'select', options: () => { try { return ITMS.sdp.D().roles.map((r) => r.name); } catch (e) { return ['Administrator', 'Group Lead', 'Technician', 'Requester', 'Auditor', 'Vendor / External']; } } },
     { section: 'Dates & contact' }, { k: 'doj', label: 'Date of joining', type: 'date' }, { k: 'dol', label: 'Date of leaving', type: 'date' }, { k: 'email', label: 'Email', type: 'email' }, { k: 'mobile', label: 'Mobile', type: 'tel' }, { k: 'tel', label: 'Telephone', type: 'tel' }, { k: 'ext', label: 'Extension' },
   ];
   const heldBy = (no) => db().hw.filter((a) => a.holder === no);
@@ -107,7 +107,7 @@
     },
   };
   UI.on('emp.new', () => UI.form({ title: 'New employee', icon: 'users', fields: empFields(), values: { status: 'Active', location: 'Dubai, UAE', doj: L.today() }, onSubmit: (v) => { L.saveEmployee(v); UI.toast('Employee added'); } }));
-  UI.on('emp.edit', (el) => { const e = L.emp(el.dataset.id); UI.form({ title: 'Edit ' + e.name, sub: e.no, icon: 'edit', fields: empFields(), values: e, onSubmit: (v) => { L.saveEmployee(v, e.no); UI.toast('Employee updated'); } }); });
+  UI.on('emp.edit', (el) => { const e = L.emp(el.dataset.id); UI.form({ title: 'Edit ' + e.name, sub: e.no, icon: 'edit', fields: empFields(), values: e, onSubmit: (v) => { L.saveEmployee(v, e.no); try { const u = db().users.find((x) => x.empNo === e.no); if (u && v.role) u.role = v.role; if ((localStorage.getItem('itms.user') || '') === e.no && v.role && ITMS.sdp) ITMS.sdp.setRole(v.role); const s = JSON.parse(sessionStorage.getItem('itms.session') || 'null'); if (s && s.empNo === e.no && v.role) { s.role = v.role; sessionStorage.setItem('itms.session', JSON.stringify(s)); } } catch (err2) { /* ignore */ } UI.toast('Employee updated'); } }); });
   UI.on('emp.del', async (el) => { const e = L.emp(el.dataset.id); if (await UI.confirm(`Delete <b>${esc(e.name)}</b>?`, 'Delete', true)) UI.run(() => L.deleteEmployee(e.no), 'Employee deleted'); });
   UI.on('emp.view', (el) => {
     const e = L.emp(el.dataset.id); const held = heldBy(e.no); const inst = db().installs.filter((i) => i.empNo === e.no); const ci = db().consIssue.filter((i) => i.empNo === e.no);
