@@ -2,7 +2,7 @@
 (function () {
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
-  ITMS.BUILD = '2026-10-16 · deepcheck v2';
+  ITMS.BUILD = '2026-10-16 · money trail both ways';
   try { console.info('%cITMS build ' + ITMS.BUILD, 'color:#2f6bff;font-weight:bold'); } catch (e) { /* ignore */ }
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
