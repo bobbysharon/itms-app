@@ -233,18 +233,7 @@
       },
     });
   });
-  UI.on('portal.chat', () => {
-    const e = portalEmp();
-    UI.form({
-      title: 'Start live chat', sub: 'Opens in the floating bubble — replies arrive there on any screen', icon: 'users',
-      fields: [{ k: 'msg', label: 'How can we help?', type: 'textarea', full: true, req: true }],
-      onSubmit: (v) => {
-        const id = nid('ch', 'CHAT-', 3);
-        D().chats.unshift({ id, user: e.name, empNo: e.no, tech: '', status: 'Open', at: now(), msgs: [{ by: e.name, text: v.msg, at: now() }] });
-        S.emit(); UI.toast('Chat opened in the bubble'); openBubble(id);
-      },
-    });
-  });
+  UI.on('portal.chat', () => { openBubble(); });
   UI.on('portal.rate', (el) => {
     const r = H().requests.find((x) => x.id === el.dataset.id); if (!r) return;
     UI.form({
@@ -311,10 +300,22 @@
     n.textContent = c; n.style.display = c ? '' : 'none';
   }
   function openBubble(id) {
+    if (!db()) return;
     chatB.show = true; if (id) chatB.id = id;
     if (!chatB.who) chatB.who = curUser() || (((typeof portalEmp === 'function' && portalEmp()) || {}).no || '');
+    if (!chatB.id || !D().chats.find((x) => x.id === chatB.id)) {
+      const me = chatMe();
+      const mine = D().chats.filter((c) => c.status === 'Open' && (c.user === me || (chatB.who && c.empNo === chatB.who)));
+      mine.sort((a, b) => String(b.at || '').localeCompare(String(a.at || ''));
+      chatB.id = (mine[0] || {}).id || null;
+    }
     const p = document.getElementById('chatpanel'); if (p) p.style.display = '';
     drawPanel(); drawFab();
+  }
+  function pickAgent() {
+    const ts = techs(); if (!ts.length) return '';
+    const load = (n) => (H() ? H().requests.filter((r) => r.tech === n && ['Open', 'Assigned', 'In Progress', 'On Hold'].indexOf(r.status) >= 0).length : 0) + D().chats.filter((c) => c.tech === n && c.status === 'Open').length;
+    return ts.slice().sort((a, b) => load(a) - load(b))[0] || '';
   }
   function hideBubble() { chatB.show = false; const p = document.getElementById('chatpanel'); if (p) p.style.display = 'none'; }
   ITMS.chatBubble.open = openBubble; ITMS.chatBubble.close = hideBubble;
@@ -336,12 +337,14 @@
     const chats = D().chats.slice().sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
     const cur = D().chats.find((x) => x.id === chatB.id);
     let h = `<div class="chhead">Live Chat<span style="margin-left:auto"></span><button class="ibtn" data-c="refresh" title="Refresh">${ic('refresh')}</button><button class="ibtn" data-c="full" title="Full console">${ic('grid')}</button><button class="ibtn x" data-c="x">${ic('x')}</button></div>`;
-    h += `<div class="chid"><label>Chatting as <b>${esc(chatMe() || '—')}</b></label><span style="margin-left:auto"></span><button class="btn sm" data-c="new">${ic('plus')}New</button> <button class="btn sm ghost" data-c="who">Switch</button></div>`;
+    h += `<div class="chid"><label>Chatting as <b>${esc(chatMe() || '—')}</b></label><span style="margin-left:auto"></span><button class="btn sm ghost" data-c="who">Switch</button></div>`;
     if (chatB.find) h += `<div class="chfind"><input class="in" id="chatfind" autocomplete="off"><div class="chlist" id="chres">${db().employees.filter((e) => e.status === 'Active').map((e) => `<a data-c="pick" data-id="${e.no}" data-t="${esc((e.name + ' ' + e.no + ' ' + (e.dept || '')).toLowerCase())}"><b>${esc(e.name)}</b><small>${e.no}${e.dept ? ' · ' + esc(e.dept) : ''}</small></a>`).join('')}</div></div>`;
     if (cur) {
       h += `<div class="chback"><button class="btn xs ghost" data-c="back">← All</button><b style="margin:0 4px">${esc(cur.id)}</b>${cur.status === 'Open' ? `<span style="margin-left:auto"></span><button class="btn xs ghost" data-c="ticket">→ Ticket</button> <button class="btn xs ghost" data-c="close">Close</button>` : `<span style="margin-left:auto">${P('Closed')}</span>`}</div><div class="msgs">${cur.msgs.map((m) => msgHtml(m, m.by === me)).join('')}</div><div class="chsend"><input class="in" id="chatinput" autocomplete="off"><button class="btn sm" data-c="send">Send</button></div>`;
     } else {
-      h += `<div class="chlist">${chats.slice(0, 20).map((c) => `<a data-c="open" data-id="${c.id}"><b>${esc(c.id)}</b> · ${esc(c.user)}<small>${c.status} · ${esc(((c.msgs[c.msgs.length - 1] || {}).text) || '').slice(0, 60)}</small></a>`).join('') || '<div class="empty">No chats yet — start one.</div>'}</div>`;
+      const waiting = chats.filter((c) => c.status === 'Open' && c.user !== me);
+      h += `<div class="msgs"><div class="empty">Say hi below — an available agent is assigned automatically.</div></div><div class="chsend"><input class="in" id="chatinput" autocomplete="off"><button class="btn sm" data-c="send">Send</button></div>`;
+      if (waiting.length) h += `<div class="chlist" style="border-top:1px solid var(--line)">${waiting.slice(0, 10).map((c) => `<a data-c="open" data-id="${c.id}"><b>${esc(c.id)}</b> · ${esc(c.user)}<small>${esc(((c.msgs[c.msgs.length - 1] || {}).text) || '').slice(0, 60)}</small></a>`).join('')}</div>`;
     }
     p.innerHTML = h;
     const cf = document.getElementById('chatfind');
@@ -353,12 +356,20 @@
   }
   function sendChat() {
     const inp = document.getElementById('chatinput'); const t = ((inp && inp.value) || '').trim(); if (!t) return;
-    const c = D().chats.find((x) => x.id === chatB.id); if (!c) return;
     const me = chatMe() || 'User';
-    c.msgs.push({ by: me, text: t, at: now() });
-    if (!c.tech && techs().indexOf(me) >= 0) c.tech = me;
-    if (me !== c.user) notify('Email', c.user, `[${c.id}] New reply`, t);
-    else if (c.tech) notify('Email', c.tech, `[${c.id}] user replied`, t);
+    let c = D().chats.find((x) => x.id === chatB.id);
+    if (!c) {
+      const agent = pickAgent();
+      const id = nid('ch', 'CHAT-', 3);
+      c = { id, user: me, empNo: chatB.who || curUser(), tech: agent, status: 'Open', at: now(), msgs: [{ by: me, text: t, at: now() }] };
+      D().chats.unshift(c); chatB.id = id;
+      notify('Email', agent || 'Service Desk', `[${id}] Chat auto-assigned${agent ? ' to you' : ' — waiting'}`, me + ': ' + t);
+    } else {
+      c.msgs.push({ by: me, text: t, at: now() });
+      if (!c.tech && techs().indexOf(me) >= 0) c.tech = me;
+      if (me !== c.user) notify('Email', c.user, `[${c.id}] New reply`, t);
+      else if (c.tech) notify('Email', c.tech, `[${c.id}] user replied`, t);
+    }
     S.emit(); drawPanel(); drawFab();
     const i2 = document.getElementById('chatinput'); if (i2) i2.focus();
   }
@@ -373,10 +384,6 @@
     if (k === 'send') return sendChat();
     if (k === 'ticket') { if (UI.acts['chat.ticket']) UI.acts['chat.ticket']({ dataset: { id: chatB.id } }); return; }
     if (k === 'close') { const c = D().chats.find((x) => x.id === chatB.id); if (c) { c.status = 'Closed'; S.emit(); } drawPanel(); drawFab(); return; }
-    if (k === 'new') {
-      const e = portalEmp() || {}; const whoE = L.emp(chatB.who) || e;
-      UI.form({ title: 'Start live chat', sub: 'Replies arrive in this bubble on any screen', icon: 'users', fields: [{ k: 'msg', label: 'How can we help?', type: 'textarea', full: true, req: true }], onSubmit: (v) => { const nid2 = nid('ch', 'CHAT-', 3); D().chats.unshift({ id: nid2, user: whoE.name || chatMe(), empNo: whoE.no, tech: '', status: 'Open', at: now(), msgs: [{ by: whoE.name || chatMe(), text: v.msg, at: now() }] }); S.emit(); openBubble(nid2); } });
-    }
   }
   document.addEventListener('DOMContentLoaded', buildBubble);
   S.subscribe(() => { drawFab(); if (chatB.show && document.activeElement !== document.getElementById('chatinput')) drawPanel(); });
