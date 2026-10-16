@@ -370,5 +370,108 @@
       try { load(); location.hash = '#/dashboard'; } catch (e) { UI.toast(e.message || String(e), 'err'); }
     }
   });
+
+  /* ---------- top-up samples: fills ONLY empty screens, varied statuses ---------- */
+  function samples() {
+    const d = db(), h = H(), s = D(); let n = 0;
+    const E = d.employees.filter((e) => e.status === 'Active');
+    const TN = (i) => (((h.techs || [])[i % Math.max(h.techs.length, 1)] || {}).name || '');
+    const T = () => L.today();
+    if (!h.requests.length && E.length) {
+      const r1 = ITMS.sdp.mkTicket({ requester: E[0].no, subject: 'Sample: WiFi slow in meeting room', category: 'Network & Connectivity', impact: 'Medium', urgency: 'Normal', type: 'Incident' });
+      const r2 = ITMS.sdp.mkTicket({ requester: E[Math.min(1, E.length - 1)].no, subject: 'Sample: Toner replaced (resolved)', category: 'Printing & Scanning', impact: 'Low', urgency: 'Low', type: 'Service Request' });
+      r2.status = 'Resolved'; r2.resolvedAt = new Date().toISOString(); r2.resolution = 'Toner replaced and test page OK.'; r2.closure = 'Success';
+      n += 2;
+    }
+    if (!h.problems.length) { h.problems.unshift({ id: 'PRB-S1', title: 'Sample: Mail delays at month-end', desc: '', category: 'Email & Collaboration', owner: TN(0), status: 'Open', impact: 'Medium', urgency: 'Normal', requests: [], hist: [], created: new Date().toISOString() }); n++; }
+    if (!h.changes.length) { h.changes.unshift({ id: 'CHG-S1', title: 'Sample: Firewall policy tidy-up', changeType: 'Standard', status: 'Planning', owner: TN(0), impact: 'Low', risk: 'Low', requests: [], approvals: [], hist: [], created: new Date().toISOString() }); n++; }
+    if (!h.items.length) {
+      h.items.push({ id: 9001, project: (h.cfg.projects || ['General'])[0], category: 'Infrastructure', desc: 'Sample: Upgrade meeting-room AV', status: 'Open', priority: 'Medium', owner: TN(0), pendingWith: TN(0), open: T(), target: L.addDays(T(), 21), latest: '', next: 'Get quotes', remarks: '', log: [] });
+      h.items.push({ id: 9002, project: (h.cfg.projects || ['General'])[0], category: 'Infrastructure', desc: 'Sample: Old printer disposal (done)', status: 'Completed', priority: 'Low', owner: TN(0), open: L.addDays(T(), -40), target: L.addDays(T(), -10), latest: 'Done', next: '', remarks: '', log: [] });
+      n += 2;
+    }
+    if (!h.solutions.length) { h.solutions.unshift({ id: 'KB-S1', title: 'Sample: Fix offline printer', category: 'Printing & Scanning', status: 'Published', author: TN(0), keywords: 'printer offline', content: '1. Check cable 2. Restart spooler 3. Re-add printer', views: 3, created: new Date().toISOString(), hist: [] }); n++; }
+    if (!h.catalog.length) { h.catalog.unshift({ id: 'SC-S01', title: 'Sample: New mouse', desc: 'Standard wireless mouse', category: 'Service Request', active: 'Yes', impact: 'Low', urgency: 'Low' }); n++; }
+    if (!(h.news || []).length) { h.news.unshift({ id: 'ANN-S01', title: 'Sample: Welcome to the service desk', desc: 'Log tickets from the portal or by email.', from: T(), to: L.addDays(T(), 30), active: 'Yes', created: new Date().toISOString() }); n++; }
+    if (!s.contracts.length) {
+      s.contracts.push(
+        { id: 'CTR-S01', title: 'Sample: Internet lease (active)', vendor: '', type: 'Lease', start: L.addDays(T(), -100), end: L.addDays(T(), 200), value: 60000, owner: TN(0), assets: [], status: 'Active', notes: '' },
+        { id: 'CTR-S02', title: 'Sample: Support expiring soon', vendor: '', type: 'Support', start: L.addDays(T(), -300), end: L.addDays(T(), 12), value: 24000, owner: TN(0), assets: [], status: 'Active', notes: '' },
+        { id: 'CTR-S03', title: 'Sample: Old deal (expired)', vendor: '', type: 'Maintenance', start: L.addDays(T(), -400), end: L.addDays(T(), -20), value: 8000, owner: TN(0), assets: [], status: 'Active', notes: '' }
+      ); n += 3;
+    }
+    if (!s.cis.length) {
+      s.cis.push(
+        { id: 'CI-S01', name: 'SAMPLE-CORE-SW', type: 'Network Device', owner: TN(0), site: '', status: 'Live', criticality: 'Critical', assetId: '', ip: '10.0.0.1', created: T() },
+        { id: 'CI-S02', name: 'SAMPLE-ERP-APP', type: 'Application', owner: TN(0), site: '', status: 'Live', criticality: 'High', assetId: '', ip: '', created: T() },
+        { id: 'CI-S03', name: 'SAMPLE-OLD-PC', type: 'Desktop', owner: '', site: '', status: 'Retired', criticality: 'Low', assetId: '', ip: '', created: T() }
+      );
+      s.links.push({ id: 'LNK-S01', from: 'CI-S02', rel: 'runs on', to: 'CI-S01', at: T() }, { id: 'LNK-S02', from: 'CI-S01', rel: 'connects to', to: 'CI-S03', at: T() });
+      n += 5;
+    }
+    if (!s.maint.length) {
+      s.maint.push(
+        { id: 'PMT-S01', title: 'Sample: Monthly patching (overdue)', freq: 'Monthly', next: L.addDays(T(), -3), group: '', desc: '', status: 'Scheduled' },
+        { id: 'PMT-S02', title: 'Sample: Quarterly AC service', freq: 'Quarterly', next: L.addDays(T(), 25), group: '', desc: '', status: 'Scheduled' }
+      ); n += 2;
+    }
+    if (!s.inbox.length) { s.inbox.unshift({ id: 'MAIL-S01', from: 'staff@company.ae', subject: 'Sample: projector not working', body: 'Hall projector shows no signal.', at: new Date().toISOString(), status: 'Unprocessed' }); n++; }
+    if (!s.schedules.length) {
+      s.schedules.push(
+        { id: 'SCH-S01', title: 'Sample: Follow-up task', kind: 'Task', date: L.addDays(T(), 2), time: '10:00', owner: TN(0), link: '' },
+        { id: 'SCH-S02', title: 'Sample: Team leave cover', kind: 'Time off', date: L.addDays(T(), 14), time: '', owner: TN(0), link: '' }
+      ); n += 2;
+    }
+    if (!s.templates.length) {
+      s.templates.push(
+        { id: 'TPL-S01', name: 'Sample: New headset', category: 'Service Request', desc: 'Standard headset', impact: 'Low', urgency: 'Normal', group: '', tasks: '', active: 'Yes' },
+        { id: 'TPL-S02', name: 'Sample: Retired form', category: 'Other', desc: '', impact: 'Low', urgency: 'Low', group: '', tasks: '', active: 'No' }
+      ); n += 2;
+    }
+    if (!s.actions.length) {
+      s.actions.push(
+        { id: 'CA-S1', name: 'Sample: Webhook on create', event: 'onCreate', do: 'webhook', target: 'https://hooks.example.com/new-ticket', active: 'Yes' },
+        { id: 'CA-S2', name: 'Sample: Page on SLA breach', event: 'onSLABreach', do: 'notify', target: 'On-call group', active: 'Yes' },
+        { id: 'CA-S3', name: 'Sample: Checklist on resolve', event: 'onResolve', do: 'task', target: 'Confirm with user in 48h', active: 'Yes' }
+      ); n += 3;
+    }
+    if (!s.apps.length) { s.apps.unshift({ id: 'APP-S1', name: 'Sample: Visitor log', purpose: 'Front-desk demo', fields: 'Visitor, Company, Host', records: [{ Visitor: 'Demo Guest', Company: 'Acme', Host: TN(0), _at: new Date().toISOString() }], active: 'Yes' }); n++; }
+    if (!s.surveys.length) { s.surveys.unshift({ id: 'SV-S1', title: 'Sample: Support rating', q: 'Rate this ticket (1-5)', active: 'Yes' }); n++; }
+    if (!s.responses.length && s.surveys.length && h.requests.length) {
+      s.responses.unshift({ id: 'SR-S1', surveyId: s.surveys[0].id, reqId: h.requests[0].id, rater: L.empName(h.requests[0].requester), score: 5, comment: 'Sample response', at: new Date().toISOString() });
+      s.responses.unshift({ id: 'SR-S2', surveyId: s.surveys[0].id, reqId: h.requests[0].id, rater: L.empName(h.requests[0].requester), score: 3, comment: '', at: new Date().toISOString() });
+      n += 2;
+    }
+    if (!s.chats.length && E.length) {
+      s.chats.unshift({ id: 'CHAT-S1', user: E[0].name, empNo: E[0].no, tech: TN(0), status: 'Open', at: new Date().toISOString(), msgs: [{ by: E[0].name, text: 'Sample: hi, need help', at: new Date().toISOString() }, { by: TN(0), text: 'Sample: looking into it', at: new Date().toISOString() }] });
+      s.chats.unshift({ id: 'CHAT-S2', user: E[0].name, empNo: E[0].no, tech: TN(0), status: 'Closed', at: new Date().toISOString(), msgs: [{ by: E[0].name, text: 'Sample: old chat', at: new Date().toISOString() }] });
+      n += 2;
+    }
+    if (!s.loans.length) {
+      const spare = d.hw.find((a) => a.status === 'In Stock');
+      if (spare && E.length > 1) {
+        L.issueAssets(E[1].no, [spare.id], T(), 'Sample loan');
+        s.loans.push({ id: 'LOAN-S1', assetId: spare.id, empNo: E[1].no, outDate: T(), dueDate: L.addDays(T(), 14), status: 'On loan', remarks: 'Sample' });
+        n++;
+      }
+    }
+    if (!s.toollog.length && d.hw.length) { s.toollog.unshift({ id: 'TOOL-S1', tool: 'Remote Desktop', asset: d.hw[0].id, by: TN(0) || 'Admin', at: new Date().toISOString(), result: 'Sample session record' }); n++; }
+    if (!s.adconns.length) { s.adconns.unshift({ id: 'ADC-S1', name: 'Sample DC (SSL)', host: 'dc01.company.ae', port: '636', enc: 'SSL', baseDN: 'DC=company,DC=ae', bindUser: 'svc@company.ae', cert: '', status: 'Draft', lastTest: '' }); n++; }
+    if (!s.adgroups.length) { s.adgroups.unshift({ id: 'ADG-S1', name: 'Sample Support Group', scope: 'Global', category: 'Security', desc: 'Sample', members: [] }); n++; }
+    if (!s.adusers.length && E.length) { s.adusers.unshift({ id: 'ADU-S1', sam: 'sample.user', upn: 'sample.user@company.ae', empNo: E[0].no, ou: 'OU=Users', groups: [], status: 'Enabled', mustChange: 'Yes', lastSync: T() }); n++; }
+    if (!s.gpos.length) { s.gpos.unshift({ id: 'GPO-S1', name: 'Sample Baseline', desc: 'Sample policy', ous: 'OU=Workstations', settings: 'Screen lock = 5 min', status: 'Linked', version: 1 }); n++; }
+    if (!s.adlog.length) { s.adlog.unshift({ at: new Date().toISOString(), text: 'Sample: directory check completed' }); n++; }
+    if (!s.adreqs.length && E.length) {
+      s.adreqs.unshift({ id: 'AD-S1', empNo: E[0].no, type: 'Password Reset', status: 'Open', ticketId: '', at: new Date().toISOString() });
+      s.adreqs.unshift({ id: 'AD-S2', empNo: E[0].no, type: 'Account Unlock', status: 'Closed', ticketId: '', at: new Date().toISOString() });
+      n += 2;
+    }
+    if (!s.devices.length) { s.devices.unshift({ id: 'MOB-S1', user: TN(0) || 'Admin', platform: 'Android', lastSeen: new Date().toISOString() }); n++; }
+    S.emit();
+    UI.toast(n ? n + ' sample record(s) added — empty screens filled' : 'Every screen already has data');
+  }
+  UI.on('data.samples', async () => {
+    if (await UI.confirm('Add sample records <b>only</b> to screens that are empty? Existing data is untouched.', 'Top-up samples', true)) samples();
+  });
   ITMS.testdata = { load };
 })();
