@@ -95,6 +95,11 @@
   }
   function route() {
     const h = location.hash.replace(/^#\/?/, ''); const [p, q] = h.split('?'); ITMS.nav.page = ITMS.pages[p] ? p : 'dashboard';
+    try {
+      const grp = MENU.find((g) => !g.single && (g.sections ? g.sections.flatMap((s) => s.items) : []).includes(ITMS.nav.page));
+      MENU.forEach((g) => { if (!g.single) navState[g.id] = (g === grp); });
+      saveNav();
+    } catch (e) { /* nav stays as-is */ }
     if (ITMS.nav.page !== 'dashboard' && ITMS.sdp) { try { if (!ITMS.sdp.canPage(ITMS.nav.page)) { UI.toast('Your role has no access to this module', 'err'); ITMS.nav.page = 'dashboard'; } } catch (e) { /* open on error */ } }
     ITMS.nav.params = {}; if (q) q.split('&').forEach((kv) => { const [k, v] = kv.split('='); ITMS.nav.params[k] = decodeURIComponent(v || ''); });
     ITMS.nav.fresh = true; document.querySelector('.side').classList.remove('open'); render();
@@ -104,7 +109,7 @@
   /* ---- delegated events ---- */
   document.addEventListener('click', (e) => {
     const t = e.target;
-    const gh = t.closest('[data-grp]'); if (gh) { navState[gh.dataset.grp] = !navState[gh.dataset.grp]; saveNav(); renderNav(); return; }
+    const gh = t.closest('[data-grp]'); if (gh) { const id = gh.dataset.grp; const was = !!navState[id]; MENU.forEach((g) => { if (!g.single) navState[g.id] = false; }); navState[id] = !was; saveNav(); renderNav(); return; }
     const nv = t.closest('[data-nav]'); if (nv) { const target = '#/' + nv.dataset.nav; if (location.hash === target) route(); else location.hash = target; return; }
     const act = t.closest('[data-act]');
     if (act) {
