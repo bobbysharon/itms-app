@@ -91,6 +91,8 @@ Extra pages (data in `db.sdp`):
 | ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start HR/Facilities/Finance/Legal desks with starter catalogs + fulfilment groups; **Desk workspace** tab per live desk (KPIs, desk requests, desk catalog, connected flows: HR→onboarding, Facilities→PM, Finance→approvals/budget, Legal→follow-ups/contracts); tickets carry a Desk field (filter + column on Tickets, shown on detail); desk catalogs surface in the portal |
 | Data archiving + audit trail | Archiving & Audit (`#/archiving`) — archive/restore old tickets, full event log |
 | AI assistance (built-in, offline) | Ticket detail → **Assist**: keyword-based category suggestion, urgency signal, related-KB finder with one-click link, and reply templates inserted as public notes |
+| Kanban + monitoring intake | Tickets → **Kanban** tab: visual columns with ◀ ▶ moves following your lifecycle; **Monitoring alert** button turns OpManager/Zabbix/Nagios/PRTG/Site24x7 alarms into routed Critical tickets |
+| Asset lifecycle + spaces + one-touch | Lifecycle Designer shows the live asset flow (stock → in use → repair → disposal); Enterprise → **Spaces** manages campuses/buildings with one-click maintenance requests; Automation → **One-touch** (emergency CAB, broadcast, PM run) and per-rule **Simulate** sandbox |
 
 ## Active Directory & Group Policy (`#/addirectory`, js/sdp-plus.js)
 - **Connections**: LDAP/LDAPS profiles — host, port (389 / 636 / 3268 / 3269), encryption (None / STARTTLS / **SSL**), Base DN, bind account, DC certificate thumbprint. **Test** validates and shows the exact PowerShell as audit evidence.
@@ -121,6 +123,8 @@ Extra pages (data in `db.sdp`):
 | ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start HR/Facilities/Finance/Legal desks with starter catalogs + fulfilment groups; **Desk workspace** tab per live desk (KPIs, desk requests, desk catalog, connected flows: HR→onboarding, Facilities→PM, Finance→approvals/budget, Legal→follow-ups/contracts); tickets carry a Desk field (filter + column on Tickets, shown on detail); desk catalogs surface in the portal |
 | Data archiving + audit trail | Archiving & Audit (`#/archiving`) — archive/restore old tickets, full event log |
 | AI assistance (built-in, offline) | Ticket detail → **Assist**: keyword-based category suggestion, urgency signal, related-KB finder with one-click link, and reply templates inserted as public notes |
+| Kanban + monitoring intake | Tickets → **Kanban** tab: visual columns with ◀ ▶ moves following your lifecycle; **Monitoring alert** button turns OpManager/Zabbix/Nagios/PRTG/Site24x7 alarms into routed Critical tickets |
+| Asset lifecycle + spaces + one-touch | Lifecycle Designer shows the live asset flow (stock → in use → repair → disposal); Enterprise → **Spaces** manages campuses/buildings with one-click maintenance requests; Automation → **One-touch** (emergency CAB, broadcast, PM run) and per-rule **Simulate** sandbox |
 
 ## Sign-in, logins & CSV migration (js/auth.js)
 - **Login screen**: full-admin `bobby.sharon@example.com` (alias `bobby.sharon@esample.com`) / `Admin@12345`, auto-linked to employee Bobby Sharon (created if missing). The bootstrap self-heals on **every** store change — any master reset recreates the admin with the default password, so you can never be locked out. Session per browser tab; sign-out button top-right. Demo-grade local gate — production use needs server-side auth.

@@ -22,7 +22,7 @@
   function ensure() {
     const d = db(); if (!d) return;
     const s = (d.sdp = d.sdp || {});
-    const arr = ['contracts', 'cis', 'links', 'maint', 'inbox', 'rules', 'notiflog', 'escalations', 'schedules', 'templates', 'actions', 'scans', 'discovered', 'products', 'loans', 'surveys', 'responses', 'chats', 'adreqs', 'archives', 'archiveData', 'instances', 'devices', 'apps', 'toollog', 'adconns', 'adusers', 'adgroups', 'gpos', 'adlog'];
+    const arr = ['contracts', 'cis', 'links', 'maint', 'inbox', 'rules', 'notiflog', 'escalations', 'schedules', 'templates', 'actions', 'scans', 'discovered', 'products', 'loans', 'surveys', 'responses', 'chats', 'adreqs', 'archives', 'archiveData', 'instances', 'devices', 'apps', 'toollog', 'adconns', 'adusers', 'adgroups', 'gpos', 'adlog', 'spaces'];
     arr.forEach((k) => { if (!s[k]) s[k] = []; });
     s.seq = s.seq || {};
     s.lifecycles = s.lifecycles || {
@@ -560,6 +560,39 @@
   });
   UI.on('rules.edit', (el) => { const r = D().rules.find((x) => x.id === el.dataset.id); UI.form({ title: 'Edit ' + r.id, icon: 'spark', fields: [{ k: 'name', label: 'Rule name', req: true, full: true }, { k: 'matchF', label: 'Match field', type: 'select', options: ['priority', 'category', 'type', 'group', 'level'], blank: false }, { k: 'matchV', label: 'Contains value', req: true }, { k: 'doGroup', label: 'Set group', type: 'select', options: () => groups() }, { k: 'doNotify', label: 'Notify', type: 'select', options: ['None', 'Email', 'Email + SMS'], blank: false }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
   UI.on('rules.run', () => { const r = runRules('manual'); UI.toast(r.applied ? `${r.applied} action(s) applied` : 'Nothing to apply — all rules already evaluated'); });
+  UI.on('rules.sim', (el) => {
+    const rule = D().rules.find((x) => x.id === el.dataset.id); if (!rule) return;
+    UI.form({
+      title: 'Simulate — ' + rule.name, sub: 'Preview only, nothing is saved', icon: 'spark',
+      fields: [{ k: 'req', label: 'Test against ticket', type: 'select', options: () => H().requests.slice(0, 80).map((r) => ({ v: r.id, l: `${r.id} · ${r.subject.slice(0, 50)}` })), req: true }],
+      submit: 'Preview',
+      onSubmit: (v) => {
+        const r = H().requests.find((x) => x.id === v.req); if (!r) return;
+        const val = String(r[rule.matchF] || '');
+        const hit = rule.matchV && val.toLowerCase().indexOf(String(rule.matchV).toLowerCase()) >= 0;
+        const acts = [];
+        if (rule.doGroup) acts.push('Set group → ' + rule.doGroup);
+        if (rule.doAssign) acts.push('Auto-assign least-loaded ' + rule.doAssign);
+        if (rule.doPr) acts.push('Set priority → ' + rule.doPr);
+        if (rule.doNotify && rule.doNotify !== 'None') acts.push('Notify via ' + rule.doNotify);
+        showPs('Simulation — ' + rule.id + ' on ' + r.id, hit ? 'Rule FIRES' : 'Rule does NOT fire', [`Ticket: ${r.id} · ${r.subject}`, `Match: ${rule.matchF} contains "${rule.matchV}" → tested value "${val}" → ${hit ? 'MATCH' : 'no match'}`, ''].concat(hit ? acts.map((a) => 'WOULD: ' + a) : ['Nothing would happen.']).join('\n'));
+      },
+    });
+  });
+  UI.on('one.cab', async () => {
+    if (!await UI.confirm('Raise an <b>Emergency</b> change with CAB approval and notify leads?', 'Emergency CAB')) return;
+    const h = H(); h.seq.changes = (h.seq.changes || 0) + 1;
+    const c = { id: 'CHG-' + String(h.seq.changes).padStart(4, '0'), title: 'Emergency change — ' + today(), desc: 'Raised in one touch from Automation.', changeType: 'Emergency', status: 'Approval', category: 'Other', owner: techs()[0] || '', impact: 'High', risk: 'High', created: now(), requests: [], assets: [], approvals: [{ approver: 'Group Lead', status: 'Pending', at: now(), comment: 'Emergency CAB via one-touch' }], hist: [{ at: now(), text: 'Emergency change raised in one touch' }] };
+    h.changes.unshift(c); notify('Email', 'Group Lead', `[${c.id}] Emergency CAB approval needed`, c.title); S.emit(); UI.toast(`${c.id} raised with CAB approval`);
+  });
+  UI.on('one.cast', () => {
+    UI.form({ title: 'Broadcast announcement', icon: 'bell', fields: [{ k: 'title', label: 'Title', req: true }, { k: 'desc', label: 'Message', type: 'textarea', full: true, req: true }], onSubmit: (v) => { H().news.unshift({ id: 'ANN-1T' + Date.now().toString().slice(-4), title: v.title, desc: v.desc, from: today(), to: L.addDays(today(), 7), active: 'Yes', created: now() }); notify('Email', 'All technicians', v.title, v.desc); S.emit(); UI.toast('Broadcast published'); } });
+  });
+  UI.on('one.pmrun', () => {
+    const due = D().maint.filter((m) => m.status === 'Scheduled' && m.next <= today());
+    if (!due.length) return UI.toast('No preventive tasks due');
+    due.forEach((m) => { try { UI.acts['maint.gen']({ dataset: { id: m.id } }); } catch (e) { /* skip */ } });
+  });
   function matrixRows() {
     const th = D().escth || {};
     return [
@@ -580,11 +613,12 @@
     render() {
       const d = D(); const tab = UI.curTab('automation', 'rules');
       let body = '';
-      if (tab === 'rules') body = UI.table({ id: 'brt', rows: () => d.rules, sort: 'id', text: (r) => r.id + r.name + r.matchV, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'name', label: 'Rule', render: (r) => `<b>${esc(r.name)}</b><br><small>${esc(r.when || '')}</small>` }, { k: 'matchF', label: 'When' }, { k: 'matchV', label: 'Contains' }, { k: 'doGroup', label: 'Set group' }, { k: 'doNotify', label: 'Notify' }, { k: 'active', label: 'Active', render: (r) => P(r.active === 'Yes' ? 'Published' : 'Draft') }], actions: (r) => ea('rules', r.id), toolbar: `${tbNew('rules.new', 'New rule')} <button class="btn ghost" data-act="rules.run">${ic('refresh')}Run now on open tickets</button>` });
+      if (tab === 'rules') body = UI.table({ id: 'brt', rows: () => d.rules, sort: 'id', text: (r) => r.id + r.name + r.matchV, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'name', label: 'Rule', render: (r) => `<b>${esc(r.name)}</b><br><small>${esc(r.when || '')}</small>` }, { k: 'matchF', label: 'When' }, { k: 'matchV', label: 'Contains' }, { k: 'doGroup', label: 'Set group' }, { k: 'doNotify', label: 'Notify' }, { k: 'active', label: 'Active', render: (r) => P(r.active === 'Yes' ? 'Published' : 'Draft') }], actions: (r) => `<button class="btn xs ghost" data-act="rules.sim" data-id="${r.id}">Simulate</button> ${ea('rules', r.id)}`, toolbar: `${tbNew('rules.new', 'New rule')} <button class="btn ghost" data-act="rules.run">${ic('refresh')}Run now on open tickets</button>` });
       else if (tab === 'esc') body = UI.table({ id: 'esct', rows: () => d.escalations, sort: 'at', dir: -1, text: (r) => r.req + r.reason, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'module', label: 'Module', render: (r) => esc(r.module || 'Ticket') }, { k: 'req', label: 'Reference' }, { k: 'level', label: 'Escalated to' }, { k: 'reason', label: 'Reason' }, { k: 'at', label: 'At', render: (r) => fdt(r.at) }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Open' ? 'Draft' : 'Closed') }], actions: (r) => (r.status === 'Open' ? `<button class="btn xs" data-act="esc.close" data-id="${r.id}">Close</button>` : ''), toolbar: `<button class="btn ghost" data-act="rules.run">${ic('refresh')}Check SLAs now</button>` });
       else if (tab === 'matrix') body = `<table class="t"><thead><tr><th>Module</th><th>Trigger</th><th>Escalates to</th><th>Notify</th></tr></thead><tbody>${matrixRows().map((m) => `<tr><td><b>${esc(m[0])}</b></td><td>${esc(m[1])}</td><td>${esc(m[2])}</td><td>${esc(m[3])}</td></tr>`).join('')}</tbody></table><div style="margin-top:10px"><button class="btn" data-act="esc.edit">${ic('clock')}Edit thresholds</button> <button class="btn ghost" data-act="rules.run">${ic('refresh')}Evaluate now</button></div>`;
+      else if (tab === 'one') body = `<div class="grid g3">${[['Emergency CAB change', 'Raises an Emergency change, requests CAB approval and notifies leads — one touch.', 'one.cab'], ['Broadcast announcement', 'Publishes a portal announcement and notifies technicians — one touch.', 'one.cast'], ['Run due preventive tasks', 'Generates tickets for every due PM task right now.', 'one.pmrun']].map((x) => `<div class="card"><h3>${x[0]}</h3><small style="color:var(--muted)">${x[1]}</small><div style="margin-top:10px"><button class="btn sm" data-act="${x[2]}">Run now</button></div></div>`).join('')}</div>`;
       else body = UI.table({ id: 'ntf', rows: () => d.notiflog, sort: 'at', dir: -1, text: (r) => r.to + r.subject, cols: [{ k: 'at', label: 'Sent', render: (r) => fdt(r.at) }, { k: 'channel', label: 'Channel' }, { k: 'to', label: 'To' }, { k: 'subject', label: 'Subject', render: (r) => `<b>${esc(r.subject)}</b>` }], actions: () => '' });
-      return `<div class="card">${UI.tabs('automation', [{ id: 'rules', label: 'Business rules', count: d.rules.length }, { id: 'esc', label: 'Escalations', count: d.escalations.filter((e) => e.status === 'Open').length }, { id: 'matrix', label: 'Escalation matrix' }, { id: 'log', label: 'Notifications log', count: d.notiflog.length }])}${body}</div>`;
+      return `<div class="card">${UI.tabs('automation', [{ id: 'rules', label: 'Business rules', count: d.rules.length }, { id: 'esc', label: 'Escalations', count: d.escalations.filter((e) => e.status === 'Open').length }, { id: 'matrix', label: 'Escalation matrix' }, { id: 'one', label: 'One-touch' }, { id: 'log', label: 'Notifications log', count: d.notiflog.length }])}${body}</div>`;
     },
   };
 
@@ -600,7 +634,10 @@
     render() {
       const lc = D().lifecycles;
       const col = (kind, title) => `<div class="card"><h3>${title}</h3>${lc[kind].map((s, i) => `<div style="display:flex;align-items:center;gap:6px;margin:5px 0"><span class="pill p-violet">${i + 1}</span><b>${esc(s)}</b><span style="margin-left:auto"></span><button class="ibtn" data-act="lc.mv" data-id="${kind}|${i}|-1">▲</button><button class="ibtn" data-act="lc.mv" data-id="${kind}|${i}|1">▼</button><button class="ibtn" style="--c:#ff5c6c" data-act="lc.del" data-id="${kind}|${i}">${ic('trash')}</button></div>`).join('')}<button class="btn sm ghost" data-act="lc.add" data-k="${kind}">${ic('plus')}Add status</button></div>`;
-      return `<div class="grid g3">${col('request', 'Request lifecycle')}${col('problem', 'Problem lifecycle')}${col('change', 'Change workflow')}</div>`;
+      const stages = ['In Stock', 'In Use', 'Under Repair', 'Disposed'];
+      const sc = stages.map((s) => db().hw.filter((a) => a.status === s).length);
+      const strip = `<div class="card" style="margin-bottom:16px"><h3>Asset lifecycle (live)</h3><div class="flow">${stages.map((s, i) => `<div class="st" style="--c:${['#00a8e8', '#2f6bff', '#ffb020', '#ff5c6c'][i]}"><b>${sc[i]}</b><span>${s}</span></div>`).join('')}</div><small style="color:var(--muted)">Assets move through these stages via Issue / Return / Transfer and status changes — see Asset Movements.</small></div>`;
+      return `${strip}<div class="grid g3">${col('request', 'Request lifecycle')}${col('problem', 'Problem lifecycle')}${col('change', 'Change workflow')}</div>`;
     },
   };
 
@@ -838,15 +875,26 @@
             + `<div class="card mt"><h3>Connected flows</h3><div style="display:flex;gap:8px;flex-wrap:wrap">${pk.links.map((l) => `<button class="btn ghost" data-go="${l[1]}">${l[0]} →</button>`).join('')}</div></div>`;
         }
       }
+      else if (tab === 'spaces') body = UI.table({ id: 'spct', rows: () => d.spaces, sort: 'building', text: (r) => r.id + r.building + r.room, filters: [{ k: 'type', label: 'Space type', options: ['Office', 'Meeting room', 'Lobby', 'Store', 'Plant room', 'Parking', 'Other'] }, { k: 'active', label: 'Active', options: ['Yes', 'No'] }], cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'building', label: 'Building / campus', render: (r) => `<b>${esc(r.building)}</b>` }, { k: 'floor', label: 'Floor' }, { k: 'room', label: 'Room / area' }, { k: 'type', label: 'Type' }, { k: 'capacity', label: 'Seats', num: true }, { k: 'amenities', label: 'Amenities', render: (r) => `<small>${esc(r.amenities || '—')}</small>` }, { k: 'active', label: 'Active', render: (r) => P(r.active === 'Yes' ? 'Published' : 'Draft') }], actions: (r) => `<button class="btn xs" data-act="spaces.req" data-id="${r.id}">Maintenance</button> <button class="btn xs ghost" data-act="spaces.edit" data-id="${r.id}">Edit</button> <button class="btn xs ghost" data-act="spaces.del" data-id="${r.id}">Delete</button>`, toolbar: tbNew('spaces.new', 'New space') });
       else body = `<div class="grid g2">${[['Out-of-the-box best practices', ['Incident → problem → change → release flow active', 'SLA + escalations + approvals enforced', 'CMDB impact attached to changes', 'Knowledge (solutions) reuse on resolve', 'Surveys on every resolved ticket', 'Quarterly access + backup review']], ['Single enterprise portal', [`One URL: ${d.domains.custom || d.domains.portal}`, `${d.instances.filter((i) => i.status === 'Live').length} live desk(s) reachable from portal`, 'Unique templates + automations per desk', 'Central users, groups and audit log']]].map(([t, items]) => `<div class="card"><h3>${t}</h3>${items.map((x) => `<label class="chk"><input type="checkbox" checked disabled><span>${esc(x)}</span></label>`).join('')}</div>`).join('')}</div>`;
-      return `<div class="card">${UI.tabs('esm', [{ id: 'desk', label: 'Service desk instances', count: d.instances.length }, { id: 'ws', label: 'Desk workspace' }, { id: 'mob', label: 'Helpdesk mobile apps', count: d.devices.length }, { id: 'bp', label: 'Best practices' }])}${body}</div>`;
+      return `<div class="card">${UI.tabs('esm', [{ id: 'desk', label: 'Service desk instances', count: d.instances.length }, { id: 'ws', label: 'Desk workspace' }, { id: 'mob', label: 'Helpdesk mobile apps', count: d.devices.length }, { id: 'spaces', label: 'Spaces', count: d.spaces.length }, { id: 'bp', label: 'Best practices' }])}${body}</div>`;
     },
     after() {
       const s = document.getElementById('esmsel');
       if (s) s.addEventListener('change', () => { UI.tab.esmDesk = s.value; S.emit(); });
     },
   };
-  UI.on('dev.del', async (el) => { if (await UI.confirm('Retire this device?', 'Retire', true)) { D().devices = D().devices.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  UI.on('spaces.new', () => {
+    UI.form({ title: 'New space', icon: 'box', fields: [{ k: 'building', label: 'Building / campus', req: true }, { k: 'floor', label: 'Floor' }, { k: 'room', label: 'Room / area' }, { k: 'type', label: 'Space type', type: 'select', options: ['Office', 'Meeting room', 'Lobby', 'Store', 'Plant room', 'Parking', 'Other'], blank: false }, { k: 'capacity', label: 'Capacity (seats)', type: 'number' }, { k: 'amenities', label: 'Amenities', type: 'textarea', full: true }, { k: 'manager', label: 'Space manager', type: 'select', options: () => techs() }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: { type: 'Office', active: 'Yes' }, onSubmit: (v) => { v.id = nid('sp', 'SP-', 2); D().spaces.unshift(v); S.emit(); UI.toast('Space added'); } });
+  });
+  UI.on('spaces.edit', (el) => { const r = D().spaces.find((x) => x.id === el.dataset.id); UI.form({ title: 'Edit ' + r.id, icon: 'box', fields: [{ k: 'building', label: 'Building / campus', req: true }, { k: 'floor', label: 'Floor' }, { k: 'room', label: 'Room / area' }, { k: 'type', label: 'Space type', type: 'select', options: ['Office', 'Meeting room', 'Lobby', 'Store', 'Plant room', 'Parking', 'Other'], blank: false }, { k: 'capacity', label: 'Capacity (seats)', type: 'number' }, { k: 'amenities', label: 'Amenities', type: 'textarea', full: true }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
+  UI.on('spaces.del', async (el) => { if (await UI.confirm('Delete this space?', 'Delete', true)) { D().spaces = D().spaces.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  UI.on('spaces.req', (el) => {
+    const s = D().spaces.find((x) => x.id === el.dataset.id); if (!s) return;
+    const fac = D().instances.find((i) => /facil|admin/i.test((i.dept || '') + (i.name || '')) && i.status === 'Live');
+    const r = mkTicket({ requester: curUser() || '', subject: `Maintenance — ${s.building}${s.room ? ' / ' + s.room : ''}`, desc: `Space: ${s.building}, floor ${s.floor || '—'}, room ${s.room || '—'} (${s.type}). Amenities: ${s.amenities || '—'}`, category: 'Service Request', type: 'Service Request', source: 'Space management', desk: fac ? fac.id : 'IT' });
+    S.emit(); UI.toast(`${r.id} raised${fac ? ' on ' + fac.name : ''}`);
+  });
 
   /* ================= AD & GROUP POLICY CENTER ================= */
   const alog = (text) => { D().adlog.unshift({ at: now(), text }); if (D().adlog.length > 200) D().adlog.length = 200; L.log('AD', text); };

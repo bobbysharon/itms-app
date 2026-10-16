@@ -155,17 +155,51 @@ Other: General Query, Feedback`;
   UI.on('rq.del', async (el) => { const r = req(el.dataset.id); if (await UI.confirm(`Delete request <b>${esc(r.id)}</b>?`, 'Delete', true)) { H().requests = H().requests.filter((x) => x !== r); S.emit(); } });
   UI.on('rq.csv', () => { const rows = H().requests; dl('requests.csv', ['ID,Subject,Requester,Department,Type,Category,Subcategory,Item,Priority,Status,Group,Technician,Created,Due By,Resolved,SLA'].concat(rows.map((r) => [r.id, r.subject, L.empName(r.requester), r.dept, r.type, r.category, r.sub, r.item, r.priority, r.status, r.group, r.tech, fdt(r.created), fdt(r.dueBy), fdt(r.resolvedAt), slaState(r)].map(csvEsc).join(','))).join('\n')); });
   const dec = (r) => Object.assign({}, r, { sla: slaState(r), reqName: L.empName(r.requester) });
+  const KB_ORDER = ['Open', 'Assigned', 'In Progress', 'On Hold', 'Resolved', 'Closed', 'Cancelled'];
+  const kbOrder = () => { try { const l = ITMS.sdp.D().lifecycles.request; return l && l.length ? l : KB_ORDER; } catch (e) { return KB_ORDER; } };
+  function kbBoard() {
+    const order = kbOrder().filter((s) => s !== 'Cancelled');
+    const col = (st) => {
+      const rows = H().requests.filter((r) => r.status === st);
+      return `<div style="flex:1;min-width:248px;max-width:320px;background:rgba(255,255,255,.6);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center"><b>${esc(st)}</b><span class="pill p-blue" style="margin-left:auto">${rows.length}</span></div><div style="overflow:auto;max-height:52vh;display:flex;flex-direction:column;gap:8px">${rows.map((r) => { const i = kbOrder().indexOf(r.status); return `<div class="card" style="padding:10px 12px;margin:0"><a class="link" data-act="rq.view" data-id="${r.id}"><b>${r.id}</b></a> <b>${esc(r.subject)}</b><div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0">${P(r.priority)} ${P(slaState(r))}</div><small style="color:var(--muted)">${esc(r.tech || 'Unassigned')} · ${esc(r.group || '')}</small><div style="display:flex;gap:4px;margin-top:8px">${i > 0 ? `<button class="btn xs ghost" data-act="kb.mv" data-id="${r.id}" data-d="-1">◀</button>` : ''}<button class="btn xs ghost" data-act="rq.view" data-id="${r.id}">Open</button>${i >= 0 && i < kbOrder().length - 1 ? `<button class="btn xs ghost" data-act="kb.mv" data-id="${r.id}" data-d="1">▶</button>` : ''}</div></div>`; }).join('') || '<div class="empty">Empty</div>'}</div></div>`;
+    };
+    return `<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px">${order.map(col).join('')}</div>`;
+  }
+  UI.on('kb.mv', (el) => {
+    const r = req(el.dataset.id); if (!r) return;
+    const order = kbOrder(); const i = order.indexOf(r.status); const j = i + (+el.dataset.d || 0);
+    if (i < 0 || j < 0 || j >= order.length) return;
+    const from = r.status; r.status = order[j];
+    if (r.status === 'In Progress' && !r.firstResp) r.firstResp = now();
+    if (r.status === 'Resolved') { if (!r.resolution) { r.resolution = 'Resolved via Kanban board.'; r.closure = r.closure || 'Success'; } r.resolvedAt = r.resolvedAt || now(); if (!r.firstResp) r.firstResp = now(); }
+    if (r.status === 'Closed') { r.closedAt = now(); if (!r.resolvedAt) { r.resolvedAt = now(); r.resolution = r.resolution || 'Closed via Kanban board.'; } }
+    hist(r, `Moved ${from} → ${r.status} (Kanban)`); S.emit(); UI.toast(`${r.id} → ${r.status}`);
+  });
+  UI.on('mon.alert', () => {
+    UI.form({
+      title: 'Monitoring alert → ticket', sub: 'Network/monitoring alarms become routed tickets', icon: 'bell',
+      fields: [{ k: 'sys', label: 'Monitoring source', type: 'select', options: ['OpManager', 'Zabbix', 'Nagios', 'PRTG', 'Site24x7', 'Manual'], blank: false }, { k: 'node', label: 'Node / device', req: true }, { k: 'sev', label: 'Severity', type: 'select', options: ['Critical', 'High', 'Medium', 'Low'], blank: false }, { k: 'msg', label: 'Alert message', type: 'textarea', full: true, req: true }],
+      values: { sys: 'OpManager', sev: 'High' },
+      onSubmit: (v) => {
+        const mk = (ITMS.sdp || {}).mkTicket; if (!mk) return UI.toast('Helpdesk engine unavailable', 'err');
+        const pr = { Critical: ['High', 'Urgent'], High: ['High', 'High'], Medium: ['Medium', 'Normal'], Low: ['Low', 'Low'] }[v.sev];
+        const r = mk({ requester: '', subject: `[${v.sys}] ${v.node}: ${v.msg.slice(0, 80)}`, desc: `Monitoring source: ${v.sys}\nNode: ${v.node}\nSeverity: ${v.sev}\n\n${v.msg}`, category: 'Network & Connectivity', impact: pr[0], urgency: pr[1], type: 'Incident', mode: 'Email', source: 'Monitoring (' + v.sys + ')' });
+        S.emit(); UI.toast(`${r.id} raised → ${r.group}`);
+      },
+    });
+  });
   pages.tickets = {
     title: 'Tickets', crumb: 'Incidents & service requests — assign, track SLA, resolve, close', icon: 'bell', color: '#2f6bff', group: 'Helpdesk',
     render() {
       const all = H().requests.map(dec); const F = { open: (r) => isOpen(r), unassigned: (r) => isOpen(r) && !r.tech, overdue: (r) => r.sla === 'Overdue', hold: (r) => r.status === 'On Hold', done: (r) => !isOpen(r), all: () => true };
       const tab = UI.curTab('tickets', 'open'); const n = (k) => all.filter(F[k]).length;
-      const tabs = UI.tabs('tickets', [['open', 'Open'], ['unassigned', 'Unassigned'], ['overdue', 'Overdue'], ['hold', 'On hold'], ['done', 'Resolved / closed'], ['all', 'All']].map(([id, label]) => ({ id, label, count: n(id) })));
+      const tabs = UI.tabs('tickets', [['open', 'Open'], ['unassigned', 'Unassigned'], ['overdue', 'Overdue'], ['hold', 'On hold'], ['done', 'Resolved / closed'], ['all', 'All'], ['board', 'Kanban']].map(([id, label]) => ({ id, label, count: id === 'board' ? all.filter((r) => isOpen(r)).length : n(id) })));
+      if (tab === 'board') return `<div class="card">${tabs}${kbBoard()}</div>`;
       return `<div class="card">${tabs}${UI.table({ id: 'rq' + tab, rows: () => H().requests.map(dec).filter(F[tab]), sort: 'created', dir: -1, text: (r) => [r.id, r.subject, r.reqName, r.category, r.tech, r.group].join(' '),
         filters: [{ k: 'status', label: 'Status', options: ['Open', 'Assigned', 'In Progress', 'On Hold', 'Resolved', 'Closed', 'Cancelled'] }, { k: 'desk', label: 'Desk', options: deskOpts, get: (r) => r.desk || 'IT' }, { k: 'priority', label: 'Priority', options: PRI }, { k: 'category', label: 'Category', options: cats }, { k: 'group', label: 'Group', options: () => H().cfg.groups }, { k: 'tech', label: 'Assigned to', options: () => assignees() }, { k: 'type', label: 'Type', options: () => H().cfg.reqTypes }],
         cols: [{ k: 'id', label: 'ID', mono: true, render: (r) => `<a class="link" data-act="rq.view" data-id="${r.id}">${r.id}</a>` }, { k: 'subject', label: 'Subject', render: (r) => `<a class="link" data-act="rq.view" data-id="${r.id}"><b>${esc(r.subject)}</b></a>` }, { k: 'reqName', label: 'Requester' }, { k: 'desk', label: 'Desk', render: (r) => esc(r.desk || 'IT') }, { k: 'category', label: 'Category', render: (r) => esc([r.category, r.sub].filter(Boolean).join(' › ')) }, { k: 'priority', label: 'Priority', render: (r) => P(r.priority) }, { k: 'status', label: 'Status', render: (r) => P(r.status) }, { k: 'tech', label: 'Assigned to', render: (r) => esc(r.tech || '— unassigned —') }, { k: 'group', label: 'Group' }, { k: 'created', label: 'Created', render: (r) => fdt(r.created) }, { k: 'dueBy', label: 'Due by', render: (r) => fdt(r.dueBy) + (left(r) ? `<br><small style="color:var(--muted)">${left(r)}</small>` : '') }, { k: 'sla', label: 'SLA', render: (r) => P(r.sla) }],
         actions: (r) => `<button class="ibtn" title="Open" data-act="rq.view" data-id="${r.id}">${ic('eye')}</button><button class="ibtn" style="--c:#ff5c6c" data-act="rq.del" data-id="${r.id}">${ic('trash')}</button>`,
-        toolbar: `<button class="btn" data-act="rq.new">${ic('plus')}New request</button><button class="btn ghost" data-act="rq.csv">${ic('download')}Export CSV</button>` })}</div>`;
+        toolbar: `<button class="btn" data-act="rq.new">${ic('plus')}New request</button><button class="btn ghost" data-act="mon.alert">${ic('bell')}Monitoring alert</button><button class="btn ghost" data-act="rq.csv">${ic('download')}Export CSV</button>` })}</div>`;
     },
   };
 

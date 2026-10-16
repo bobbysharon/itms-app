@@ -344,6 +344,10 @@
       { id: 'GPO-92', name: 'TEST USB Block (enforced)', desc: 'Test removable media', ous: 'OU=Workstations,DC=tafaseel,DC=ae\nOU=Servers,DC=tafaseel,DC=ae', settings: 'Removable storage = Deny', status: 'Enforced', version: 1 }
     );
     s.devices.push({ id: 'MOB-91', user: TN(0), platform: 'Android', lastSeen: agoH(3) }, { id: 'MOB-92', user: TN(1), platform: 'iOS', lastSeen: agoH(26) });
+    s.spaces.push(
+      { id: 'SP-91', building: 'HQ Tower', floor: 'Ground', room: 'Lobby', type: 'Lobby', capacity: 40, amenities: 'Reception, seating, display wall', manager: TN(0), active: 'Yes' },
+      { id: 'SP-92', building: 'HQ Tower', floor: '3', room: 'Meeting Room Orion', type: 'Meeting room', capacity: 12, amenities: 'Projector, video bar, whiteboard', manager: TN(1), active: 'Yes' }
+    );
     s.instances.push({ id: 'ESM-TST', name: 'TEST Facilities Desk', dept: 'Facilities', status: 'Draft', catalog: 0, portal: 'No', created: T() });
     s.apps.push({ id: 'APP-91', name: 'TEST Gate Pass', purpose: 'Test visitor passes', fields: 'Visitor, Company, Host', records: [{ Visitor: 'Ahmed', Company: 'ABC', Host: TN(0), _at: agoH(8) }, { Visitor: 'Sara', Company: 'XYZ', Host: TN(1), _at: agoH(30) }], active: 'Yes' });
     s.mail.smtp.unshift({ id: 'SMTP-91', name: 'TEST SMTP', host: 'smtp.tafaseel.ae', port: '587', enc: 'STARTTLS', user: 'servicedesk@tafaseel.ae', pass: '', fromAddr: 'servicedesk@tafaseel.ae', fromName: 'TAFASEEL Service Desk', status: 'Live', lastTest: agoH(2) });
