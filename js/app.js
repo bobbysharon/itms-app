@@ -2,7 +2,7 @@
 (function () {
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
-  ITMS.BUILD = '2026-10-16 · kanban spaces onetouch';
+  ITMS.BUILD = '2026-10-16 · HR Finance modules';
   try { console.info('%cITMS build ' + ITMS.BUILD, 'color:#2f6bff;font-weight:bold'); } catch (e) { /* ignore */ }
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
@@ -26,6 +26,12 @@
     {
       id: 'identity', title: 'People & Identity', icon: 'users', color: '#00a8e8', sections: [
         { title: 'People', items: ['employees', 'lifecycle', 'addirectory', 'roles'] },
+      ],
+    },
+    {
+      id: 'hrfin', title: 'HR & Finance', icon: 'dollar', color: '#3b82f6', sections: [
+        { title: 'Human resources', items: ['hr'] },
+        { title: 'Finance', items: ['finance'] },
       ],
     },
     {

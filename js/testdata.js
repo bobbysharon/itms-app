@@ -294,6 +294,17 @@
       { id: 'TPL-102', name: 'TEST: VPN access', category: 'Accounts & Access', desc: 'VPN profile + MFA', impact: 'Medium', urgency: 'Normal', group: groups[0], tasks: 'Security approval', active: 'Yes' },
       { id: 'TPL-103', name: 'TEST: Retired template', category: 'Other', desc: '', impact: 'Low', urgency: 'Low', group: '', tasks: '', active: 'No' }
     );
+    s.hr.leaves.push(
+      { id: 'LV-T1', empNo: pick(5).no, type: 'Annual', from: fwdD(10), to: fwdD(12), days: 3, reason: 'TEST family trip', status: 'Pending', at: new Date().toISOString() },
+      { id: 'LV-T2', empNo: pick(6).no, type: 'Sick', from: agoD(9), to: agoD(8), days: 2, reason: 'TEST flu', status: 'Approved', decided: agoD(10) }
+    );
+    s.schedules.push({ id: 'SCH-T91', title: 'TEST leave cover', kind: 'Time off', date: fwdD(10), time: '', owner: '', link: '' });
+    s.fin.expenses.push(
+      { id: 'EXP-T1', empNo: pick(5).no, date: agoD(6), category: 'Other', desc: 'TEST taxi to client site', amount: 85, status: 'Submitted', approver: (L.emp(pick(5).no) || {}).manager || '', at: new Date().toISOString() },
+      { id: 'EXP-T2', empNo: pick(6).no, date: agoD(12), category: 'Consumables', desc: 'TEST office supplies', amount: 240, status: 'Approved', approver: (L.emp(pick(6).no) || {}).manager || '', at: new Date().toISOString() }
+    );
+    s.fin.payments.push({ id: 'PAY-T1', poNo: poSw2, vendor: V['ConnectTel'], amount: Math.round(L.poTotals(L.po(poSw2)).incl), date: agoD(3), mode: 'Bank transfer', ref: 'TEST-REF-01', at: new Date().toISOString() });
+    L.po(poSw2).invoice = 'Paid';
     s.surveys.push({ id: 'SV-101', title: 'TEST: Leaver experience', q: 'How smooth was the exit process? (1-5)', active: 'No' });
     const sv = s.surveys.find((x) => x.id === 'SV-01');
     [[t3.id, pick(1).name, 5, 'Fast fix'], [t3.id, pick(1).name, 4, ''], [t5.id, pick(2).name, 5, ''], [t5.id, pick(3).name, 3, 'Took a while'], [t5.id, pick(4).name, 4, '']].forEach((x, i) => {
@@ -474,6 +485,9 @@
       n += 2;
     }
     if (!s.devices.length) { s.devices.unshift({ id: 'MOB-S1', user: TN(0) || 'Admin', platform: 'Android', lastSeen: new Date().toISOString() }); n++; }
+    if (!s.hr.leaves.length && E.length) { s.hr.leaves.unshift({ id: 'LV-S1', empNo: E[0].no, type: 'Annual', from: L.addDays(T(), 7), to: L.addDays(T(), 9), days: 3, reason: 'Sample leave', status: 'Pending', at: new Date().toISOString() }); n++; }
+    if (!s.fin.expenses.length && E.length) { s.fin.expenses.unshift({ id: 'EXP-S1', empNo: E[0].no, date: T(), category: 'Other', desc: 'Sample taxi claim', amount: 60, status: 'Submitted', approver: '', at: new Date().toISOString() }); n++; }
+    if (!s.fin.payments.length) { const p = (db().pos || []).find((x) => x.approval === 'Approved'); if (p) { s.fin.payments.unshift({ id: 'PAY-S1', poNo: p.poNo, vendor: p.vendor, amount: Math.round(L.poTotals(p).incl), date: T(), mode: 'Bank transfer', ref: '', at: new Date().toISOString() }); n++; } }
     S.emit();
     UI.toast(n ? n + ' sample record(s) added — empty screens filled' : 'Every screen already has data');
   }

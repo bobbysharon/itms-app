@@ -67,6 +67,17 @@
     s.mail.smtp = s.mail.smtp || []; s.mail.inbound = s.mail.inbound || []; s.mail.outbox = s.mail.outbox || [];
     s.mail.toggles = Object.assign({ onCreate: 1, onAssign: 1, onResolve: 1, onClose: 1, onNote: 1, ccManager: 1 }, s.mail.toggles || {});
     if (!s.mail.desk) s.mail.desk = 'support@company.ae';
+    s.hr = s.hr || {};
+    s.hr.leaveTypes = s.hr.leaveTypes || [{ type: 'Annual', days: 30 }, { type: 'Sick', days: 15 }, { type: 'Emergency', days: 5 }, { type: 'Unpaid', days: 0 }];
+    s.hr.leaves = s.hr.leaves || []; s.hr.clear = s.hr.clear || [];
+    s.fin = s.fin || {}; s.fin.expenses = s.fin.expenses || []; s.fin.payments = s.fin.payments || [];
+    if (!s.accV2) {
+      s.accV2 = true;
+      (s.roles || []).forEach((x) => {
+        if (!x.access || x.name === 'Administrator' || x.name === 'Requester' || x.name === 'Vendor / External') return;
+        ['hr', 'finance'].forEach((id) => { if (x.access.indexOf(id) < 0) x.access.push(id); });
+      });
+    }
     if (!s.rules.length && !s.seeded) {
       s.rules = [
         { id: 'BR-01', name: 'Critical → Tier 1 + SMS', active: 'Yes', when: 'VIP / critical incidents', matchF: 'priority', matchV: 'Critical', doAssign: 'Tier 1', doGroup: '', doNotify: 'Email + SMS', doPr: '' },
@@ -263,6 +274,7 @@
     return ov;
   }
   const tbNew = (act, label) => `<button class="btn" data-act="${act}">${ic('plus')}${label}</button>`;
+  const clip = (t) => `<div style="max-width:280px;max-height:4.8em;overflow:auto;white-space:normal;font-size:12.5px" title="${esc(t)}">${esc(t)}</div>`;
   const ea = (pre, id) => `<button class="ibtn" data-act="${pre}.edit" data-id="${id}">${ic('edit')}</button><button class="ibtn" style="--c:#ff5c6c" data-act="${pre}.del" data-id="${id}">${ic('trash')}</button>`;
   function crud(key, idField) {
     // generic delete with permission check; new/edit forms are per-module
@@ -1099,6 +1111,92 @@
     const ib = `<div class="card mt"><h3>Inbound mailboxes (IMAP / POP3 → ticket)</h3>${UI.table({ id: 'inbt', rows: () => m.inbound, sort: 'id', text: (r) => r.id + r.name + r.host, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'name', label: 'Mailbox' }, { k: 'type', label: 'Protocol' }, { k: 'host', label: 'Host' }, { k: 'port', label: 'Port' }, { k: 'ssl', label: 'SSL' }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Live' ? 'Published' : 'Draft') }], actions: (r) => `<button class="btn xs ghost" data-act="mail.inedit" data-id="${r.id}">Edit</button> <button class="btn xs ghost" data-act="mail.indel" data-id="${r.id}">Delete</button>`, toolbar: `${tbNew('mail.innew', 'New mailbox')} <button class="btn ghost" data-act="mail.paste">${ic('upload')}Paste received email</button>` })}</div>`;
     const ob = `<div class="card mt"><h3>Outbox — requester + reporting manager</h3>${UI.table({ id: 'emob', rows: () => m.outbox, sort: 'at', dir: -1, text: (r) => r.ticketId + r.subject + r.to.join(' '), filters: [{ k: 'status', label: 'Status', options: ['Queued', 'Sent'] }, { k: 'kind', label: 'Event', options: ['created', 'assigned', 'resolved', 'closed', 'note'] }], cols: [{ k: 'at', label: 'Queued', render: (r) => fdt(r.at) }, { k: 'ticketId', label: 'Ticket', mono: true }, { k: 'to', label: 'To', render: (r) => esc(r.to.join(', ')) }, { k: 'subject', label: 'Subject', render: (r) => `<b>${esc(r.subject)}</b>` }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Sent' ? 'Published' : 'Draft') }], actions: (r) => (r.status === 'Queued' ? `<button class="btn xs" data-act="mail.outsend" data-id="${r.id}">Send</button> <button class="btn xs ghost" data-act="mail.outcopy" data-id="${r.id}">Copy</button> <button class="btn xs ghost" data-act="mail.outsent" data-id="${r.id}">Sent</button> <button class="btn xs ghost" data-act="mail.outdel" data-id="${r.id}">Delete</button>` : `<button class="btn xs ghost" data-act="mail.outdel" data-id="${r.id}">Delete</button>`), toolbar: '' })}</div>`;
     return tg + sm + ib + ob;
+  };
+
+  /* ================= HR MODULE (leave · clearance · desk links) ================= */
+  const leaveDays = (f, t) => Math.max(0, Math.round((new Date(t) - new Date(f)) / 864e5) + 1);
+  function hrBal(empNo, type) {
+    const yr = String(new Date().getFullYear());
+    const allow = ((D().hr.leaveTypes.find((x) => x.type === type) || {}).days) || 0;
+    const used = D().hr.leaves.filter((l) => l.empNo === empNo && l.type === type && l.status === 'Approved' && String(l.from || '').slice(0, 4) === yr).reduce((s, l) => s + (+l.days || 0), 0);
+    return { allow, used, left: allow - used };
+  }
+  UI.on('leave.apply', () => {
+    UI.form({ title: 'Apply leave', icon: 'cal', fields: [{ k: 'empNo', label: 'Employee', type: 'select', options: empOpts, req: true }, { k: 'type', label: 'Leave type', type: 'select', options: () => D().hr.leaveTypes.map((x) => x.type), blank: false }, { k: 'from', label: 'From', type: 'date', req: true }, { k: 'to', label: 'To', type: 'date', req: true }, { k: 'reason', label: 'Reason', type: 'textarea', full: true }], values: { empNo: curUser(), type: 'Annual', from: today(), to: today() }, onSubmit: (v) => {
+      if (v.to < v.from) throw new Error('To date is before From date');
+      const days = leaveDays(v.from, v.to); const b = hrBal(v.empNo, v.type);
+      if (b.allow > 0 && days > b.left) throw new Error(`Only ${b.left} ${v.type} day(s) left this year`);
+      D().hr.leaves.unshift({ id: nid('lv', 'LV-', 3), empNo: v.empNo, type: v.type, from: v.from, to: v.to, days, reason: v.reason || '', status: 'Pending', at: now() });
+      S.emit(); UI.toast('Leave submitted for approval');
+    } });
+  });
+  UI.on('leave.ok', (el) => {
+    const l = D().hr.leaves.find((x) => x.id === el.dataset.id); if (!l || l.status !== 'Pending') return;
+    l.status = 'Approved'; l.decided = now();
+    D().schedules.unshift({ id: nid('sd', 'SCH-', 3), title: `Leave: ${L.empName(l.empNo)} (${l.type})`, kind: 'Time off', date: l.from, time: '', owner: '', link: '' });
+    S.emit(); UI.toast('Approved + added to Scheduler');
+  });
+  UI.on('leave.no', (el) => { const l = D().hr.leaves.find((x) => x.id === el.dataset.id); if (!l) return; UI.form({ title: 'Reject ' + l.id, icon: 'x', fields: [{ k: 'why', label: 'Reason', type: 'textarea', full: true, req: true }], onSubmit: (v) => { l.status = 'Rejected'; l.reason = (l.reason ? l.reason + ' | ' : '') + 'Rejected: ' + v.why; S.emit(); } }); });
+  UI.on('leave.del', async (el) => { if (await UI.confirm('Delete this leave record?', 'Delete', true)) { D().hr.leaves = D().hr.leaves.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  UI.on('ltypes.edit', () => { UI.form({ title: 'Leave types & yearly allowance', sub: 'One per line: Type | days', icon: 'cal', fields: [{ k: 't', label: 'Types', type: 'textarea', full: true }], values: { t: D().hr.leaveTypes.map((x) => x.type + ' | ' + x.days).join('\n') }, onSubmit: (v) => { D().hr.leaveTypes = v.t.split('\n').map((x) => x.trim()).filter(Boolean).map((l) => { const p = l.split('|').map((y) => y.trim()); return { type: p[0], days: Math.max(0, +p[1] || 0) }; }).filter((x) => x.type); S.emit(); } }); });
+  UI.on('clear.sign', (el) => {
+    const no = el.dataset.id;
+    const assets = db().hw.filter((a) => a.holder === no);
+    const ids = (db().accounts || []).filter((a) => a.empNo === no && a.status === 'Active');
+    const tks = H() ? H().requests.filter((r) => r.requester === no && ['Open', 'Assigned', 'In Progress', 'On Hold'].indexOf(r.status) >= 0) : [];
+    if (assets.length || ids.length || tks.length) return UI.toast('Still pending: return assets, disable IDs, close tickets first', 'err');
+    D().hr.clear.unshift({ empNo: no, at: now(), by: chatMe() || curRole() }); S.emit(); UI.toast('Clearance signed');
+  });
+  pages.hr = {
+    title: 'HR Management', crumb: 'Leave · exit clearance · HR service desk', icon: 'users', color: '#3b82f6',
+    render() {
+      const d = D(); const tab = UI.curTab('hr', 'leave');
+      const tabs = UI.tabs('hr', [{ id: 'leave', label: 'Leave', count: d.hr.leaves.filter((l) => l.status === 'Pending').length }, { id: 'bal', label: 'Balances' }, { id: 'clear', label: 'Exit clearance' }, { id: 'desk', label: 'HR desk' }]);
+      let body = '';
+      if (tab === 'leave') body = UI.table({ id: 'lvt', rows: () => d.hr.leaves.map((l) => Object.assign({ who: L.empName(l.empNo) }, l)), sort: 'from', dir: -1, text: (r) => r.id + r.who + r.type, filters: [{ k: 'status', label: 'Status', options: ['Pending', 'Approved', 'Rejected'] }, { k: 'type', label: 'Type', options: () => d.hr.leaveTypes.map((x) => x.type) }], cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'who', label: 'Employee' }, { k: 'type', label: 'Type' }, { k: 'from', label: 'From' }, { k: 'to', label: 'To' }, { k: 'days', label: 'Days', num: true }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Approved' ? 'Published' : r.status === 'Rejected' ? 'Expired' : 'Draft') }], actions: (r) => (r.status === 'Pending' ? `<button class="btn xs" data-act="leave.ok" data-id="${r.id}">Approve</button> <button class="btn xs ghost" data-act="leave.no" data-id="${r.id}">Reject</button> <button class="btn xs ghost" data-act="leave.del" data-id="${r.id}">Delete</button>` : `<button class="btn xs ghost" data-act="leave.del" data-id="${r.id}">Delete</button>`), toolbar: `${tbNew('leave.apply', 'Apply leave')} <button class="btn ghost" data-act="ltypes.edit">${ic('cal')}Leave types</button>` });
+      else if (tab === 'bal') body = UI.table({ id: 'lvb', rows: () => db().employees.filter((e) => e.status === 'Active').map((e) => { const o = { no: e.no, who: e.name }; d.hr.leaveTypes.forEach((t) => { o['b_' + t.type] = hrBal(e.no, t.type).left; }); return o; }), sort: 'who', text: (r) => r.who, cols: [{ k: 'who', label: 'Employee', render: (r) => `<b>${esc(r.who)}</b>` }].concat(d.hr.leaveTypes.map((t) => ({ k: 'b_' + t.type, label: t.type + ' left', num: true, render: (r) => (r['b_' + t.type] < 0 ? P(r['b_' + t.type] + '', 'coral') : r['b_' + t.type]) }))), actions: () => '' });
+      else if (tab === 'clear') body = UI.table({ id: 'lvc', rows: () => db().employees.filter((e) => e.status !== 'Active').map((e) => { const signed = d.hr.clear.find((c) => c.empNo === e.no); return Object.assign({}, e, { nA: db().hw.filter((a) => a.holder === e.no).length, nI: (db().accounts || []).filter((a) => a.empNo === e.no && a.status === 'Active').length, nT: H() ? H().requests.filter((r) => r.requester === e.no && ['Open', 'Assigned', 'In Progress', 'On Hold'].indexOf(r.status) >= 0).length : 0, signed: signed ? fdt(signed.at) + ' by ' + signed.by : '' }); }), sort: 'no', text: (r) => r.no + r.name, cols: [{ k: 'no', label: 'Emp No', mono: true }, { k: 'name', label: 'Leaver', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'status', label: 'State', render: (r) => P(r.status === 'Left' ? 'Expired' : 'Draft') }, { k: 'nA', label: 'Assets held', num: true }, { k: 'nI', label: 'Active IDs', num: true }, { k: 'nT', label: 'Open tickets', num: true }, { k: 'signed', label: 'Clearance' }], actions: (r) => (!r.signed && !r.nA && !r.nI && !r.nT ? `<button class="btn xs" data-act="clear.sign" data-id="${r.no}">Sign clearance</button>` : ''), toolbar: `<button class="btn ghost" data-go="#/lifecycle">Onboarding & offboarding</button>` });
+      else body = `<div class="grid g2"><div class="card"><h3>HR service desk</h3><p style="color:var(--muted)">Leave, letters, onboarding and HR requests run on the HR desk instance.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-go="#/esm">Open Enterprise desks</button><button class="btn ghost" data-go="#/employees">Employees</button><button class="btn ghost" data-go="#/scheduler">Scheduler leave view</button></div></div><div class="card"><h3>Open HR-linked items</h3><table class="t"><tbody>${(H() ? H().items.filter((i) => /hr|human|people/i.test((i.project || '') + (i.category || '')) && ['Open', 'Ongoing', 'Pending'].indexOf(i.status) >= 0) : []).map((i) => `<tr><td>#${i.id}</td><td>${esc(i.desc)}</td><td>${P(i.status)}</td></tr>`).join('') || '<tr><td><div class="empty">Nothing open</div></td></tr>'}</tbody></table></div></div>`;
+      return `<div class="card">${tabs}${body}</div>`;
+    },
+  };
+
+  /* ================= FINANCE MODULE (expenses · vendor payments · budget link) ================= */
+  function budgetBump(year, cat, amt, note) {
+    const d = db(); d.budgets = d.budgets || [];
+    let r = d.budgets.find((b) => +b.year === +year && b.category === cat);
+    if (!r) { r = { id: 'BG-' + year + '-' + cat.slice(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X'), year: +year, category: cat, planned: 0, extra: 0, notes: '' }; d.budgets.push(r); }
+    r.extra = (+r.extra || 0) + amt; if (note) r.notes = note;
+  }
+  const budgetCats = () => { try { return ITMS.budget.CATS; } catch (e) { return ['Other']; } };
+  UI.on('exp.new', () => {
+    UI.form({ title: 'New expense claim', icon: 'dollar', fields: [{ k: 'empNo', label: 'Employee', type: 'select', options: empOpts, req: true }, { k: 'date', label: 'Date', type: 'date', req: true }, { k: 'category', label: 'Budget category', type: 'select', options: budgetCats, blank: false }, { k: 'desc', label: 'Description', full: true, req: true }, { k: 'amount', label: 'Amount', type: 'number', req: true }], values: { empNo: curUser(), date: today(), category: 'Other' }, onSubmit: (v) => { D().fin.expenses.unshift({ id: nid('ex', 'EXP-', 3), empNo: v.empNo, date: v.date, category: v.category, desc: v.desc, amount: +v.amount || 0, status: 'Submitted', approver: (L.emp(v.empNo) || {}).manager || '', at: now() }); S.emit(); UI.toast('Expense submitted'); } });
+  });
+  UI.on('exp.ok', (el) => { const r = D().fin.expenses.find((x) => x.id === el.dataset.id); if (r) { r.status = 'Approved'; S.emit(); } });
+  UI.on('exp.no', (el) => { const r = D().fin.expenses.find((x) => x.id === el.dataset.id); if (!r) return; UI.form({ title: 'Reject ' + r.id, icon: 'x', fields: [{ k: 'why', label: 'Reason', type: 'textarea', full: true, req: true }], onSubmit: (v) => { r.status = 'Rejected'; r.desc += ' | Rejected: ' + v.why; S.emit(); } }); });
+  UI.on('exp.pay', (el) => {
+    const r = D().fin.expenses.find((x) => x.id === el.dataset.id); if (!r || r.status !== 'Approved') return;
+    r.status = 'Paid'; r.paidAt = today();
+    budgetBump(+String(r.date).slice(0, 4), r.category, r.amount, 'Expense ' + r.id);
+    S.emit(); UI.toast('Paid — posted to budget actuals');
+  });
+  UI.on('exp.del', async (el) => { if (await UI.confirm('Delete this expense claim?', 'Delete', true)) { D().fin.expenses = D().fin.expenses.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  UI.on('pay.new', () => {
+    const open = db().pos.filter((p) => p.approval === 'Approved' && p.invoice !== 'Paid');
+    UI.form({ title: 'Record vendor payment', icon: 'dollar', fields: [{ k: 'poNo', label: 'Purchase order', type: 'select', options: () => open.map((p) => ({ v: p.poNo, l: `${p.poNo} · ${p.vendor} · ${p.lines.reduce((s, l) => s + l.qty * (l.price || 0), 0).toFixed(0)}` })), req: true }, { k: 'amount', label: 'Amount paid', type: 'number', req: true }, { k: 'date', label: 'Payment date', type: 'date', req: true }, { k: 'mode', label: 'Mode', type: 'select', options: ['Bank transfer', 'Cheque', 'Cash'], blank: false }, { k: 'ref', label: 'Reference / cheque no.' }], values: { date: today(), mode: 'Bank transfer' }, onSubmit: (v) => { D().fin.payments.unshift({ id: nid('py', 'PAY-', 3), poNo: v.poNo, vendor: (L.po(v.poNo) || {}).vendor || '', amount: +v.amount || 0, date: v.date, mode: v.mode, ref: v.ref || '', at: now() }); const p = L.po(v.poNo); if (p) p.invoice = 'Paid'; S.emit(); UI.toast('Payment recorded, PO marked Paid'); } });
+  });
+  UI.on('pay.del', async (el) => { if (await UI.confirm('Delete this payment record?', 'Delete', true)) { D().fin.payments = D().fin.payments.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  pages.finance = {
+    title: 'Finance', crumb: 'Expenses · vendor payments · budget link', icon: 'dollar', color: '#3b82f6',
+    render() {
+      const d = D(); const tab = UI.curTab('finance', 'exp');
+      const tabs = UI.tabs('finance', [{ id: 'exp', label: 'Expenses', count: d.fin.expenses.filter((e) => e.status === 'Submitted').length }, { id: 'pay', label: 'Vendor payments', count: d.fin.payments.length }, { id: 'links', label: 'Linked areas' }]);
+      let body = '';
+      if (tab === 'exp') body = UI.table({ id: 'expt', rows: () => d.fin.expenses.map((e) => Object.assign({ who: L.empName(e.empNo) }, e)), sort: 'date', dir: -1, text: (r) => r.id + r.who + r.desc, filters: [{ k: 'status', label: 'Status', options: ['Submitted', 'Approved', 'Rejected', 'Paid'] }, { k: 'category', label: 'Category', options: budgetCats }], cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'who', label: 'Employee' }, { k: 'date', label: 'Date' }, { k: 'category', label: 'Budget category' }, { k: 'desc', label: 'Description', render: (r) => clip(r.desc) }, { k: 'amount', label: 'Amount', num: true, render: (r) => fmtNum(r.amount, 2) }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Paid' ? 'Published' : r.status === 'Rejected' ? 'Expired' : r.status === 'Approved' ? 'Published' : 'Draft') }], actions: (r) => (r.status === 'Submitted' ? `<button class="btn xs" data-act="exp.ok" data-id="${r.id}">Approve</button> <button class="btn xs ghost" data-act="exp.no" data-id="${r.id}">Reject</button> <button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>` : r.status === 'Approved' ? `<button class="btn xs" data-act="exp.pay" data-id="${r.id}">Pay + post to budget</button> <button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>` : `<button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>`), toolbar: tbNew('exp.new', 'New expense') });
+      else if (tab === 'pay') body = UI.table({ id: 'payt', rows: () => d.fin.payments, sort: 'date', dir: -1, text: (r) => r.id + r.poNo + r.vendor, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'poNo', label: 'PO', mono: true, render: (r) => `<a class="link" data-act="po.view" data-id="${r.poNo}">${r.poNo}</a>` }, { k: 'vendor', label: 'Vendor' }, { k: 'amount', label: 'Amount', num: true, render: (r) => fmtNum(r.amount, 2) }, { k: 'date', label: 'Paid on' }, { k: 'mode', label: 'Mode' }, { k: 'ref', label: 'Reference' }], actions: (r) => `<button class="btn xs ghost" data-act="pay.del" data-id="${r.id}">Delete</button>`, toolbar: tbNew('pay.new', 'Record payment') });
+      else body = `<div class="grid g2"><div class="card"><h3>Procurement & stock</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-go="#/orders">Purchase orders</button><button class="btn ghost" data-go="#/requests">Purchase requests</button><button class="btn ghost" data-go="#/vendors">Vendors</button><button class="btn ghost" data-go="#/hardware">Hardware stock</button><button class="btn ghost" data-go="#/consumables">Consumables stock</button></div></div><div class="card"><h3>Plans & reports</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-go="#/budget">IT Budget (actuals include paid expenses)</button><button class="btn ghost" data-go="#/reportsplus">Reports</button><button class="btn ghost" data-go="#/contracts">Contracts</button></div></div></div>`;
+      return `<div class="card">${tabs}${body}</div>`;
+    },
   };
 
   /* ================= 18. ARCHIVING + AUDIT ================= */
