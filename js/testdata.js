@@ -471,7 +471,9 @@
     UI.toast(n ? n + ' sample record(s) added — empty screens filled' : 'Every screen already has data');
   }
   UI.on('data.samples', async () => {
-    if (await UI.confirm('Add sample records <b>only</b> to screens that are empty? Existing data is untouched.', 'Top-up samples', true)) samples();
+    if (await UI.confirm('Add sample records <b>only</b> to screens that are empty? Existing data is untouched.', 'Top-up samples', true)) {
+      try { samples(); } catch (e) { UI.toast('Top-up failed: ' + (e && e.message ? e.message : e), 'err'); }
+    }
   });
   ITMS.testdata = { load };
 })();

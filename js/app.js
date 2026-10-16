@@ -2,6 +2,8 @@
 (function () {
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
+  ITMS.BUILD = '2026-10-16 · top-up-samples';
+  try { console.info('%cITMS build ' + ITMS.BUILD, 'color:#2f6bff;font-weight:bold'); } catch (e) { /* ignore */ }
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
     { id: 'dashboard', single: true },
@@ -73,7 +75,7 @@
         : gItems.map(item).join('');
       h += `<div class="grp ${open ? 'open' : ''}" style="--c:${g.color}"><div class="gh ${has ? 'has' : ''}" data-grp="${g.id}"><span class="gi">${ic(g.icon)}</span><span class="gt">${g.title}</span>${sum && !open ? `<span class="bd">${sum}</span>` : ''}<i class="chev"></i></div><div class="sub">${sub}</div></div>`;
     });
-    document.getElementById('nav').innerHTML = h; if (navState._last !== cur) { navState._last = cur; saveNav(); }
+    document.getElementById('nav').innerHTML = h + `<div class="navver" title="Deployed code version — quote this when reporting issues">build ${esc(ITMS.BUILD || '?')}</div>`; if (navState._last !== cur) { navState._last = cur; saveNav(); }
     const total = Object.keys(b).reduce((s, k) => s + (typeof b[k][0] === 'number' ? b[k][0] : 0), 0);
     const bell = document.getElementById('bellN'); if (bell) { bell.textContent = total; bell.style.display = total ? '' : 'none'; }
   }
