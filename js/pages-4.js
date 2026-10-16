@@ -32,7 +32,7 @@
           { k: 'sla', label: 'SLA' }, { k: 'cost', label: 'Cost', num: true, render: (c) => fmtNum(c.cost, 2) }, { k: 'freq', label: 'Payment' }, { k: 'st', label: 'Status', val: (c) => L.amcInfo(c).status, render: (c) => pill(L.amcInfo(c).status) },
         ],
         actions: (c) => `<button class="ibtn" data-act="amc.view" data-id="${c.id}" title="View">${ic('eye')}</button><button class="ibtn" style="--c:#ffb020" data-act="amc.renew" data-id="${c.id}" title="Renew">${ic('refresh')}</button><button class="ibtn" data-act="amc.edit" data-id="${c.id}" title="Edit">${ic('edit')}</button><button class="ibtn" style="--c:#ff5c6c" data-act="amc.del" data-id="${c.id}" title="Delete">${ic('trash')}</button>`,
-        toolbar: `<button class="btn" data-act="amc.new">${ic('plus')}New AMC</button>`, empty: 'Create an AMC contract and choose the assets it covers.',
+        toolbar: `<button class="btn" data-act="amc.new">${ic('plus')}New AMC</button><button class="btn ghost" data-go="#/contracts">${ic('receipt')}Other contracts</button><button class="btn ghost" data-go="#/vendors">Vendors</button>`, empty: 'Create an AMC contract and choose the assets it covers.',
         foot: (rows) => `<tr><td colspan="9">Total annual value</td><td class="num">${fmtNum(rows.reduce((a, c) => a + c.cost, 0), 2)}</td><td colspan="2"></td></tr>`,
       })}</div>`;
     },

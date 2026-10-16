@@ -5,16 +5,39 @@
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
     { id: 'dashboard', single: true },
-    { id: 'helpdesk', title: 'IT Helpdesk', icon: 'bell', color: '#2f6bff', items: ['itsm', 'tickets', 'itil', 'projects', 'kb', 'itsmadmin'] },
-    { id: 'people', title: 'People & Access', icon: 'users', color: '#00a8e8', items: ['employees', 'lifecycle'] },
-    { id: 'assets', title: 'Assets & Inventory', icon: 'laptop', color: '#2f6bff', items: ['hardware', 'movements', 'software', 'consumables', 'amc'] },
-    { id: 'proc', title: 'Procurement', icon: 'cart', color: '#00a8e8', items: ['requests', 'orders', 'vendors'] },
-    { id: 'govern', title: 'Plan & Govern', icon: 'shield', color: '#2f6bff', items: ['workflow', 'budget', 'compliance'] },
-    { id: 'sdp', title: 'ServiceDesk Plus', icon: 'spark', color: '#1d4ed8', items: ['portal', 'chat', 'automation', 'lifecycles', 'pmtasks', 'mailticket', 'cmdb', 'contracts'] },
-    { id: 'ent', title: 'Enterprise & Control', icon: 'grid', color: '#00c2ff', items: ['templates', 'discovery', 'loans', 'sites', 'roles', 'scheduler', 'surveys', 'reportsplus', 'esm', 'archiving'] },
-    { id: 'admin', title: 'Administration', icon: 'cog', color: '#5b8def', items: ['masters', 'integrations', 'settings'] },
+    {
+      id: 'helpdesk', title: 'Service Desk', icon: 'bell', color: '#2f6bff', sections: [
+        { title: 'Operate', items: ['itsm', 'tickets', 'portal', 'chat'] },
+        { title: 'ITIL workflows', items: ['itil', 'cmdb', 'lifecycles', 'automation'] },
+        { title: 'Intake & fulfilment', items: ['mailticket', 'pmtasks', 'templates', 'kb'] },
+        { title: 'Plan & measure', items: ['projects', 'scheduler', 'surveys', 'reportsplus'] },
+        { title: 'Admin', items: ['itsmadmin', 'esm'] },
+      ],
+    },
+    {
+      id: 'assets', title: 'Assets & Procurement', icon: 'laptop', color: '#1d4ed8', sections: [
+        { title: 'Asset register', items: ['hardware', 'movements', 'software', 'consumables', 'loans', 'discovery'] },
+        { title: 'Contracts', items: ['amc', 'contracts'] },
+        { title: 'Procurement', items: ['requests', 'orders', 'vendors'] },
+      ],
+    },
+    {
+      id: 'identity', title: 'People & Identity', icon: 'users', color: '#00a8e8', sections: [
+        { title: 'People', items: ['employees', 'lifecycle', 'addirectory', 'roles'] },
+      ],
+    },
+    {
+      id: 'govern', title: 'Govern & Compliance', icon: 'shield', color: '#3b82f6', sections: [
+        { title: 'Govern', items: ['workflow', 'budget', 'compliance', 'archiving'] },
+      ],
+    },
+    {
+      id: 'admin', title: 'Administration', icon: 'cog', color: '#5b8def', sections: [
+        { title: 'Configure', items: ['masters', 'sites', 'integrations', 'settings'] },
+      ],
+    },
   ];
-  const ORDER = MENU.reduce((a, g) => a.concat(g.single ? [g.id] : g.items), []);
+  const ORDER = MENU.reduce((a, g) => a.concat(g.single ? [g.id] : g.sections.flatMap((s) => s.items)), []);
   const NAVKEY = 'itms.nav'; const navState = (() => { try { return JSON.parse(localStorage.getItem(NAVKEY)) || {}; } catch (e) { return {}; } })();
   const saveNav = () => { try { localStorage.setItem(NAVKEY, JSON.stringify(navState)); } catch (e) { /* ignore */ } };
 
@@ -37,12 +60,16 @@
   }
   function renderNav() {
     const b = badges(); const cur = ITMS.nav.page; let h = '';
-    const item = (id) => { const p = ITMS.pages[id]; return `<a data-nav="${id}" class="${cur === id ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${p.title}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`; };
+    const item = (id) => { const p = ITMS.pages[id] || { title: id, icon: 'grid', color: '#2f6bff' }; return `<a data-nav="${id}" class="${cur === id ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${p.title}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`; };
     MENU.forEach((g) => {
       if (g.single) { h += item(g.id); return; }
-      const has = g.items.includes(cur); if (has && navState._last !== cur) navState[g.id] = true; const open = !!navState[g.id];
-      const sum = g.items.reduce((n, id) => n + (b[id] && typeof b[id][0] === 'number' ? b[id][0] : (b[id] ? 1 : 0)), 0);
-      h += `<div class="grp ${open ? 'open' : ''}" style="--c:${g.color}"><div class="gh ${has ? 'has' : ''}" data-grp="${g.id}"><span class="gi">${ic(g.icon)}</span><span class="gt">${g.title}</span>${sum && !open ? `<span class="bd">${sum}</span>` : ''}<i class="chev"></i></div><div class="sub">${g.items.map(item).join('')}</div></div>`;
+      const gItems = g.sections ? g.sections.flatMap((s) => s.items) : (g.items || []);
+      const has = gItems.includes(cur); if (has && navState._last !== cur) navState[g.id] = true; const open = !!navState[g.id];
+      const sum = gItems.reduce((n, id) => n + (b[id] && typeof b[id][0] === 'number' ? b[id][0] : (b[id] ? 1 : 0)), 0);
+      const sub = g.sections
+        ? g.sections.map((s) => `<div class="sec-label">${esc(s.title)}</div>${s.items.map(item).join('')}`).join('')
+        : gItems.map(item).join('');
+      h += `<div class="grp ${open ? 'open' : ''}" style="--c:${g.color}"><div class="gh ${has ? 'has' : ''}" data-grp="${g.id}"><span class="gi">${ic(g.icon)}</span><span class="gt">${g.title}</span>${sum && !open ? `<span class="bd">${sum}</span>` : ''}<i class="chev"></i></div><div class="sub">${sub}</div></div>`;
     });
     document.getElementById('nav').innerHTML = h; if (navState._last !== cur) { navState._last = cur; saveNav(); }
     const total = Object.keys(b).reduce((s, k) => s + (typeof b[k][0] === 'number' ? b[k][0] : 0), 0);

@@ -46,6 +46,8 @@ body {
 .brand small { display: block; color: var(--muted); font-size: 10.5px; letter-spacing: 1.1px; text-transform: uppercase; margin-top: 4px; white-space: nowrap; }
 .nav { overflow-y: auto; flex: 1; padding: 0 2px 8px; scrollbar-width: thin; }
 .nav h6 { margin: 9px 12px 4px; font: 600 10.5px var(--font); letter-spacing: 1.6px; text-transform: uppercase; color: #9aa0c6; }
+.nav .sec-label { margin: 8px 12px 2px; font: 600 10px var(--font); letter-spacing: 1.4px; text-transform: uppercase; color: #8f96bd; }
+.nav .sub .sec-label:first-child { margin-top: 2px; }
 .nav a {
   display: flex; align-items: center; gap: 11px; padding: 6px 10px; margin: 1px 0; border-radius: 15px; color: var(--ink2); text-decoration: none; font-weight: 550; cursor: pointer;
   border: 1px solid transparent; transition: .22s cubic-bezier(.2,.8,.2,1); position: relative;

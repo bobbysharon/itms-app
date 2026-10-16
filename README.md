@@ -54,8 +54,49 @@ Build command: *(none)* · Publish directory: `.`
 - **Sample data**: Helpdesk Home → *Load sample data* adds 24 tickets (all statuses and SLA states), 4 problems, 5 changes, 2 releases, 6 solutions, 7 catalog items, announcements, 10 follow-up items, 4 sample employees (two leavers still holding assets and IDs), 36 system accounts, onboarding/offboarding records and software installs. *Remove sample data* deletes only those flagged records and restores asset custody. A brand-new install loads it automatically once.
 - **Assigned to**: tickets can only be assigned to staff whose role is assignable (default: *Technician*; change under ITSM Admin → SLA & routing).
 
+## Menu map — one consolidated ITIL service desk (5 groups, 42 pages)
+No duplicates: the old *IT Helpdesk* / *ServiceDesk Plus* / *Enterprise* menus are merged. Every page below is cross-linked (buttons, not dead ends).
+- **Dashboard** — live KPIs + ITIL coverage strip.
+- **Service Desk** — *Operate:* Helpdesk Home, Tickets, Self-Service Portal, Live Chat · *ITIL workflows:* Problems · Changes · Releases, CMDB, Lifecycle Designer, Automation & SLA · *Intake & fulfilment:* Email to Ticket, Preventive Maintenance, Templates & Apps, Solutions & Catalog · *Plan & measure:* Projects & Follow-ups, Scheduler, Surveys, Advanced Reports · *Admin:* ITSM Admin, Enterprise (ESM).
+- **Assets & Procurement** — *Asset register:* Hardware, Movements, Software Licences, Consumables, Asset Loans, Discovery & Catalog · *Contracts:* AMC Contracts ⇄ Other Contracts (linked both ways) · *Procurement:* Purchase Requests → Purchase Orders → Vendors (full chain, no re-typing).
+- **People & Identity** — Employees ⇄ AD accounts, Onboarding & Offboarding ⇄ AD disable/provision, AD & Group Policy center, Roles & Access.
+- **Govern & Compliance** — IT Workflow (Plan→Retire), IT Budget, Policy Compliance (ISO 27001 / NIST / NESA / ITIL), Archiving & Audit trail.
+- **Administration** — Masters, Sites & Domains, Integrations, Settings.
+
+## ITIL flow (how modules link)
+Request (portal/email/chat/PM/template) → auto-route + auto-assign + SLA → resolve via Knowledge → close → survey. Repeat issues → Problem (root cause) → Change with CAB approval + CMDB blast-radius evidence → Release → linked assets/contracts update. Changes touching CIs attach the CMDB impact list; leavers trigger asset return + AD disable from one flow.
+
 ## ServiceDesk Plus extension (js/sdp-plus.js) — ITIL / audit coverage
-Sidebar groups **ServiceDesk Plus** and **Enterprise & Control** (18 pages, data in `db.sdp`):
+Extra pages (data in `db.sdp`):
+
+| Requested option | Page in app |
+|---|---|
+| Self-service portal, knowledge base, service catalog | Self-Service Portal (`#/portal`) + Solutions & Catalog |
+| AD user self-service (password reset / unlock) | Portal → Password/unlock (auto-creates ticket + AD queue) |
+| Live chat technician ↔ user | Live Chat (`#/chat`), convertible to ticket |
+| CMDB + relationship / impact analysis | CMDB (`#/cmdb`) — CIs, relationship map, 4-hop blast radius for change evidence |
+| Purchase & contract management | Contracts (`#/contracts`) ⇄ AMC register — expiry/renewal tracking |
+| Preventive maintenance tasks | Preventive Maintenance (`#/pmtasks`) — scheduled tasks generate real tickets |
+| Email to ticket + auto routing | Email to Ticket (`#/mailticket`) — mailbox rules, simulate + convert |
+| Business rules, tech auto-assign, smart notifications, SLA escalations | Automation & SLA (`#/automation`) — rules engine runs on open tickets + 30 s auto-check, escalation + notification log |
+| Request / problem / change lifecycle designer | Lifecycle Designer (`#/lifecycles`) |
+| Custom request templates, custom actions, custom apps (PaaS) | Templates & Apps (`#/templates`) — templates raise tickets with default tasks |
+| IT asset discovery, tracking, inventory catalog, remote tools | Discovery & Catalog (`#/discovery`) — scans, import → asset, product catalog, remote-tool audit log |
+| Asset loan tracking | Asset Loans (`#/loans`) — issue/return writes custody history |
+| Multi-site support, custom domains | Sites & Domains (`#/sites`) — site scope switcher + custom portal URL |
+| Fine-grained authorizations | Roles & Access (`#/roles`) — enforced on create/delete, incl. read-only Auditor; “Act as” to test |
+| Service desk scheduler | Scheduler (`#/scheduler`) — requests, tasks, time off, reminders |
+| Surveys + survey reports | Surveys (`#/surveys`) — CSAT on resolved tickets + averages |
+| Native / insightful / inventory reports | Advanced Reports (`#/reportsplus`) — MTTR, vendor spend, inventory, contracts, surveys (every table also exports CSV) |
+| ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start desks, mobile registry, portal checklist |
+| Data archiving + audit trail | Archiving & Audit (`#/archiving`) — archive/restore old tickets, full event log |
+
+## Active Directory & Group Policy (`#/addirectory`, js/sdp-plus.js)
+- **Connections**: LDAP/LDAPS profiles — host, port (389 / 636 / 3268 / 3269), encryption (None / STARTTLS / **SSL**), Base DN, bind account, DC certificate thumbprint. **Test** validates and shows the exact PowerShell as audit evidence.
+- **Users**: provision from Employees (linked by employee no.), enable/disable, unlock, password reset (one-time temp password + `Set-ADAccountPassword` script, must-change flag). Disables mirror the offboarding flow.
+- **Groups**: security/distribution groups with membership management (syncs back to user records).
+- **Group Policy**: GPOs with linked OUs, versioned settings, Enforced/Linked states, one-click backup + HTML report scripts.
+- **Runbooks**: ready PowerShell for starter provisioning, leaver offboarding, GPO health. **Sync log** records every action. (Browser apps can't bind LDAP directly — the app owns the profiles, objects and evidence, and generates the exact scripts the admin host runs; the existing AD connector under Administration → Integrations covers agent-based provisioning.)
 
 | Requested option | Page in app |
 |---|---|
