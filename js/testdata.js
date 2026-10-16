@@ -113,6 +113,8 @@
     const poSw2 = PO('switch', 1, 3, 1900, true); // Approved, not received → Pending
     const poCab = PO('cables', 1, 40, 9, true);
     L.setPOApproval(poCab, 'Cancelled');
+    const POX = (no, cc, del) => { const p = L.po(no); if (p) { p.costCenter = cc; if (del !== undefined) p.delivery = del; } };
+    POX(poLap, 'IT', agoD(12)); POX(poMon, 'IT', fwdD(10)); POX(poSw, 'IT', agoD(15)); POX(poTon, 'Administration', agoD(6)); POX(poSrv, 'IT', ''); POX(poSw2, 'Operations', fwdD(20)); POX(poCab, 'Administration', '');
     L.receivePO(poLap, [{ line: 1, qty: 5 }], { date: agoD(12) });
     L.receivePO(poMon, [{ line: 1, qty: 6 }], { date: agoD(9) }); // Partial
     L.receivePO(poSw, [{ line: 1, qty: 10 }], { date: agoD(15) });
@@ -135,7 +137,8 @@
     const devTypes = [['Laptop', 'Dell Latitude 5440', 4200], ['Desktop', 'Dell OptiPlex 7010', 3100], ['Monitor', 'Dell P2422H 24 inch', 780], ['Phone', 'Yealink T46S', 620]];
     newEmps.forEach((e, i) => {
       const dt = devTypes[i % devTypes.length];
-      const a = L.saveHW({ type: dt[0], desc: 'TEST: ' + dt[1] + ' for ' + e.name, compName: 'TEST-' + e.no, serial: 'TST-' + e.no, purchaseDate: agoD(45), price: dt[2], condition: 'Good' });
+      const oss = ['Windows 11', 'Windows 11', 'Windows 10', 'Android 14'];
+      const a = L.saveHW({ type: dt[0], desc: 'TEST: ' + dt[1] + ' for ' + e.name, compName: 'TEST-' + e.no, serial: 'TST-' + e.no, purchaseDate: agoD(45), price: dt[2], condition: 'Good', brand: dt[0] === 'Phone' ? 'Yealink' : 'Dell', os: oss[i % oss.length], domain: i % 2 ? 'HQ' : 'BRANCH', network: '192.168.' + (10 + (i % 3)) + '.0/24' });
       L.issueAssets(e.no, [a.id], agoD(30), 'TEST onboarding allocation');
     });
 
