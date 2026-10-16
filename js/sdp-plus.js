@@ -74,6 +74,22 @@
     s.hr.leaves = s.hr.leaves || []; s.hr.clear = s.hr.clear || [];
     s.hr.onb = s.hr.onb || []; s.hr.offb = s.hr.offb || [];
     s.fin = s.fin || {}; s.fin.expenses = s.fin.expenses || []; s.fin.payments = s.fin.payments || [];
+    if (!s.fin.coa) s.fin.coa = [
+      { code: '1110', name: 'Cash & Bank', type: 'Asset' }, { code: '1210', name: 'Accounts Receivable', type: 'Asset' },
+      { code: '1310', name: 'Advances to Suppliers', type: 'Asset' }, { code: '1410', name: 'Consumable Stock', type: 'Asset' },
+      { code: '1430', name: 'VAT Recoverable', type: 'Asset' }, { code: '1510', name: 'IT Equipment – Hardware', type: 'Asset' },
+      { code: '1520', name: 'Software Assets', type: 'Asset' }, { code: '1590', name: 'Accumulated Depreciation – IT', type: 'Asset' },
+      { code: '2110', name: 'Accounts Payable – Vendors', type: 'Liability' }, { code: '2120', name: 'Accrued Expenses', type: 'Liability' },
+      { code: '3110', name: 'Owner Capital', type: 'Equity' }, { code: '4110', name: 'Other Income', type: 'Income' },
+      { code: '5110', name: 'Salaries & Staff Cost', type: 'Expense' }, { code: '5210', name: 'Rent & Utilities', type: 'Expense' },
+      { code: '5220', name: 'Consumables Consumed', type: 'Expense' }, { code: '5230', name: 'Maintenance & AMC', type: 'Expense' },
+      { code: '5240', name: 'IT Subscriptions & Licences', type: 'Expense' }, { code: '5290', name: 'General & Admin Expenses', type: 'Expense' },
+      { code: '5410', name: 'Depreciation – IT Equipment', type: 'Expense' }, { code: '5510', name: 'Loss on Asset Disposal', type: 'Expense' },
+    ];
+    s.fin.catgl = Object.assign({ Hardware: '5290', 'Software & Licences': '5240', Consumables: '5220', 'AMC & Maintenance': '5230', 'Network & Infrastructure': '5290', 'Cloud & Services': '5240', Security: '5290', 'Staffing & Training': '5110', Other: '5290' }, s.fin.catgl || {});
+    s.fin.jv = s.fin.jv || []; s.fin.depruns = s.fin.depruns || [];
+    s.fin.seen = s.fin.seen || {}; s.fin.seen.grn = s.fin.seen.grn || {}; s.fin.seen.disp = s.fin.seen.disp || {}; s.fin.seen.iss = s.fin.seen.iss || {};
+    s.fin.seq = s.fin.seq || {};
     if (!s.accV2) {
       s.accV2 = true;
       (s.roles || []).forEach((x) => {
@@ -1221,26 +1237,134 @@
     const r = D().fin.expenses.find((x) => x.id === el.dataset.id); if (!r || r.status !== 'Approved') return;
     r.status = 'Paid'; r.paidAt = today();
     budgetBump(+String(r.date).slice(0, 4), r.category, r.amount, 'Expense ' + r.id);
+    try { postJV({ no: 'EX', date: r.date, type: 'Expense', ref: r.id, desc: `${r.desc} (${L.empName(r.empNo)})`, lines: [{ gl: (D().fin.catgl || {})[r.category] || '5290', dr: +r.amount || 0, cr: 0, cx: 'OPEX', ref: '' }, { gl: '1110', dr: 0, cr: +r.amount || 0, cx: '', ref: '' }] }); } catch (e) { UI.toast(e.message, 'err'); }
     S.emit(); UI.toast('Paid — posted to budget actuals');
   });
   UI.on('exp.del', async (el) => { if (await UI.confirm('Delete this expense claim?', 'Delete', true)) { D().fin.expenses = D().fin.expenses.filter((x) => x.id !== el.dataset.id); S.emit(); } });
   UI.on('pay.new', () => {
     const open = db().pos.filter((p) => p.approval === 'Approved' && p.invoice !== 'Paid');
-    UI.form({ title: 'Record vendor payment', icon: 'dollar', fields: [{ k: 'poNo', label: 'Purchase order', type: 'select', options: () => open.map((p) => ({ v: p.poNo, l: `${p.poNo} · ${p.vendor} · ${p.lines.reduce((s, l) => s + l.qty * (l.price || 0), 0).toFixed(0)}` })), req: true }, { k: 'amount', label: 'Amount paid', type: 'number', req: true }, { k: 'date', label: 'Payment date', type: 'date', req: true }, { k: 'mode', label: 'Mode', type: 'select', options: ['Bank transfer', 'Cheque', 'Cash'], blank: false }, { k: 'ref', label: 'Reference / cheque no.' }], values: { date: today(), mode: 'Bank transfer' }, onSubmit: (v) => { D().fin.payments.unshift({ id: nid('py', 'PAY-', 3), poNo: v.poNo, vendor: (L.po(v.poNo) || {}).vendor || '', amount: +v.amount || 0, date: v.date, mode: v.mode, ref: v.ref || '', at: now() }); const p = L.po(v.poNo); if (p) p.invoice = 'Paid'; S.emit(); UI.toast('Payment recorded, PO marked Paid'); } });
+    UI.form({ title: 'Record vendor payment', icon: 'dollar', fields: [{ k: 'poNo', label: 'Purchase order', type: 'select', options: () => open.map((p) => ({ v: p.poNo, l: `${p.poNo} · ${p.vendor} · ${p.lines.reduce((s, l) => s + l.qty * (l.price || 0), 0).toFixed(0)}` })), req: true }, { k: 'amount', label: 'Amount paid', type: 'number', req: true }, { k: 'date', label: 'Payment date', type: 'date', req: true }, { k: 'mode', label: 'Mode', type: 'select', options: ['Bank transfer', 'Cheque', 'Cash'], blank: false }, { k: 'ref', label: 'Reference / cheque no.' }], values: { date: today(), mode: 'Bank transfer' }, onSubmit: (v) => { D().fin.payments.unshift({ id: nid('py', 'PAY-', 3), poNo: v.poNo, vendor: (L.po(v.poNo) || {}).vendor || '', amount: +v.amount || 0, date: v.date, mode: v.mode, ref: v.ref || '', at: now() }); const p = L.po(v.poNo); if (p) p.invoice = 'Paid'; try { postJV({ no: 'PV', date: v.date, type: 'Payment', ref: v.poNo, desc: `Vendor payment ${(L.po(v.poNo) || {}).vendor || ''} via ${v.mode}`, lines: [{ gl: '2110', dr: +v.amount || 0, cr: 0, cx: '', ref: '' }, { gl: '1110', dr: 0, cr: +v.amount || 0, cx: '', ref: '' }] }); } catch (e) { UI.toast(e.message, 'err'); } S.emit(); UI.toast('Payment recorded, PO marked Paid'); } });
   });
   UI.on('pay.del', async (el) => { if (await UI.confirm('Delete this payment record?', 'Delete', true)) { D().fin.payments = D().fin.payments.filter((x) => x.id !== el.dataset.id); S.emit(); } });
   pages.finance = {
     title: 'Finance', crumb: 'Expenses · vendor payments · budget link', icon: 'dollar', color: '#3b82f6',
     render() {
       const d = D(); const tab = UI.curTab('finance', 'exp');
-      const tabs = UI.tabs('finance', [{ id: 'exp', label: 'Expenses', count: d.fin.expenses.filter((e) => e.status === 'Submitted').length }, { id: 'pay', label: 'Vendor payments', count: d.fin.payments.length }, { id: 'links', label: 'Linked areas' }]);
+      const tabs = UI.tabs('finance', [{ id: 'exp', label: 'Expenses', count: d.fin.expenses.filter((e) => e.status === 'Submitted').length }, { id: 'pay', label: 'Vendor payments', count: d.fin.payments.length }, { id: 'jv', label: 'Journal', count: d.fin.jv.length }, { id: 'ledger', label: 'Ledger' }, { id: 'tb', label: 'Trial balance' }, { id: 'recon', label: 'Reconciliation' }, { id: 'coa', label: 'COA' }, { id: 'links', label: 'Linked areas' }]);
       let body = '';
-      if (tab === 'exp') body = UI.table({ id: 'expt', rows: () => d.fin.expenses.map((e) => Object.assign({ who: L.empName(e.empNo) }, e)), sort: 'date', dir: -1, text: (r) => r.id + r.who + r.desc, filters: [{ k: 'status', label: 'Status', options: ['Submitted', 'Approved', 'Rejected', 'Paid'] }, { k: 'category', label: 'Category', options: budgetCats }], cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'who', label: 'Employee' }, { k: 'date', label: 'Date' }, { k: 'category', label: 'Budget category' }, { k: 'desc', label: 'Description', render: (r) => clip(r.desc) }, { k: 'amount', label: 'Amount', num: true, render: (r) => fmtNum(r.amount, 2) }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Paid' ? 'Published' : r.status === 'Rejected' ? 'Expired' : r.status === 'Approved' ? 'Published' : 'Draft') }], actions: (r) => (r.status === 'Submitted' ? `<button class="btn xs" data-act="exp.ok" data-id="${r.id}">Approve</button> <button class="btn xs ghost" data-act="exp.no" data-id="${r.id}">Reject</button> <button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>` : r.status === 'Approved' ? `<button class="btn xs" data-act="exp.pay" data-id="${r.id}">Pay + post to budget</button> <button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>` : `<button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>`), toolbar: tbNew('exp.new', 'New expense') });
+      if (tab === 'exp') body = UI.table({ id: 'expt', rows: () => d.fin.expenses.map((e) => Object.assign({ who: L.empName(e.empNo) }, e)), sort: 'date', dir: -1, text: (r) => r.id + r.who + r.desc, filters: [{ k: 'status', label: 'Status', options: ['Submitted', 'Approved', 'Rejected', 'Paid'] }, { k: 'category', label: 'Category', options: budgetCats }], cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'who', label: 'Employee' }, { k: 'date', label: 'Date' }, { k: 'category', label: 'Budget category' }, { k: 'desc', label: 'Description', render: (r) => clip(r.desc) }, { k: 'amount', label: 'Amount', num: true, render: (r) => fmtNum(r.amount, 2) }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Paid' ? 'Published' : r.status === 'Rejected' ? 'Expired' : r.status === 'Approved' ? 'Published' : 'Draft') }], actions: (r) => (r.status === 'Submitted' ? `<button class="btn xs" data-act="exp.ok" data-id="${r.id}">Approve</button> <button class="btn xs ghost" data-act="exp.no" data-id="${r.id}">Reject</button> <button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>` : r.status === 'Approved' ? `<button class="btn xs" data-act="exp.pay" data-id="${r.id}">Pay + post</button> <button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>` : `<button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>`), toolbar: tbNew('exp.new', 'New expense') });
       else if (tab === 'pay') body = UI.table({ id: 'payt', rows: () => d.fin.payments, sort: 'date', dir: -1, text: (r) => r.id + r.poNo + r.vendor, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'poNo', label: 'PO', mono: true, render: (r) => `<a class="link" data-act="po.view" data-id="${r.poNo}">${r.poNo}</a>` }, { k: 'vendor', label: 'Vendor' }, { k: 'amount', label: 'Amount', num: true, render: (r) => fmtNum(r.amount, 2) }, { k: 'date', label: 'Paid on' }, { k: 'mode', label: 'Mode' }, { k: 'ref', label: 'Reference' }], actions: (r) => `<button class="btn xs ghost" data-act="pay.del" data-id="${r.id}">Delete</button>`, toolbar: tbNew('pay.new', 'Record payment') });
+      else if (tab === 'jv') body = UI.table({ id: 'finjv', rows: () => d.fin.jv, sort: 'at', dir: -1, text: (r) => [r.id, r.type, r.ref, r.desc].join(' '), filters: [{ k: 'type', label: 'Transaction type', options: ['Purchase Bill', 'Payment', 'Expense', 'Depreciation', 'Disposal', 'Stock Issue'] }], cols: [{ k: 'date', label: 'Date' }, { k: 'id', label: 'Voucher No', mono: true }, { k: 'type', label: 'Type' }, { k: 'ref', label: 'Reference', mono: true }, { k: 'desc', label: 'Narration', render: (r) => clip(r.desc) }, { k: 'total', label: 'Amount', num: true, render: (r) => fmtNum(r.total, 2) }], actions: (r) => `<button class="ibtn" data-act="jv.view" data-id="${r.id}">${ic('eye')}</button>`, toolbar: `<button class="btn" data-act="fin.dep">${ic('dollar')}Run depreciation</button>` });
+      else if (tab === 'ledger') body = UI.table({ id: 'finlg', rows: () => { const out = []; d.fin.jv.forEach((e) => (e.lines || []).forEach((l) => out.push({ eid: e.id, edate: e.date, etype: e.type, eref: e.ref, edesc: e.desc, gl: l.gl, dr: +l.dr || 0, cr: +l.cr || 0, cx: l.cx || '' }))); return out; }, sort: 'edate', dir: -1, text: (r) => [r.eid, r.eref, r.gl, r.edesc].join(' '), filters: [{ k: 'gl', label: 'GL account', options: () => d.fin.coa.map((g) => g.code) }], cols: [{ k: 'edate', label: 'Date' }, { k: 'eid', label: 'Voucher', mono: true }, { k: 'etype', label: 'Type' }, { k: 'gl', label: 'GL', mono: true, render: (r) => `${r.gl} · ${esc(glName(r.gl))}` }, { k: 'dr', label: 'Debit', num: true, render: (r) => (r.dr ? fmtNum(r.dr, 2) : '') }, { k: 'cr', label: 'Credit', num: true, render: (r) => (r.cr ? fmtNum(r.cr, 2) : '') }, { k: 'cx', label: 'CAPEX/OPEX' }], foot: (rows) => `<tr><td colspan="4">Total (filtered)</td><td class="num">${fmtNum(rows.reduce((s, r) => s + r.dr, 0), 2)}</td><td class="num">${fmtNum(rows.reduce((s, r) => s + r.cr, 0), 2)}</td><td class="num">Bal ${fmtNum(rows.reduce((s, r) => s + r.dr - r.cr, 0), 2)}</td></tr>` });
+      else if (tab === 'tb') {
+        const per = UI.tab.finTB || 'ALL';
+        const rows = d.fin.coa.map((g) => { let dr = 0, cr = 0; d.fin.jv.forEach((e) => { if (per !== 'ALL' && e.month !== per) return; (e.lines || []).forEach((l) => { if (l.gl === g.code) { dr += +l.dr || 0; cr += +l.cr || 0; } }); }); return { code: g.code, name: g.name, type: g.type, dr: r2(dr), cr: r2(cr) }; }).filter((r) => r.dr || r.cr);
+        const td = r2(rows.reduce((s, r) => s + r.dr, 0)), tc = r2(rows.reduce((s, r) => s + r.cr, 0));
+        body = `<div style="margin-bottom:10px"><label>Period <select class="in" id="fintbper" style="width:auto;display:inline-block"><option value="ALL">All time (tallies)</option>${finMonths().map((m) => `<option value="${m}" ${m === per ? 'selected' : ''}>${m}</option>`).join('')}</select> ${Math.abs(td - tc) < 0.005 ? P('Tallied', 'mint') : P('Out of balance', 'coral')}</div>`
+          + UI.table({ id: 'fintb', rows: () => rows, sort: 'code', text: (r) => r.code + r.name, cols: [{ k: 'code', label: 'GL', mono: true }, { k: 'name', label: 'Account' }, { k: 'type', label: 'Type' }, { k: 'dr', label: 'Debit', num: true, render: (r) => (r.dr ? fmtNum(r.dr, 2) : '') }, { k: 'cr', label: 'Credit', num: true, render: (r) => (r.cr ? fmtNum(r.cr, 2) : '') }], foot: () => `<tr><td colspan="3">Total</td><td class="num">${fmtNum(td, 2)}</td><td class="num">${fmtNum(tc, 2)}</td></tr>` });
+      } else if (tab === 'recon') {
+        const per = UI.tab.finRecon || L.today().slice(0, 7);
+        let grnV = 0; (db().grns || []).forEach((g) => { if (String(g.date || '').slice(0, 7) !== per) return; const b = billLines(g); grnV = r2(grnV + b.excl + b.vat); });
+        const bills = d.fin.jv.filter((e) => e.type === 'Purchase Bill' && e.month === per);
+        const billV = r2(bills.reduce((s, e) => s + (+e.total || 0), 0));
+        let tdr = 0, tcr = 0, cxC = 0, cxO = 0;
+        d.fin.jv.forEach((e) => { if (e.month !== per) return; (e.lines || []).forEach((l) => { tdr += +l.dr || 0; tcr += +l.cr || 0; if (l.cx === 'CAPEX') cxC += +l.dr || 0; if (l.cx === 'OPEX') cxO += +l.dr || 0; }); });
+        tdr = r2(tdr); tcr = r2(tcr); cxC = r2(cxC); cxO = r2(cxO);
+        const kpi = (n, l) => `<div class="card" style="border-left:4px solid ${C.blue}"><div style="font:700 22px var(--head)">${n}</div><small style="color:var(--muted)">${l}</small></div>`;
+        body = `<div style="margin-bottom:10px"><label>Period <select class="in" id="finrecon" style="width:auto;display:inline-block">${L.uniq(finMonths().concat([L.today().slice(0, 7)])).sort().reverse().map((m) => `<option value="${m}" ${m === per ? 'selected' : ''}>${m}</option>`).join('')}</select></div>`
+          + `<div class="grid g3">${kpi(fmtNum(grnV, 2), 'Goods received (GRN value) ' + per)}${kpi(fmtNum(billV, 2), 'Purchase bills posted')}${kpi(Math.abs(grnV - billV) < 0.01 ? 'MATCH' : fmtNum(Math.abs(grnV - billV), 2) + ' gap', 'GRN vs bills ' + (Math.abs(grnV - billV) < 0.01 ? P('Tallied', 'mint') : P('Check', 'amber'))}</div>`
+          + `<div class="grid g3 mt">${kpi(fmtNum(tdr, 2) + ' / ' + fmtNum(tcr, 2), 'Journal Dr / Cr ' + (Math.abs(tdr - tcr) < 0.005 ? P('Tallied', 'mint') : P('Out of balance', 'coral')))}${kpi(fmtNum(cxC, 2), 'CAPEX posted')}${kpi(fmtNum(cxO, 2), 'OPEX posted')}</div>`;
+      } else if (tab === 'coa') body = UI.table({ id: 'fincoa', rows: () => d.fin.coa, sort: 'code', text: (r) => r.code + r.name, filters: [{ k: 'type', label: 'Type', options: ['Asset', 'Liability', 'Equity', 'Income', 'Expense'] }], cols: [{ k: 'code', label: 'Code', mono: true }, { k: 'name', label: 'Account' }, { k: 'type', label: 'Type' }], actions: (r) => `<button class="ibtn" data-act="coa.edit" data-id="${r.code}">${ic('edit')}</button><button class="ibtn" style="--c:#ff5c6c" data-act="coa.del" data-id="${r.code}">${ic('trash')}</button>`, toolbar: `${tbNew('coa.new', 'New account')} <button class="btn ghost" data-act="catgl.edit">${ic('link')}Category → GL map</button>` })
+      ;
       else body = `<div class="grid g2"><div class="card"><h3>Procurement & stock</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-go="#/orders">Purchase orders</button><button class="btn ghost" data-go="#/requests">Purchase requests</button><button class="btn ghost" data-go="#/vendors">Vendors</button><button class="btn ghost" data-go="#/hardware">Hardware stock</button><button class="btn ghost" data-go="#/consumables">Consumables stock</button></div></div><div class="card"><h3>Plans & reports</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-go="#/budget">IT Budget (actuals include paid expenses)</button><button class="btn ghost" data-go="#/reportsplus">Reports</button><button class="btn ghost" data-go="#/contracts">Contracts</button></div></div></div>`;
       return `<div class="card">${tabs}${body}</div>`;
     },
+    after() {
+      const t = document.getElementById('fintbper');
+      if (t) t.addEventListener('change', () => { UI.tab.finTB = t.value; S.emit(); });
+      const m = document.getElementById('finrecon');
+      if (m) m.addEventListener('change', () => { UI.tab.finRecon = m.value; S.emit(); });
+    },
   };
+
+  /* ================= FINANCE ENGINE (vouchers · GL · auto-posting) ================= */
+  function finNo(prefix) { const s = D().fin.seq; s[prefix] = (s[prefix] || 0) + 1; return prefix + '-' + String(s[prefix]).padStart(4, '0'); }
+  const glName = (code) => ((D().fin.coa.find((g) => g.code === code) || {}).name || code);
+  const r2 = (n) => Math.round((+n || 0) * 100) / 100;
+  function postJV(o) {
+    const dr = r2(o.lines.reduce((a, l) => a + (+l.dr || 0), 0)), cr = r2(o.lines.reduce((a, l) => a + (+l.cr || 0), 0));
+    if (!o.lines.length) return null;
+    if (Math.abs(dr - cr) > 0.005) throw new Error('Journal out of balance');
+    const e = Object.assign({ id: finNo(o.no || 'JV'), at: now(), month: String(o.date || '').slice(0, 7), total: cr }, o);
+    D().fin.jv.unshift(e);
+    L.log('Finance', `${e.id} ${e.type} ${e.ref} ${cr.toFixed(2)}`, e.ref);
+    return e;
+  }
+  function billLines(g) {
+    const p = L.po(g.poNo); if (!p) return { p: null, lines: [], excl: 0, vat: 0 };
+    const lines = []; let excl = 0, vat = 0;
+    (g.lines || []).forEach((gl) => {
+      const pl = (p.lines || []).find((x) => x.line === gl.line) || {};
+      const t = L.lineTotals(p, Object.assign({}, pl, { qty: gl.qty }));
+      excl += t.excl; vat += t.vat;
+      lines.push({ pl, qty: gl.qty, t });
+    });
+    return { p, lines, excl: r2(excl), vat: r2(vat) };
+  }
+  function postBill(g) {
+    const b = billLines(g); if (!b.p) return;
+    const jlines = b.lines.map((x) => ({ gl: x.pl.itemType === 'Hardware' ? '1510' : x.pl.itemType === 'Software' ? '1520' : '1410', dr: x.t.excl, cr: 0, cx: x.pl.itemType === 'Consumable' ? 'OPEX' : 'CAPEX', ref: `${b.p.poNo} L${x.pl.line} × ${x.qty}` }));
+    if (b.vat > 0) jlines.push({ gl: '1430', dr: b.vat, cr: 0, cx: '', ref: 'VAT on ' + g.grnNo });
+    jlines.push({ gl: '2110', dr: 0, cr: r2(b.excl + b.vat), cx: '', ref: 'AP ' + b.p.vendor });
+    postJV({ no: 'BILL', date: g.date, type: 'Purchase Bill', ref: g.grnNo, desc: `GRN ${g.grnNo} against ${b.p.poNo} (${b.p.vendor})`, lines: jlines });
+  }
+  function postDisposal(m) {
+    const a = L.hw(m.assetId); if (!a) return;
+    const nbv = +a.price || 0; if (nbv <= 0) return;
+    postJV({ no: 'DSP', date: m.date, type: 'Disposal', ref: m.assetId, desc: `Write-off ${m.assetId}`, lines: [{ gl: '5510', dr: nbv, cr: 0, cx: '', ref: '' }, { gl: a.type === 'Software' ? '1520' : '1510', dr: 0, cr: nbv, cx: '', ref: '' }] });
+  }
+  function postIssue(r) {
+    const last = db().consPurch.filter((x) => x.itemId === r.itemId).pop();
+    const val = r2((+((last || {}).price || 0)) * (+r.qty || 0));
+    if (val <= 0) return;
+    postJV({ no: 'IS', date: r.date, type: 'Stock Issue', ref: r.id, desc: `Consumable issue ${r.id}`, lines: [{ gl: '5220', dr: val, cr: 0, cx: 'OPEX', ref: '' }, { gl: '1410', dr: 0, cr: val, cx: '', ref: '' }] });
+  }
+  let lastFin = 0;
+  S.subscribe(() => {
+    const t = Date.now(); if (t - lastFin < 20000) return; lastFin = t;
+    try {
+      const seen = D().fin.seen; let changed = false;
+      (db().grns || []).forEach((g) => { if (!g.grnNo || seen.grn[g.grnNo]) return; seen.grn[g.grnNo] = 1; try { postBill(g); changed = true; } catch (e) { /* skip bad */ } });
+      (db().moves || []).forEach((m) => { const k = (m.doc || '') + (m.id || ''); if (m.type === 'Status' && m.after === 'Disposed' && !seen.disp[k]) { seen.disp[k] = 1; try { postDisposal(m); changed = true; } catch (e) { /* skip */ } } });
+      (db().consIssue || []).forEach((r) => { if (seen.iss[r.id]) return; seen.iss[r.id] = 1; try { postIssue(r); changed = true; } catch (e) { /* skip */ } });
+      if (changed) S.emit();
+    } catch (e) { /* never break */ }
+  });
+  const finMonths = () => L.uniq(D().fin.jv.map((e) => e.month).filter(Boolean)).sort().reverse();
+  UI.on('fin.dep', () => {
+    const m0 = L.today().slice(0, 7);
+    UI.form({ title: 'Run monthly depreciation', sub: 'Straight-line over expected life', icon: 'dollar', fields: [{ k: 'month', label: 'Month (YYYY-MM)', req: true }], values: { month: m0 }, onSubmit: (v) => {
+      if (!/^\d{4}-\d{2}$/.test(v.month)) throw new Error('Use YYYY-MM');
+      if (D().fin.depruns.indexOf(v.month) >= 0) throw new Error('Already run for ' + v.month);
+      let tot = 0, n = 0;
+      db().hw.forEach((a) => { if (a.status === 'Disposed' || !a.purchaseDate || !(+a.life > 0)) return; if (String(a.purchaseDate).slice(0, 7) > v.month) return; const m = r2((+a.price || 0) / (+a.life * 12)); if (m > 0) { tot = r2(tot + m); n++; } });
+      if (!tot) throw new Error('Nothing depreciable that month');
+      postJV({ no: 'DEP', date: v.month + '-28', type: 'Depreciation', ref: v.month, desc: `Monthly depreciation ${v.month} (${n} assets)`, lines: [{ gl: '5410', dr: tot, cr: 0, cx: 'OPEX', ref: '' }, { gl: '1590', dr: 0, cr: tot, cx: '', ref: '' }] });
+      D().fin.depruns.push(v.month); S.emit(); UI.toast(`Depreciation ${tot.toFixed(2)} posted`);
+    } });
+  });
+  UI.on('jv.view', (el) => {
+    const e = D().fin.jv.find((x) => x.id === el.dataset.id); if (!e) return;
+    const ov = modal(`<header><span class="gem" style="width:38px;height:38px;border-radius:13px">${ic('receipt')}</span><div><h3>${esc(e.id)} · ${esc(e.type)}</h3><small>${esc(e.ref)} · ${esc(e.date)}</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><p>${esc(e.desc || '')}</p><table class="t"><thead><tr><th>GL</th><th>Account</th><th></th><th class="num">Debit</th><th class="num">Credit</th></tr></thead><tbody>${(e.lines || []).map((l) => `<tr><td class="mono">${esc(l.gl)}</td><td>${esc(glName(l.gl))}</td><td>${esc(l.cx || '')}${l.ref ? ' · ' + esc(l.ref) : ''}</td><td class="num">${l.dr ? fmtNum(l.dr, 2) : ''}</td><td class="num">${l.cr ? fmtNum(l.cr, 2) : ''}</td></tr>`).join('')}</tbody></table></div><footer><button class="btn ghost" data-x>Close</button></footer>`, 'md');
+    return ov;
+  });
+  UI.on('coa.new', () => { UI.form({ title: 'New GL account', icon: 'plus', fields: [{ k: 'code', label: 'Code', req: true }, { k: 'name', label: 'Name', req: true, full: true }, { k: 'type', label: 'Type', type: 'select', options: ['Asset', 'Liability', 'Equity', 'Income', 'Expense'], blank: false }], onSubmit: (v) => { if (D().fin.coa.some((g) => g.code === v.code.trim())) throw new Error('Code exists'); D().fin.coa.push({ code: v.code.trim(), name: v.name.trim(), type: v.type }); S.emit(); } }); });
+  UI.on('coa.edit', (el) => { const r = D().fin.coa.find((x) => x.code === el.dataset.id); UI.form({ title: 'Edit ' + r.code, icon: 'edit', fields: [{ k: 'name', label: 'Name', req: true, full: true }, { k: 'type', label: 'Type', type: 'select', options: ['Asset', 'Liability', 'Equity', 'Income', 'Expense'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
+  UI.on('coa.del', async (el) => { if (D().fin.jv.some((e) => (e.lines || []).some((l) => l.gl === el.dataset.id))) return UI.toast('Account has postings — cannot delete', 'err'); if (await UI.confirm('Delete GL ' + el.dataset.id + '?', 'Delete', true)) { D().fin.coa = D().fin.coa.filter((x) => x.code !== el.dataset.id); S.emit(); } });
+  UI.on('catgl.edit', () => {
+    const cats = budgetCats(); const f = cats.map((c) => ({ k: c, label: c, type: 'select', options: () => D().fin.coa.filter((g) => g.type === 'Expense' || g.type === 'Asset').map((g) => ({ v: g.code, l: `${g.code} ${g.name}` })), blank: false }));
+    UI.form({ title: 'Budget category → GL mapping', icon: 'link', fields: f, values: D().fin.catgl, onSubmit: (v) => { Object.assign(D().fin.catgl, v); S.emit(); UI.toast('Mapping saved'); } });
+  });
 
   /* ================= 18. ARCHIVING + AUDIT ================= */
   UI.on('arc.run', () => {
