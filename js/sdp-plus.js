@@ -82,13 +82,20 @@
   const setRole = (r) => { try { localStorage.setItem('itms.role', r); } catch (e) { /* ignore */ } };
   const curSite = () => { try { return localStorage.getItem('itms.site') || 'All sites'; } catch (e) { return 'All sites'; } };
   const setSite = (s) => { try { localStorage.setItem('itms.site', s); } catch (e) { /* ignore */ } };
+  const curUser = () => { try { return localStorage.getItem('itms.user') || ''; } catch (e) { return ''; } };
+  const setUser = (no) => { try { localStorage.setItem('itms.user', no || ''); } catch (e) { /* ignore */ } };
+  /* Requester + Vendor/External raise tickets only as themselves: returns {no,name} or null */
+  function lockedRequester() {
+    const r = curRole(); if (r !== 'Requester' && r !== 'Vendor / External') return null;
+    const e = L.emp(curUser()); return e ? { no: e.no, name: e.name } : null;
+  }
   function can(perm) {
     const r = D().roles.find((x) => x.name === curRole());
     if (!r || r.active !== 'Yes') return perm === 'view';
     return r.perms.includes(perm);
   }
   function deny(perm) { if (!can(perm)) { UI.toast(`Role "${curRole()}" has no "${perm}" permission (see Roles & Access)`, 'err'); return true; } return false; }
-  ITMS.sdp = { D, can, curRole, setRole, curSite, setSite };
+  ITMS.sdp = { D, can, curRole, setRole, curSite, setSite, curUser, setUser, lockedRequester };
 
   /* ================= shared helpers ================= */
   function notify(channel, to, subject, body) {
@@ -194,7 +201,7 @@
 
   /* ================= 1. SELF-SERVICE PORTAL (+ AD self-service) ================= */
   function portalEmp() {
-    const no = (ITMS.nav.params && ITMS.nav.params.emp) || (portalEmp._no) || ((db().employees.find((e) => e.status === 'Active') || {}).no);
+    const no = (ITMS.nav.params && ITMS.nav.params.emp) || portalEmp._no || curUser() || ((db().employees.find((e) => e.status === 'Active') || {}).no);
     return L.emp(no) || db().employees.find((e) => e.status === 'Active') || {};
   }
   UI.on('portal.pick', (el) => { portalEmp._no = el.dataset.emp || undefined; location.hash = '#/portal' + (portalEmp._no ? '?emp=' + portalEmp._no : ''); });
@@ -267,7 +274,7 @@
     },
     after() {
       const sel = document.querySelector('[data-actx="emp"]');
-      if (sel) sel.addEventListener('change', () => { portalEmp._no = sel.value; location.hash = '#/portal?emp=' + sel.value; });
+      if (sel) sel.addEventListener('change', () => { portalEmp._no = sel.value; setUser(sel.value); location.hash = '#/portal?emp=' + sel.value; });
     },
   };
 
@@ -605,9 +612,13 @@
   pages.roles = {
     title: 'Roles & Access', crumb: 'Fine-grained authorizations per module', icon: 'shield', color: '#2f6bff',
     render() {
-      const d = D();
-      return `<div class="note-box" style="margin-bottom:10px">Acting role: <b>${esc(curRole())}</b> — delete/create actions across SDP modules enforce this. Auditors get read-only automatically.</div>
+      const d = D(); const me = L.emp(curUser());
+      return `<div class="note-box" style="margin-bottom:10px">Acting role: <b>${esc(curRole())}</b> · Logged in as: <b>${esc(me ? me.name + ' (' + me.no + ')' : '— nobody —')}</b> <select class="in" id="roleuser" style="width:auto;display:inline-block;margin-left:8px"><option value="">— select user —</option>${db().employees.filter((e) => e.status === 'Active').map((e) => `<option value="${e.no}" ${e.no === curUser() ? 'selected' : ''}>${esc(e.name)} (${e.no})</option>`).join('')}</select><br><small><b>Requester</b> and <b>Vendor / External</b> always raise tickets as themselves — the Requester field arrives pre-filled with their name and locked. All other roles can change it when logging or managing issues.</small></div>
       <div class="card">${UI.table({ id: 'rlt', rows: () => d.roles, sort: 'id', text: (r) => r.id + r.name, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'name', label: 'Role' }, { k: 'scope', label: 'Scope' }, { k: 'perms', label: 'Permissions', render: (r) => r.perms.map((x) => `<span class="pill p-blue">${x}</span>`).join(' ') }, { k: 'active', label: 'Active', render: (r) => P(r.active === 'Yes' ? 'Published' : 'Draft') }], actions: (r) => `<button class="btn xs ghost" data-act="roles.as" data-id="${r.name}">Act as</button><button class="btn xs" data-act="roles.edit" data-id="${r.id}">Permissions</button>`, toolbar: '' })}</div>`;
+    },
+    after() {
+      const sel = document.getElementById('roleuser');
+      if (sel) sel.addEventListener('change', () => { setUser(sel.value); const e = L.emp(sel.value); UI.toast(e ? 'Logged in as ' + e.name : 'User cleared'); });
     },
   };
 

@@ -84,7 +84,7 @@ Extra pages (data in `db.sdp`):
 | IT asset discovery, tracking, inventory catalog, remote tools | Discovery & Catalog (`#/discovery`) — scans, import → asset, product catalog, remote-tool audit log |
 | Asset loan tracking | Asset Loans (`#/loans`) — issue/return writes custody history |
 | Multi-site support, custom domains | Sites & Domains (`#/sites`) — site scope switcher + custom portal URL |
-| Fine-grained authorizations | Roles & Access (`#/roles`) — enforced on create/delete, incl. read-only Auditor; “Act as” to test |
+| Fine-grained authorizations | Roles & Access (`#/roles`) — enforced on create/delete, incl. read-only Auditor; “Act as” to test; “Logged in as” user picker; Requester + Vendor/External get Requester pre-filled with their own name and locked |
 | Service desk scheduler | Scheduler (`#/scheduler`) — requests, tasks, time off, reminders |
 | Surveys + survey reports | Surveys (`#/surveys`) — CSAT on resolved tickets + averages |
 | Native / insightful / inventory reports | Advanced Reports (`#/reportsplus`) — MTTR, vendor spend, inventory, contracts, surveys (every table also exports CSV) |
@@ -113,7 +113,7 @@ Extra pages (data in `db.sdp`):
 | IT asset discovery, tracking, inventory catalog, remote tools | Discovery & Catalog (`#/discovery`) — scans, import → asset, product catalog, remote-tool audit log |
 | Asset loan tracking | Asset Loans (`#/loans`) — issue/return writes custody history |
 | Multi-site support, custom domains | Sites & Domains (`#/sites`) — site scope switcher + custom portal URL |
-| Fine-grained authorizations | Roles & Access (`#/roles`) — enforced on create/delete, incl. read-only Auditor; “Act as” to test |
+| Fine-grained authorizations | Roles & Access (`#/roles`) — enforced on create/delete, incl. read-only Auditor; “Act as” to test; “Logged in as” user picker; Requester + Vendor/External get Requester pre-filled with their own name and locked |
 | Service desk scheduler | Scheduler (`#/scheduler`) — requests, tasks, time off, reminders |
 | Surveys + survey reports | Surveys (`#/surveys`) — CSAT on resolved tickets + averages |
 | Native / insightful / inventory reports | Advanced Reports (`#/reportsplus`) — MTTR, vendor spend, inventory, contracts, surveys (every table also exports CSV) |
