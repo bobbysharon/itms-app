@@ -108,16 +108,17 @@
     }
     s.mailrules = s.mailrules || [];
     if (!s.adSeeded) {
-      s.adconns = [{ id: 'ADC-001', name: 'HQ Domain Controller', host: 'dc01.company.ae', port: '636', enc: 'SSL', baseDN: 'DC=company,DC=ae', bindUser: 'svc_itms@company.ae', cert: '', status: 'Draft', lastTest: '' }];
-      s.adgroups = [];
+      s.adconns.push({ id: 'ADC-001', name: 'HQ Domain Controller', host: 'dc01.company.ae', port: '636', enc: 'SSL', baseDN: 'DC=company,DC=ae', bindUser: 'svc_itms@company.ae', cert: '', status: 'Draft', lastTest: '' });
       s.adgroups.push({ id: 'ADG-01', name: 'Domain Admins', scope: 'Global', category: 'Security', desc: 'Full control of the domain', members: [] });
       s.adgroups.push({ id: 'ADG-02', name: 'IT Support', scope: 'Global', category: 'Security', desc: 'Service desk technicians', members: [] });
       s.adSeeded = true;
     }
   }
   const D = () => { ensure(); return db().sdp; };
-  const nid = (k, p, w) => { const s = D().seq; s[k] = (s[k] || 0) + 1; return p + String(s[k]).padStart(w || 3, '0'); };
-  const oi = S.init; S.init = function () { oi.apply(S, arguments); try { ensure(); } catch (e) { /* ignore */ } };
+  function sdpNid(k, p, w) { const s = D().seq; s[k] = (s[k] || 0) + 1; return p + String(s[k]).padStart(w || 3, '0'); }
+  const nid = sdpNid;
+  const prevInit = S.init;
+  S.init = function () { prevInit.apply(S, arguments); try { ensure(); } catch (e) { /* ignore */ } };
   S.subscribe(ensure);
 
   /* ---- current role / site (fine-grained auth + multi-site demo) ---- */
