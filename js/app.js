@@ -114,7 +114,7 @@
     const ts = t.closest('[data-ts]'); if (ts) { const x = UI.tbl[ts.dataset.ts].st; if (x.sort === ts.dataset.k) x.dir *= -1; else { x.sort = ts.dataset.k; x.dir = 1; } UI.redrawTable(ts.dataset.ts); return; }
     const tp = t.closest('[data-tp]'); if (tp && !tp.disabled) { UI.tbl[tp.dataset.tp].st.page = +tp.dataset.p; UI.redrawTable(tp.dataset.tp); return; }
     if (t.closest('#ham')) document.querySelector('.side').classList.toggle('open');
-    if (t.closest('#bell')) { openBell(); return; }
+    if (t.closest('#bell')) { if (document.getElementById('bellpop')) closeBell(); else openBell(); return; }
     if (!t.closest('.search')) document.getElementById('sres').style.display = 'none';
   });
   document.addEventListener('input', (e) => {
@@ -143,7 +143,8 @@
     grp('Vendors', d.vendors.filter((v) => m(v.name) || m(v.id)).map((v) => `<a data-act="ven.view" data-id="${v.id}">${ic('truck')}<span><b>${esc(v.name)}</b> ${v.id}</span></a>`));
     return out.join('') || '<div class="empty">No matches</div>';
   }
-  /* ---- notification center ---- */
+  /* ---- notification popup ---- */
+  function closeBell() { const p = document.getElementById('bellpop'); if (p) p.remove(); }
   function openBell() {
     const d = S.db; const rows = [];
     const add = (n, t, go) => { if (n) rows.push(`<a data-go="${go}" class="alert-row" style="--c:#2f6bff"><b>${n}</b><span>${t}</span></a>`); };
@@ -169,9 +170,14 @@
       }
       if (ITMS.pendingOffboarding) add(ITMS.pendingOffboarding().length, 'Leavers holding assets / IDs', '#/lifecycle');
     } catch (e) { /* never break boot */ }
-    const ov = UI.modal(`<header><span class="gem" style="width:38px;height:38px;border-radius:13px">${ic('bell')}</span><div><h3>Notifications</h3><small>${rows.length ? rows.length + ' item' + (rows.length === 1 ? '' : 's') + ' need attention' : 'Everything is up to date'}</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body">${rows.join('') || '<div class="empty"><b>All clear</b>Nothing needs attention.</div>'}</div>`, {});
-    ov.addEventListener('click', (e) => { if (e.target.closest('[data-x]') || e.target.closest('[data-go]')) UI.close(ov); });
+    const pop = document.createElement('div'); pop.id = 'bellpop';
+    pop.innerHTML = `<div class="bphead">Notifications<small>${rows.length ? rows.length + ' need attention' : 'up to date'}</small><span style="margin-left:auto"></span><button class="ibtn x" data-x>${ic('x')}</button></div><div class="bpbody">${rows.join('') || '<div class="empty"><b>All clear</b>Nothing needs attention.</div>'}</div>`;
+    document.body.appendChild(pop);
+    pop.addEventListener('click', (e) => { if (e.target.closest('[data-x]') || e.target.closest('[data-go]')) closeBell(); });
   }
+  document.addEventListener('mousedown', (e) => { const p = document.getElementById('bellpop'); if (p && !p.contains(e.target) && !(e.target.closest && e.target.closest('#bell'))) closeBell(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeBell(); });
+  window.addEventListener('hashchange', closeBell);
 
   function boot() {
     S.init();

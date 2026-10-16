@@ -305,6 +305,14 @@ table.t td.act { position: sticky; right: 0; background: linear-gradient(90deg, 
 #chatpanel .chfind .in { margin-bottom: 6px; }
 #chatpanel .chfind .chlist { max-height: 220px; }
 @media (max-width: 600px) { #chatfab { right: 14px; bottom: 14px; } #chatpanel { right: 12px; left: 12px; width: auto; bottom: 84px; } }
+
+/* ---------- bell notification popup ---------- */
+#bellpop { position: fixed; top: 74px; right: 26px; z-index: 120; width: min(370px, calc(100vw - 30px)); background: rgba(255,255,255,.97); border: 1px solid rgba(255,255,255,.95); border-radius: 18px; box-shadow: 0 30px 60px -22px rgba(31,78,216,.45); overflow: hidden; animation: fade .18s both; }
+#bellpop .bphead { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); font: 700 14px var(--head); }
+#bellpop .bphead small { color: var(--muted); font-weight: 550; }
+#bellpop .bpbody { max-height: 52vh; overflow: auto; padding: 10px; }
+#bellpop .bpbody .alert-row { margin-bottom: 6px; }
+@media (max-width: 900px) { #bellpop { top: 112px; right: 14px; } }
 table.t tbody tr:hover td.act { background: linear-gradient(90deg, rgba(246,243,255,0), #f6f3ff 18%); }
 table.t th:last-child { position: sticky; right: 0; }
 .row-actions { flex-wrap: nowrap; }
