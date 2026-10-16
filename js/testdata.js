@@ -129,7 +129,7 @@
     L.issueAssets(pick(4).no, [ret.id], agoD(20), 'Test issue'); L.returnAssets(pick(4).no, [ret.id], agoD(2), 'Good', 'In Stock', 'Test return');
     const rep = L.saveHW({ type: 'Printer', desc: 'Test Printer under repair', purchaseDate: agoD(200), price: 1100, condition: 'Poor' });
     L.setAssetState(rep.id, 'Under Repair', 'Test repair flow');
-    const dsp = L.saveHW({ type: 'Desktop', desc: 'Test Desktop disposed', purchaseDate: '2021-03-01', price: 2500, condition: 'Poor' });
+    const dsp = L.saveHW({ type: 'Desktop', desc: 'Test Desktop disposed', purchaseDate: agoD(800), price: 2500, condition: 'Poor' });
     L.setAssetState(dsp.id, 'Disposed', 'Beyond repair — test disposal');
     L.saveHW({ type: 'Server', desc: 'Test Server spare', purchaseDate: agoD(90), price: 14000, condition: 'New' });
 
@@ -146,7 +146,7 @@
     const sw1 = L.saveSW({ type: 'Application Software', subType: 'Cloud-Based', name: 'Microsoft 365 Test', vendor: 'SoftLine', purchaseDate: agoD(345), expiry: fwdD(20), qty: 25, unitPrice: 62, currency: 'AED' });
     const sw2 = L.saveSW({ type: 'System Software', subType: 'Perpetual', name: 'Endpoint AV Test', vendor: 'SoftLine', purchaseDate: agoD(400), expiry: agoD(10), qty: 15, unitPrice: 90, currency: 'AED' });
     const sw3 = L.saveSW({ type: 'Application Software', subType: 'Perpetual', name: 'Design Suite Test', vendor: 'SoftLine', purchaseDate: agoD(100), expiry: fwdD(200), qty: 2, unitPrice: 2400, currency: 'AED' });
-    const sw4 = L.saveSW({ type: 'Application Software', subType: 'Perpetual', name: 'ERP Client Perpetual', vendor: 'SoftLine', purchaseDate: '2023-01-15', expiry: '', qty: 30, unitPrice: 500, currency: 'AED' });
+    const sw4 = L.saveSW({ type: 'Application Software', subType: 'Perpetual', name: 'ERP Client Perpetual', vendor: 'SoftLine', purchaseDate: agoD(320), expiry: '', qty: 30, unitPrice: 500, currency: 'AED' });
     const devs = db().hw.filter((a) => a.holder && (a.type === 'Laptop' || a.type === 'Desktop' || a.type === 'Monitor'));
     const put = (s, n) => { for (let i = 0; i < n; i++) { const a = devs.length ? devs[i % devs.length] : null; try { L.installSW(s.id, a ? a.holder : pick(i).no, a ? a.id : '', agoD(5), 1); } catch (e) { /* pool full */ } } };
     put(sw1, 6); put(sw3, 2); put(sw4, 3);
@@ -382,6 +382,96 @@
     S.emit();
     UI.toast('Test data ready — every module, status and type covered');
   }
+
+  /* ---------- roll every transaction date forward so latest = today ---------- */
+  const isD = (s) => /^\d{4}-\d{2}-\d{2}/.test(String(s || ''));
+  function shiftD(s, off) { if (!isD(s)) return s; const d = new Date(String(s).slice(0, 10) + 'T00:00:00'); d.setDate(d.getDate() + off); return d.toISOString().slice(0, 10); }
+  function shiftDT(s, off) { if (!isD(s)) return s; const t = new Date(s).getTime(); return isNaN(t) ? s : new Date(t + off * 864e5).toISOString(); }
+  const apD = (off) => (v) => (String(v || '').indexOf('T') >= 0 ? shiftDT(v, off) : shiftD(v, off));
+  function rollDates() {
+    const d = db(), h = H(), s = D();
+    const dates = [];
+    const grab = (v) => { if (isD(v)) dates.push(String(v).slice(0, 10)); };
+    d.prs.forEach((p) => grab(p.date));
+    d.pos.forEach((p) => { grab(p.date); grab(p.delivery); });
+    (d.grns || []).forEach((g) => grab(g.date));
+    d.hw.forEach((a) => ['purchaseDate', 'issuedDate', 'warranty', 'amcStart', 'amcEnd'].forEach((k) => grab(a[k])));
+    (d.moves || []).forEach((m) => grab(m.date));
+    d.sw.forEach((x) => { grab(x.purchaseDate); grab(x.expiry); grab(x.lastOrder); });
+    (d.installs || []).forEach((i) => grab(i.date));
+    (d.consPurch || []).forEach((r) => grab(r.date)); (d.consIssue || []).forEach((r) => grab(r.date));
+    (d.amcs || []).forEach((c) => { grab(c.start); grab(c.end); });
+    (d.accounts || []).forEach((a) => { grab(a.created); grab(a.disabled); });
+    (d.provLog || []).forEach((x) => grab(x.at));
+    (d.lifecycle || []).forEach((x) => { grab(x.date); grab(x.at); });
+    (d.log || []).forEach((x) => grab(x.at));
+    if (h) {
+      h.requests.forEach((r) => { ['created', 'respondBy', 'dueBy', 'resolvedAt', 'closedAt', 'firstResp', 'heldAt'].forEach((k) => grab(r[k])); (r.notes || []).forEach((n) => grab(n.at)); (r.tasks || []).forEach((t) => grab(t.due)); (r.approvals || []).forEach((a) => { grab(a.at); grab(a.decidedAt); }); });
+      h.problems.forEach((p) => { grab(p.due); grab(p.created); });
+      h.changes.forEach((c) => { grab(c.start); grab(c.end); grab(c.created); (c.approvals || []).forEach((a) => { grab(a.at); grab(a.decidedAt); }); });
+      h.releases.forEach((r) => { grab(r.start); grab(r.end); grab(r.created); });
+      h.items.forEach((i) => { grab(i.open); grab(i.target); (i.log || []).forEach((l) => grab(l.at)); });
+      h.solutions.forEach((x) => grab(x.created)); h.catalog.forEach((x) => grab(x.created));
+      h.news.forEach((x) => { grab(x.from); grab(x.to); grab(x.created); });
+    }
+    s.contracts.forEach((c) => { grab(c.start); grab(c.end); });
+    s.maint.forEach((m) => { grab(m.next); grab(m.lastRun); });
+    s.inbox.forEach((m) => grab(m.at));
+    s.schedules.forEach((x) => grab(x.date));
+    s.loans.forEach((l) => { grab(l.outDate); grab(l.dueDate); grab(l.returnDate); });
+    s.chats.forEach((c) => { grab(c.at); (c.msgs || []).forEach((m) => grab(m.at)); });
+    s.adreqs.forEach((a) => grab(a.at));
+    s.mail.outbox.forEach((o) => { grab(o.at); grab(o.sentAt); });
+    s.archives.forEach((a) => grab(a.at));
+    (s.notiflog || []).forEach((n) => grab(n.at));
+    (s.escalations || []).forEach((e) => grab(e.at));
+    (s.adlog || []).forEach((a) => grab(a.at));
+    s.adusers.forEach((u) => grab(u.lastSync)); s.adconns.forEach((c) => grab(c.lastTest)); s.devices.forEach((x) => grab(x.lastSeen));
+    s.scans.forEach((x) => grab(x.date));
+    s.surveys.forEach((x) => grab(x.created)); s.responses.forEach((r) => grab(r.at));
+    s.instances.forEach((x) => grab(x.created));
+    s.apps.forEach((a) => (a.records || []).forEach((r) => grab(r._at)));
+    (s.fin.jv || []).forEach((e) => { grab(e.date); grab(e.at); });
+    if (!dates.length) return 0;
+    const mx = dates.sort().pop();
+    const off = Math.round((new Date(T0() + 'T00:00:00') - new Date(mx + 'T00:00:00')) / 864e5);
+    if (off <= 0) return 0;
+    const ap = apD(off);
+    const W = (arr, ks) => (arr || []).forEach((o) => ks.forEach((k) => { if (o && o[k]) o[k] = ap(o[k]); }));
+    W(d.prs, ['date']); W(d.pos, ['date', 'delivery']); W(d.grns, ['date']);
+    W(d.hw, ['purchaseDate', 'issuedDate', 'warranty', 'amcStart', 'amcEnd']); W(d.moves, ['date']);
+    W(d.sw, ['purchaseDate', 'expiry', 'lastOrder']); W(d.installs, ['date']);
+    W(d.consPurch, ['date']); W(d.consIssue, ['date']); W(d.amcs, ['start', 'end']);
+    W(d.accounts, ['created', 'disabled']); W(d.provLog, ['at']); W(d.lifecycle, ['date', 'at']); W(d.log, ['at']);
+    if (h) {
+      W(h.requests, ['created', 'respondBy', 'dueBy', 'resolvedAt', 'closedAt', 'firstResp', 'heldAt']);
+      h.requests.forEach((r) => { W(r.notes, ['at']); W(r.tasks, ['due']); W(r.approvals, ['at', 'decidedAt']); });
+      W(h.problems, ['due', 'created']);
+      W(h.changes, ['start', 'end', 'created']); h.changes.forEach((c) => W(c.approvals, ['at', 'decidedAt']));
+      W(h.releases, ['start', 'end', 'created']); W(h.items, ['open', 'target']); h.items.forEach((i) => W(i.log, ['at']));
+      W(h.solutions, ['created']); W(h.catalog, ['created']); W(h.news, ['from', 'to', 'created']);
+    }
+    W(s.contracts, ['start', 'end']); W(s.maint, ['next', 'lastRun']); W(s.inbox, ['at']);
+    W(s.schedules, ['date']); W(s.loans, ['outDate', 'dueDate', 'returnDate']);
+    W(s.chats, ['at']); s.chats.forEach((c) => W(c.msgs, ['at']));
+    W(s.adreqs, ['at']); W(s.mail.outbox, ['at', 'sentAt']); W(s.archives, ['at']);
+    W(s.notiflog, ['at']); W(s.escalations, ['at']); W(s.adlog, ['at']);
+    W(s.adusers, ['lastSync']); W(s.adconns, ['lastTest']); W(s.devices, ['lastSeen']);
+    W(s.scans, ['date']); W(s.surveys, ['created']); W(s.responses, ['at']); W(s.instances, ['created']);
+    s.apps.forEach((a) => W(a.records, ['_at']));
+    W(s.fin.jv, ['date', 'at']);
+    s.fin.jv.forEach((e) => { e.month = String(e.date || '').slice(0, 7); });
+    const mo = (Number(T0().slice(0, 4)) * 12 + Number(T0().slice(5, 7))) - (Number(mx.slice(0, 4)) * 12 + Number(mx.slice(5, 7)));
+    if (mo > 0) s.fin.depruns = s.fin.depruns.map((m) => { const t = String(m).match(/^(\d{4})-(\d{2})$/); if (!t) return m; let y = +t[1], mm = +t[2] + mo; while (mm > 12) { mm -= 12; y++; } return y + '-' + String(mm).padStart(2, '0'); });
+    S.emit();
+    return off;
+  }
+  UI.on('data.roll', async () => {
+    if (await UI.confirm('Shift <b>every transaction date</b> forward so the latest lands today? Gaps between records are preserved, so all statuses, ageing and finance tallies stay consistent.', 'Roll dates to current')) {
+      const n = rollDates();
+      UI.toast(n ? `All dates moved forward ${n} day(s)` : 'Dates are already current');
+    }
+  });
 
   UI.on('data.test', async () => {
     if (await UI.confirm('Replace <b>ALL current data</b> (employees are kept) and load the full TAFASEEL test dataset?', 'Load test data', true)) {
