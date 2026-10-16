@@ -303,8 +303,8 @@
   };
 
   /* ================= LIVE CHAT BUBBLE (floating widget on every screen) ================= */
-  const chatB = (ITMS.chatBubble = { id: null, show: false });
-  function chatMe() { try { const e = (typeof portalEmp === 'function' && portalEmp()) || {}; return e.name || ''; } catch (err) { return ''; } }
+  const chatB = (ITMS.chatBubble = { id: null, show: false, who: '', find: false });
+  function chatMe() { const e = L.emp(chatB.who || curUser()); return (e && e.name) || ''; }
   function drawFab() {
     if (!db()) return; const n = document.getElementById('chatfabn'); if (!n) return;
     const c = D().chats.filter((x) => x.status === 'Open').length;
@@ -312,6 +312,7 @@
   }
   function openBubble(id) {
     chatB.show = true; if (id) chatB.id = id;
+    if (!chatB.who) chatB.who = curUser() || (((typeof portalEmp === 'function' && portalEmp()) || {}).no || '');
     const p = document.getElementById('chatpanel'); if (p) p.style.display = '';
     drawPanel(); drawFab();
   }
@@ -335,15 +336,16 @@
     const chats = D().chats.slice().sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
     const cur = D().chats.find((x) => x.id === chatB.id);
     let h = `<div class="chhead">Live Chat<span style="margin-left:auto"></span><button class="ibtn" data-c="refresh" title="Refresh">${ic('refresh')}</button><button class="ibtn" data-c="full" title="Full console">${ic('grid')}</button><button class="ibtn x" data-c="x">${ic('x')}</button></div>`;
-    h += `<div class="chid"><label>Chatting as<select class="in" id="chatwho">${empOpts().map((o) => `<option value="${o.v}" ${((portalEmp() || {}).no || '') === o.v ? 'selected' : ''}>${esc(o.l)}</option>`).join('')}</select></label><button class="btn sm" data-c="new">${ic('plus')}New</button></div>`;
+    h += `<div class="chid"><label>Chatting as <b>${esc(chatMe() || '—')}</b></label><span style="margin-left:auto"></span><button class="btn sm" data-c="new">${ic('plus')}New</button> <button class="btn sm ghost" data-c="who">Switch</button></div>`;
+    if (chatB.find) h += `<div class="chfind"><input class="in" id="chatfind" autocomplete="off"><div class="chlist" id="chres">${db().employees.filter((e) => e.status === 'Active').map((e) => `<a data-c="pick" data-id="${e.no}" data-t="${esc((e.name + ' ' + e.no + ' ' + (e.dept || '')).toLowerCase())}"><b>${esc(e.name)}</b><small>${e.no}${e.dept ? ' · ' + esc(e.dept) : ''}</small></a>`).join('')}</div></div>`;
     if (cur) {
       h += `<div class="chback"><button class="btn xs ghost" data-c="back">← All</button><b style="margin:0 4px">${esc(cur.id)}</b>${cur.status === 'Open' ? `<span style="margin-left:auto"></span><button class="btn xs ghost" data-c="ticket">→ Ticket</button> <button class="btn xs ghost" data-c="close">Close</button>` : `<span style="margin-left:auto">${P('Closed')}</span>`}</div><div class="msgs">${cur.msgs.map((m) => msgHtml(m, m.by === me)).join('')}</div><div class="chsend"><input class="in" id="chatinput" autocomplete="off"><button class="btn sm" data-c="send">Send</button></div>`;
     } else {
       h += `<div class="chlist">${chats.slice(0, 20).map((c) => `<a data-c="open" data-id="${c.id}"><b>${esc(c.id)}</b> · ${esc(c.user)}<small>${c.status} · ${esc(((c.msgs[c.msgs.length - 1] || {}).text) || '').slice(0, 60)}</small></a>`).join('') || '<div class="empty">No chats yet — start one.</div>'}</div>`;
     }
     p.innerHTML = h;
-    const who = document.getElementById('chatwho');
-    if (who) who.addEventListener('change', () => { portalEmp._no = who.value; drawFab(); });
+    const cf = document.getElementById('chatfind');
+    if (cf) { cf.focus(); cf.addEventListener('input', () => { const q = cf.value.toLowerCase(); p.querySelectorAll('#chres a').forEach((a) => { a.style.display = (a.getAttribute('data-t') || '').indexOf(q) >= 0 ? '' : 'none'; }); }); }
     const inp = document.getElementById('chatinput');
     if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
     p.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); chatCmd(b.getAttribute('data-c'), b.getAttribute('data-id')); }));
@@ -363,6 +365,8 @@
   function chatCmd(k, id) {
     if (k === 'x') return hideBubble();
     if (k === 'refresh') return drawPanel();
+    if (k === 'who') { chatB.find = !chatB.find; return drawPanel(); }
+    if (k === 'pick') { chatB.who = id; setUser(id); try { portalEmp._no = id; } catch (err) { /* keep bubble-only */ } chatB.find = false; return drawPanel(); }
     if (k === 'full') { hideBubble(); location.hash = '#/chat'; return; }
     if (k === 'back') { chatB.id = null; return drawPanel(); }
     if (k === 'open') { chatB.id = id; return drawPanel(); }
@@ -370,8 +374,8 @@
     if (k === 'ticket') { if (UI.acts['chat.ticket']) UI.acts['chat.ticket']({ dataset: { id: chatB.id } }); return; }
     if (k === 'close') { const c = D().chats.find((x) => x.id === chatB.id); if (c) { c.status = 'Closed'; S.emit(); } drawPanel(); drawFab(); return; }
     if (k === 'new') {
-      const e = portalEmp() || {};
-      UI.form({ title: 'Start live chat', sub: 'Replies arrive in this bubble on any screen', icon: 'users', fields: [{ k: 'msg', label: 'How can we help?', type: 'textarea', full: true, req: true }], onSubmit: (v) => { const nid2 = nid('ch', 'CHAT-', 3); D().chats.unshift({ id: nid2, user: e.name || chatMe(), empNo: e.no, tech: '', status: 'Open', at: now(), msgs: [{ by: e.name || chatMe(), text: v.msg, at: now() }] }); S.emit(); openBubble(nid2); } });
+      const e = portalEmp() || {}; const whoE = L.emp(chatB.who) || e;
+      UI.form({ title: 'Start live chat', sub: 'Replies arrive in this bubble on any screen', icon: 'users', fields: [{ k: 'msg', label: 'How can we help?', type: 'textarea', full: true, req: true }], onSubmit: (v) => { const nid2 = nid('ch', 'CHAT-', 3); D().chats.unshift({ id: nid2, user: whoE.name || chatMe(), empNo: whoE.no, tech: '', status: 'Open', at: now(), msgs: [{ by: whoE.name || chatMe(), text: v.msg, at: now() }] }); S.emit(); openBubble(nid2); } });
     }
   }
   document.addEventListener('DOMContentLoaded', buildBubble);

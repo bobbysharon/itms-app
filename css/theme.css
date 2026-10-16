@@ -301,6 +301,9 @@ table.t td.act { position: sticky; right: 0; background: linear-gradient(90deg, 
 #chatpanel .msg b { display: block; font-size: 10.5px; opacity: .75; }
 #chatpanel .msg small { display: block; font-size: 10px; opacity: .65; margin-top: 3px; }
 #chatpanel .chsend { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+#chatpanel .chfind { padding: 8px 14px; border-bottom: 1px solid var(--line); }
+#chatpanel .chfind .in { margin-bottom: 6px; }
+#chatpanel .chfind .chlist { max-height: 220px; }
 @media (max-width: 600px) { #chatfab { right: 14px; bottom: 14px; } #chatpanel { right: 12px; left: 12px; width: auto; bottom: 84px; } }
 table.t tbody tr:hover td.act { background: linear-gradient(90deg, rgba(246,243,255,0), #f6f3ff 18%); }
 table.t th:last-child { position: sticky; right: 0; }
