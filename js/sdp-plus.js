@@ -157,6 +157,7 @@
     }
     r.status = r.tech ? 'Assigned' : 'Open';
     r.dept = (L.emp(r.requester) || {}).dept || '';
+    r.desk = v.desk || 'IT';
     const sla = (h.cfg.sla || {})[r.priority] || { respond: 8, resolve: 24 };
     const t = new Date(r.created).getTime();
     r.respondBy = new Date(t + sla.respond * 36e5).toISOString();
@@ -292,7 +293,7 @@
   });
   UI.on('portal.cat', (el) => {
     const e = portalEmp(); const c = H().catalog.find((x) => x.id === el.dataset.id); if (!c) return;
-    const r = mkTicket({ requester: e.no, subject: c.title, desc: c.desc, category: c.category, type: 'Service Request', mode: 'Self-Service Portal', source: 'Service Catalog' });
+    const r = mkTicket({ requester: e.no, subject: c.title, desc: c.desc, category: c.category, type: 'Service Request', mode: 'Self-Service Portal', source: 'Service Catalog', desk: c.desk || 'IT' });
     if (c.approver) { r.approvals.push({ approver: c.approver, status: 'Pending', at: now(), comment: 'Required by service catalog' }); }
     S.emit(); UI.toast(`${r.id} raised from catalog`);
   });
@@ -333,7 +334,7 @@
         <div class="card"><h3>My open tickets</h3><b style="font-size:26px">${my.filter((r) => ['Open', 'Assigned', 'In Progress', 'On Hold'].includes(r.status)).length}</b><small style="color:var(--muted)"> shown below</small></div>
       </div>
       ${news.map((n) => `<div class="note-box" style="margin-top:10px"><b>${esc(n.title)}</b> — ${esc(n.desc)}</div>`).join('')}
-      <div class="grid g2 mt"><div class="card"><h3>Service catalog — one click</h3><div class="grid g2">${(h ? h.catalog.filter((c) => c.active !== 'No').slice(0, 6) : []).map((c) => `<div class="card"><b>${esc(c.title)}</b><br><small style="color:var(--muted)">${esc(c.desc || '').slice(0, 80)}</small><div style="margin-top:8px"><button class="btn sm" data-act="portal.cat" data-id="${c.id}">Request</button></div></div>`).join('') || '<div class="empty">No catalog items — add them in Solutions & Catalog</div>'}</div></div>
+      <div class="grid g2 mt"><div class="card"><h3>Service catalog — one click</h3><div class="grid g2">${(h ? h.catalog.filter((c) => c.active !== 'No').slice(0, 8) : []).map((c) => `<div class="card"><b>${esc(c.title)}</b> ${c.desk && c.desk !== 'IT' ? `<span class="pill p-blue">${esc(c.desk)}</span>` : ''}<br><small style="color:var(--muted)">${esc(c.desc || '').slice(0, 80)}</small><div style="margin-top:8px"><button class="btn sm" data-act="portal.cat" data-id="${c.id}">Request</button></div></div>`).join('') || '<div class="empty">No catalog items — add them in Solutions & Catalog</div>'}</div></div>
       <div class="card"><h3>My requests</h3><table class="t"><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th></th></tr></thead><tbody>${my.map((r) => `<tr><td class="mono">${r.id}</td><td>${esc(r.subject)}</td><td>${P(r.status)}</td><td>${r.status === 'Resolved' ? `<button class="btn xs" data-act="portal.rate" data-id="${r.id}">Rate</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty">No requests yet</div></td></tr>'}</tbody></table></div></div>`;
     },
     after() {
@@ -781,8 +782,34 @@
   };
 
   /* ================= 17. ESM (instances, mobile, best practices) ================= */
-  UI.on('esm.new', () => { UI.form({ title: 'Rapid-start service desk (< 60s)', icon: 'plus', fields: [{ k: 'name', label: 'Desk name', req: true }, { k: 'dept', label: 'Department', req: true }], onSubmit: (v) => { v.id = 'ESM-' + v.dept.slice(0, 2).toUpperCase() + '-' + (D().instances.length + 1); v.status = 'Draft'; v.catalog = 0; v.portal = 'No'; v.created = today(); D().instances.unshift(v); S.emit(); UI.toast(`${v.name} instance created — autonomy kept, central console retained`); } }); });
-  UI.on('esm.go', (el) => { const i = D().instances.find((x) => x.id === el.dataset.id); i.status = i.status === 'Live' ? 'Draft' : 'Live'; i.portal = i.status === 'Live' ? 'Yes' : 'No'; S.emit(); });
+  const DESK_PACKS = [
+    { match: ['hr', 'human', 'people'], group: 'HR Operations', items: [['Leave application', 'Time off for vacation, sick or personal leave — state dates and reason.', 'Service Request', ''], ['Salary certificate request', 'Official salary letter for bank or visa use.', 'Service Request', ''], ['New joiner onboarding', 'Accounts, mailbox, access and asset issuance for a new joiner.', 'Service Request', '']], links: [['Onboarding & offboarding', '#/lifecycle'], ['Employees', '#/employees']] },
+    { match: ['facil', 'admin', 'maintenance', 'workplace'], group: 'Facilities', items: [['AC / maintenance request', 'Cooling, electrical or plumbing issue — state building and floor.', 'Service Request', ''], ['Office repair', 'Furniture, doors, lighting and general repairs.', 'Service Request', ''], ['Meeting-room setup', 'Chairs, projector and video setup for a meeting.', 'Service Request', '']], links: [['Preventive maintenance', '#/pmtasks'], ['Asset loans', '#/loans']] },
+    { match: ['finan', 'account', 'audit'], group: 'Finance', items: [['Expense reimbursement', 'Claim back approved business spend — attach receipts.', 'Service Request', 'APPROVER'], ['Budget approval', 'Approval for planned department spend.', 'Service Request', 'APPROVER'], ['Vendor payment status', 'Ask where a supplier payment stands.', 'Service Request', '']], links: [['Pending approvals', '#/itsm'], ['IT Budget', '#/budget']] },
+    { match: ['legal', 'counsel'], group: 'Legal', items: [['NDA review', 'Get a non-disclosure agreement reviewed before signing.', 'Service Request', ''], ['Contract vetting', 'Legal review of a vendor or customer contract.', 'Service Request', ''], ['Legal notice tracking', 'Register and track an incoming legal notice.', 'Service Request', '']], links: [['Follow-ups', '#/projects'], ['Contracts', '#/contracts']] },
+  ];
+  const GENERIC_PACK = { group: '', items: [['General service request', 'Anything else this department handles.', 'Service Request', ''], ['Feedback / suggestion', 'Ideas to improve the service.', 'Service Request', '']], links: [['Tickets', '#/tickets'], ['Service catalog', '#/kb']] };
+  function packFor(dept) { const s = String(dept || '').toLowerCase(); return DESK_PACKS.find((p) => p.match.some((m) => s.indexOf(m) >= 0)) || GENERIC_PACK; }
+  function seedDesk(inst) {
+    const h = H(); const pack = packFor(inst.dept);
+    const grp = inst.group || pack.group;
+    if (grp && (h.cfg.groups || []).indexOf(grp) < 0) h.cfg.groups.push(grp);
+    if (grp) inst.group = grp;
+    let n = 0;
+    pack.items.forEach((it) => {
+      if (h.catalog.some((c) => c.desk === inst.id && c.title === it[0])) return;
+      h.seq.catalog = (h.seq.catalog || 0) + 1;
+      h.catalog.unshift({ id: 'SC-' + String(h.seq.catalog).padStart(3, '0'), title: it[0], desc: it[1], desk: inst.id, category: it[2], group: grp || h.cfg.groups[0], approver: it[3] === 'APPROVER' ? (techs()[0] || '') : '', impact: 'Medium', urgency: 'Normal', active: 'Yes', created: now() });
+      n++;
+    });
+    return n;
+  }
+  UI.on('esm.new', () => { UI.form({ title: 'Rapid-start service desk (< 60s)', icon: 'plus', fields: [{ k: 'name', label: 'Desk name', req: true }, { k: 'dept', label: 'Department', req: true }, { k: 'group', label: 'Fulfilment group (created if missing)' }], onSubmit: (v) => { v.id = 'ESM-' + v.dept.slice(0, 2).toUpperCase() + '-' + (D().instances.length + 1); v.status = 'Draft'; v.catalog = 0; v.portal = 'No'; v.created = today(); D().instances.unshift(v); const n = seedDesk(v); S.emit(); UI.toast(`${v.name} instance created with ${n} catalog items`); } }); });
+  UI.on('esm.go', (el) => { const i = D().instances.find((x) => x.id === el.dataset.id); i.status = i.status === 'Live' ? 'Draft' : 'Live'; i.portal = i.status === 'Live' ? 'Yes' : 'No'; if (i.status === 'Live') seedDesk(i); S.emit(); });
+  UI.on('esm.req', () => {
+    const inst = D().instances.find((x) => x.id === UI.tab.esmDesk); if (!inst) return;
+    UI.form({ title: 'New ' + inst.dept + ' request', sub: inst.name, icon: 'plus', fields: [{ k: 'subject', label: 'Subject', req: true, full: true }, { k: 'category', label: 'Category', type: 'select', options: cats, req: true }, { k: 'desc', label: 'Details', type: 'textarea', full: true }], onSubmit: (v) => { const r = mkTicket({ requester: curUser() || '', subject: v.subject, desc: v.desc, category: v.category, type: 'Service Request', mode: 'Enterprise Portal', source: inst.name, desk: inst.id }); runRules('create'); S.emit(); UI.toast(`${r.id} raised on ${inst.name}`); } });
+  });
   UI.on('dev.new', () => { UI.form({ title: 'Register mobile device', icon: 'plus', fields: [{ k: 'user', label: 'User', type: 'select', options: () => techs(), req: true }, { k: 'platform', label: 'Platform', type: 'select', options: ['iOS', 'Android', 'Windows'], blank: false }], onSubmit: (v) => { v.id = nid('dv2', 'MOB-', 3); v.lastSeen = now(); D().devices.unshift(v); S.emit(); } }); });
   pages.esm = {
     title: 'Enterprise (ESM)', crumb: 'Unified platform · rapid-start desks · single portal · mobile', icon: 'spark', color: '#00c2ff',
@@ -791,8 +818,32 @@
       let body = '';
       if (tab === 'desk') body = UI.table({ id: 'esmi', rows: () => d.instances, sort: 'id', text: (r) => r.id + r.name, cols: [{ k: 'id', label: 'Instance', mono: true }, { k: 'name', label: 'Desk' }, { k: 'dept', label: 'Department' }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Live' ? 'Published' : 'Draft') }, { k: 'portal', label: 'In enterprise portal' }], actions: (r) => `<button class="btn xs" data-act="esm.go" data-id="${r.id}">${r.status === 'Live' ? 'Set draft' : 'Go live'}</button>${ea('instances', r.id)}`, toolbar: tbNew('esm.new', 'New desk in 60 seconds') });
       else if (tab === 'mob') body = UI.table({ id: 'esmm', rows: () => d.devices, sort: 'lastSeen', dir: -1, text: (r) => r.user + r.platform, cols: [{ k: 'id', label: 'Device', mono: true }, { k: 'user', label: 'User' }, { k: 'platform', label: 'App (iOS/Android/Windows)' }, { k: 'lastSeen', label: 'Last seen', render: (r) => fdt(r.lastSeen) }], actions: (r) => `<button class="ibtn" style="--c:#ff5c6c" data-act="dev.del" data-id="${r.id}">${ic('trash')}</button>`, toolbar: tbNew('dev.new', 'Register device') });
+      else if (tab === 'ws') {
+        const live = d.instances.filter((i) => i.status === 'Live');
+        const sel = UI.tab.esmDesk || (live[0] || {}).id;
+        const inst = live.find((x) => x.id === sel);
+        if (!inst) body = '<div class="empty"><b>No live desk</b>Go live on the instances tab first.</div>';
+        else {
+          const R = H().requests.filter((r) => (r.desk || 'IT') === inst.id);
+          const open = R.filter((r) => ['Open', 'Assigned', 'In Progress', 'On Hold'].indexOf(r.status) >= 0);
+          const od = open.filter((r) => r.dueBy && new Date(r.dueBy) < new Date() && r.status !== 'On Hold');
+          const un = open.filter((r) => !r.tech);
+          const cat = H().catalog.filter((c) => c.desk === inst.id && c.active !== 'No');
+          const pk = packFor(inst.dept);
+          const kpi = (nn, ll) => `<div class="card" style="border-left:4px solid ${C.blue}"><div style="font:700 22px var(--head)">${nn}</div><small style="color:var(--muted)">${ll}</small></div>`;
+          body = `<div style="margin-bottom:10px"><label>Desk <select class="in" id="esmsel" style="width:auto;display:inline-block">${live.map((x) => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>${esc(x.name)} (${esc(x.dept)})</option>`).join('')}</select></label></div>`
+            + `<div class="grid g3">${kpi(open.length, 'Open requests')}${kpi(od.length, 'SLA overdue')}${kpi(un.length, 'Unassigned')}</div>`
+            + `<div class="card mt"><h3>Requests<button class="btn sm" style="margin-left:auto" data-act="esm.req">${ic('plus')}New ${esc(inst.dept)} request</button></h3>${UI.table({ id: 'esmdt', rows: () => H().requests.filter((r) => (r.desk || 'IT') === (UI.tab.esmDesk || '')), sort: 'created', dir: -1, text: (r) => r.id + r.subject, cols: [{ k: 'id', label: 'ID', mono: true, render: (r) => `<a class="link" data-act="rq.view" data-id="${r.id}">${r.id}</a>` }, { k: 'subject', label: 'Subject', render: (r) => `<b>${esc(r.subject)}</b>` }, { k: 'status', label: 'Status', render: (r) => P(r.status) }, { k: 'tech', label: 'Assigned to' }, { k: 'created', label: 'Created', render: (r) => fdt(r.created) }], actions: (r) => `<button class="ibtn" data-act="rq.view" data-id="${r.id}">${ic('eye')}</button>`, toolbar: '' })}</div>`
+            + `<div class="card mt"><h3>Desk catalog</h3><div class="grid g3">${cat.map((c) => `<div class="card"><b>${esc(c.title)}</b><br><small style="color:var(--muted)">${esc(c.desc || '').slice(0, 90)}</small><div style="margin-top:8px"><button class="btn sm" data-act="sc.use" data-id="${c.id}">Request</button></div></div>`).join('') || '<div class="empty">No catalog items — they seed automatically on go-live.</div>'}</div></div>`
+            + `<div class="card mt"><h3>Connected flows</h3><div style="display:flex;gap:8px;flex-wrap:wrap">${pk.links.map((l) => `<button class="btn ghost" data-go="${l[1]}">${l[0]} →</button>`).join('')}</div></div>`;
+        }
+      }
       else body = `<div class="grid g2">${[['Out-of-the-box best practices', ['Incident → problem → change → release flow active', 'SLA + escalations + approvals enforced', 'CMDB impact attached to changes', 'Knowledge (solutions) reuse on resolve', 'Surveys on every resolved ticket', 'Quarterly access + backup review']], ['Single enterprise portal', [`One URL: ${d.domains.custom || d.domains.portal}`, `${d.instances.filter((i) => i.status === 'Live').length} live desk(s) reachable from portal`, 'Unique templates + automations per desk', 'Central users, groups and audit log']]].map(([t, items]) => `<div class="card"><h3>${t}</h3>${items.map((x) => `<label class="chk"><input type="checkbox" checked disabled><span>${esc(x)}</span></label>`).join('')}</div>`).join('')}</div>`;
-      return `<div class="card">${UI.tabs('esm', [{ id: 'desk', label: 'Service desk instances', count: d.instances.length }, { id: 'mob', label: 'Helpdesk mobile apps', count: d.devices.length }, { id: 'bp', label: 'Best practices' }])}${body}</div>`;
+      return `<div class="card">${UI.tabs('esm', [{ id: 'desk', label: 'Service desk instances', count: d.instances.length }, { id: 'ws', label: 'Desk workspace' }, { id: 'mob', label: 'Helpdesk mobile apps', count: d.devices.length }, { id: 'bp', label: 'Best practices' }])}${body}</div>`;
+    },
+    after() {
+      const s = document.getElementById('esmsel');
+      if (s) s.addEventListener('change', () => { UI.tab.esmDesk = s.value; S.emit(); });
     },
   };
   UI.on('dev.del', async (el) => { if (await UI.confirm('Retire this device?', 'Retire', true)) { D().devices = D().devices.filter((x) => x.id !== el.dataset.id); S.emit(); } });

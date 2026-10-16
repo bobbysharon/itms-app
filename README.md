@@ -88,7 +88,7 @@ Extra pages (data in `db.sdp`):
 | Service desk scheduler | Scheduler (`#/scheduler`) — requests, tasks, time off, reminders |
 | Surveys + survey reports | Surveys (`#/surveys`) — CSAT on resolved tickets + averages |
 | Native / insightful / inventory reports | Advanced Reports (`#/reportsplus`) — MTTR, vendor spend, inventory, contracts, surveys (every table also exports CSV) |
-| ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start desks, mobile registry, portal checklist |
+| ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start HR/Facilities/Finance/Legal desks with starter catalogs + fulfilment groups; **Desk workspace** tab per live desk (KPIs, desk requests, desk catalog, connected flows: HR→onboarding, Facilities→PM, Finance→approvals/budget, Legal→follow-ups/contracts); tickets carry a Desk field (filter + column on Tickets, shown on detail); desk catalogs surface in the portal |
 | Data archiving + audit trail | Archiving & Audit (`#/archiving`) — archive/restore old tickets, full event log |
 | AI assistance (built-in, offline) | Ticket detail → **Assist**: keyword-based category suggestion, urgency signal, related-KB finder with one-click link, and reply templates inserted as public notes |
 
@@ -118,7 +118,7 @@ Extra pages (data in `db.sdp`):
 | Service desk scheduler | Scheduler (`#/scheduler`) — requests, tasks, time off, reminders |
 | Surveys + survey reports | Surveys (`#/surveys`) — CSAT on resolved tickets + averages |
 | Native / insightful / inventory reports | Advanced Reports (`#/reportsplus`) — MTTR, vendor spend, inventory, contracts, surveys (every table also exports CSV) |
-| ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start desks, mobile registry, portal checklist |
+| ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start HR/Facilities/Finance/Legal desks with starter catalogs + fulfilment groups; **Desk workspace** tab per live desk (KPIs, desk requests, desk catalog, connected flows: HR→onboarding, Facilities→PM, Finance→approvals/budget, Legal→follow-ups/contracts); tickets carry a Desk field (filter + column on Tickets, shown on detail); desk catalogs surface in the portal |
 | Data archiving + audit trail | Archiving & Audit (`#/archiving`) — archive/restore old tickets, full event log |
 | AI assistance (built-in, offline) | Ticket detail → **Assist**: keyword-based category suggestion, urgency signal, related-KB finder with one-click link, and reply templates inserted as public notes |
 
