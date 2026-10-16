@@ -120,7 +120,9 @@ Extra pages (data in `db.sdp`):
 | ESM instances, single enterprise portal, mobile apps, best practices | Enterprise (ESM) (`#/esm`) — rapid-start desks, mobile registry, portal checklist |
 | Data archiving + audit trail | Archiving & Audit (`#/archiving`) — archive/restore old tickets, full event log |
 
-## Data
+## Test data for UAT (js/testdata.js)
+Administration → Lists & Settings → Data → **Full test data**: wipes everything **except employees**, sets company to **TAFASEEL GROUP HOLDING**, and rebuilds every module with `TEST:`-prefixed fixtures covering all statuses and types —
+PRs (open/partial/ordered/cancelled) → POs (draft/approved/partial/received/cancelled) → GRN stock; hardware in every status with issue/transfer/return history; licences expiring/expired/exhausted/perpetual with installs; consumables incl. a low-stock alert; AMCs active/expiring/expired/renewal; 12 tickets across all statuses, priorities and SLA states (incl. an overdue, a due-soon, an on-hold, a cancelled and a response-breach that triggers escalation); problems/changes/releases/follow-ups/KB/catalog/announcements in every status (incl. a 50h-stale CAB approval that triggers the escalation matrix); CMDB CIs + links, PM tasks (one overdue), inbox mail, schedules, templates, surveys + responses, chats (one 60min-waiting unassigned → auto-assign), loans (incl. overdue), products, scan results, AD users/groups/GPOs/devices, ESM desk, custom app records, live SMTP/IMAP profiles, support@tafaseel.ae desk address and a sample sent email. Budgets reseed; ISO 27001 gets 8 assessed controls across all verdicts. Live escalations and notification emails generate automatically as you test.
 First launch loads your workbook (100 employees, 50 vendors, 97 PRs, 100 POs) and posts the GRNs so stock exists; a few consumables, AMCs and allocations are **sample** records. *Settings → Data* can reset to sample, workbook‑only (nothing received) or empty.
 
 ## Notes
