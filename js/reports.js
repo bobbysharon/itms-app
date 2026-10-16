@@ -25,7 +25,7 @@
     return '—';
   };
   const U = () => {
-    const amc = (db().amcs || []).map((c) => ({ id: c.id, title: c.title, vendor: ((db().vendors.find((v) => v.id === c.vendorId) || {}).name) || ''), type: 'AMC', start: c.start, end: c.end, value: +c.cost || 0, status: L.amcInfo(c).status }));
+    const amc = (db().amcs || []).map((c) => ({ id: c.id, title: c.title, vendor: ((db().vendors.find((v) => v.id === c.vendorId) || {}).name || ''), type: 'AMC', start: c.start, end: c.end, value: +c.cost || 0, status: L.amcInfo(c).status }));
     const oth = (((D() || {}).contracts) || []).map((c) => ({ id: c.id, title: c.title, vendor: c.vendor || '', type: c.type || 'Contract', start: c.start, end: c.end, value: +c.value || 0, status: c.end && L.diffDays(c.end, L.today()) < 0 && c.status === 'Active' ? 'Expired' : c.status }));
     return amc.concat(oth);
   };
