@@ -313,6 +313,17 @@ table.t td.act { position: sticky; right: 0; background: linear-gradient(90deg, 
 #bellpop .bpbody { max-height: 52vh; overflow: auto; padding: 10px; }
 #bellpop .bpbody .alert-row { margin-bottom: 6px; }
 @media (max-width: 900px) { #bellpop { top: 112px; right: 14px; } }
+
+/* ---------- login gate ---------- */
+#loginwrap { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: linear-gradient(150deg, #0f2a6e 0%, #1d4ed8 55%, #00a8e8 100%); }
+.logincard { width: min(400px, 100%); background: rgba(255,255,255,.97); border-radius: 24px; padding: 34px 30px 28px; text-align: center; box-shadow: 0 40px 80px -30px rgba(0,0,0,.5); }
+.logincard h1 { margin: 14px 0 2px; font: 700 19px var(--head); letter-spacing: .4px; color: var(--ink); }
+.logincard p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+.logincard label { display: block; text-align: left; font-size: 12px; font-weight: 650; color: var(--ink2); margin-bottom: 12px; }
+.logincard .in, .logincard input { width: 100%; padding: 11px 13px; border-radius: 12px; border: 1px solid rgba(47,107,255,.3); font: 500 14px var(--font); margin-top: 5px; outline: none; }
+.logincard input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,107,255,.15); }
+.logincard #li-go { width: 100%; margin-top: 6px; padding: 12px; border: none; border-radius: 14px; background: var(--grad); color: #fff; font: 650 14px var(--font); cursor: pointer; }
+.logincard .lerr { margin: 0 0 12px; padding: 9px 12px; border-radius: 10px; background: #ffe9ec; color: #c2273f; font-size: 12.5px; font-weight: 600; }
 table.t tbody tr:hover td.act { background: linear-gradient(90deg, rgba(246,243,255,0), #f6f3ff 18%); }
 table.t th:last-child { position: sticky; right: 0; }
 .row-actions { flex-wrap: nowrap; }

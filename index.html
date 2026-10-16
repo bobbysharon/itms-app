@@ -12,6 +12,15 @@
 <script>window.ITMS_LOAD_ERRORS = []; window.addEventListener('error', function (e) { try { var t = e.target || {}; if (t !== window && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) { window.ITMS_LOAD_ERRORS.push('FAILED TO LOAD: ' + (t.src || t.href || '')); } else if (e.message) { window.ITMS_LOAD_ERRORS.push(String(e.message) + ' @ ' + String(e.filename || '').split('/').pop() + ':' + (e.lineno || '?')); } } catch (_) { /* never break boot */ } }, true);</script>
 </head>
 <body>
+<div id="loginwrap"><div class="logincard">
+  <div class="gem" style="width:58px;height:58px;border-radius:19px;margin:0 auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M2 19h20M9 10l2 2 4-4"/></svg></div>
+  <h1>TAFASEEL GROUP HOLDING</h1>
+  <p>IT Service &amp; Asset Management</p>
+  <label>Official email<input id="li-email" autocomplete="username"></label>
+  <label>Password<input id="li-pass" type="password" autocomplete="current-password"></label>
+  <div class="lerr" id="li-err" style="display:none"></div>
+  <button id="li-go">Sign in</button>
+</div></div>
 <div class="orbs"><i></i><i></i><i></i></div>
 <div class="app">
   <aside class="side">
@@ -26,6 +35,7 @@
       <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input id="sinput" autocomplete="off"><div class="sr" id="sres" style="display:none"></div></div>
       <span class="chip" id="today"></span>
       <button class="iconbtn" id="bell" aria-label="Alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="n" id="bellN" style="display:none"></span></button>
+      <button class="iconbtn" id="logout" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
     </div>
     <div id="view"></div>
   </main>
@@ -44,6 +54,7 @@
 <script src="js/compliance.js"></script>
 <script src="js/itsm.js"></script>
 <script src="js/sdp-plus.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/testdata.js"></script>
 <script src="js/app.js"></script>
 </body>

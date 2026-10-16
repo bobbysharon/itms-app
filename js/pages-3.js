@@ -33,7 +33,7 @@
           { k: 'purchaseDate', label: 'Purchased', render: (a) => fmtDate(a.purchaseDate) }, { k: 'warranty', label: 'Warranty', render: warrantyPill, csv: (a) => a.warranty }, { k: 'poNo', label: 'PO', mono: true },
         ],
         actions: (a) => `<button class="ibtn" title="View" data-act="hw.view" data-id="${a.id}">${ic('eye')}</button>${a.status === 'In Stock' ? `<button class="ibtn" style="--c:#2f6bff" title="Issue" data-act="mv.new" data-type="Issue" data-asset="${a.id}">${ic('swap')}</button>` : ''}${a.status === 'In Use' ? `<button class="ibtn" style="--c:#10d9a0" title="Return" data-act="mv.new" data-type="Return" data-emp="${a.holder}" data-asset="${a.id}">${ic('undo')}</button>` : ''}<button class="ibtn" title="Edit" data-act="hw.edit" data-id="${a.id}">${ic('edit')}</button>`,
-        toolbar: `<button class="btn ghost" data-act="mv.new" data-type="Issue">${ic('swap')}Issue / Return / Transfer</button><button class="btn" data-act="hw.new">${ic('plus')}Opening asset</button>`,
+        toolbar: `<button class="btn ghost" data-act="mv.new" data-type="Issue">${ic('swap')}Issue / Return / Transfer</button><button class="btn" data-act="hw.new">${ic('plus')}Opening asset</button> <button class="btn ghost sm" data-act="imp.sample" data-k="hardware">Sample CSV</button> <button class="btn ghost sm" data-act="imp.upload" data-k="hardware">Upload CSV</button>`,
         empty: 'Receive goods against an approved PO (Purchase Orders → Receive) to create assets, or add an opening asset.',
       })}</div>`;
     },
@@ -201,7 +201,7 @@
             { k: 'vendor', label: 'Vendor' }, { k: 'unitPrice', label: 'Unit price', num: true, render: (s) => fmtNum(s.unitPrice, 2) }, { k: 'value', label: 'Total value', num: true, val: (s) => L.swInfo(s).value, render: (s) => fmtNum(L.swInfo(s).value, 2) },
           ],
           actions: (s) => `<button class="ibtn" style="--c:#10d9a0" title="Install" data-act="sw.install" data-sw="${s.id}">${ic('plus')}</button><button class="ibtn" style="--c:#ffb020" title="Renew" data-act="sw.renew" data-id="${s.id}">${ic('refresh')}</button><button class="ibtn" title="Edit" data-act="sw.edit" data-id="${s.id}">${ic('edit')}</button><button class="ibtn" style="--c:#ff5c6c" title="Delete" data-act="sw.del" data-id="${s.id}">${ic('trash')}</button>`,
-          toolbar: `<button class="btn mint" data-act="sw.install">${ic('plus')}Install software</button><button class="btn" data-act="sw.new">${ic('plus')}Add licence</button>`,
+          toolbar: `<button class="btn mint" data-act="sw.install">${ic('plus')}Install software</button><button class="btn" data-act="sw.new">${ic('plus')}Add licence</button> <button class="btn ghost sm" data-act="imp.sample" data-k="software">Sample CSV</button> <button class="btn ghost sm" data-act="imp.upload" data-k="software">Upload CSV</button>`,
           foot: (rows) => `<tr><td colspan="7">Totals</td><td class="num">${rows.reduce((a, s) => a + s.qty, 0)}</td><td class="num">${rows.reduce((a, s) => a + L.swInfo(s).used, 0)}</td><td class="num">${rows.reduce((a, s) => a + L.swInfo(s).remaining, 0)}</td><td></td><td></td><td class="num">${fmtNum(rows.reduce((a, s) => a + L.swInfo(s).value, 0), 2)}</td><td></td></tr>`,
         });
         body = ((pf.sw || {}).exp ? `<div style="margin-bottom:10px"><span class="pill p-amber">Expiring / expired only</span> <a class="link" data-go="#/software">clear</a></div>` : '') + body;
