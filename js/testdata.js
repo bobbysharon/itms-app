@@ -27,6 +27,31 @@
     S.reset('empty');
     const d = db();
     d.employees = emps;
+    /* ---------- sample employees across all departments (skipped if present) ---------- */
+    const ceo = emps.find((e) => /john smith/i.test(e.name || '')) || emps.find((e) => e.status === 'Active' && e.email) || {};
+    const ROSTER = [
+      ['Layla Haddad', 'Executive Assistant', 'Executive', 'layla.haddad@tafaseel.ae', '2022-03-01', ceo.name || ''],
+      ['Tariq Aziz', 'Operations Director', 'Executive', 'tariq.aziz@tafaseel.ae', '2021-06-15', ceo.name || ''],
+      ['Priya Nair', 'Accountant', 'Finance', 'priya.nair@tafaseel.ae', '2023-01-10', ceo.name || ''],
+      ['Khalid Mansoor', 'Finance Manager', 'Finance', 'khalid.mansoor@tafaseel.ae', '2020-11-01', 'Priya Nair'],
+      ['Ayesha Rahman', 'HR Officer', 'Human Resources', 'ayesha.rahman@tafaseel.ae', '2023-04-12', ceo.name || ''],
+      ['Omar Farouk', 'Recruiter', 'Human Resources', 'omar.farouk@tafaseel.ae', '2024-02-01', 'Ayesha Rahman'],
+      ['Vikram Rao', 'System Administrator', 'IT', 'vikram.rao@tafaseel.ae', '2021-09-20', ceo.name || ''],
+      ['Nora Salem', 'IT Support Engineer', 'IT', 'nora.salem@tafaseel.ae', '2023-08-14', 'Vikram Rao'],
+      ['Huda Karim', 'Marketing Executive', 'Marketing', 'huda.karim@tafaseel.ae', '2022-07-05', ceo.name || ''],
+      ['Chris Dsouza', 'Content Specialist', 'Marketing', 'chris.dsouza@tafaseel.ae', '2024-05-20', 'Huda Karim'],
+      ['Adel Mahmoud', 'Operations Supervisor', 'Operations', 'adel.mahmoud@tafaseel.ae', '2021-12-01', ceo.name || ''],
+      ['Rita George', 'Logistics Coordinator', 'Operations', 'rita.george@tafaseel.ae', '2023-10-03', 'Adel Mahmoud'],
+      ['Mona Fawaz', 'Admin Assistant', 'Administration', 'mona.fawaz@tafaseel.ae', '2022-09-11', ceo.name || ''],
+      ['Samir Iqbal', 'Facilities Coordinator', 'Administration', 'samir.iqbal@tafaseel.ae', '2023-03-22', 'Mona Fawaz'],
+      ['Faisal Noor', 'Security Officer', 'Security', 'faisal.noor@tafaseel.ae', '2021-05-30', ceo.name || ''],
+      ['Dana Khalil', 'CCTV Operator', 'Security', 'dana.khalil@tafaseel.ae', '2024-01-08', 'Faisal Noor'],
+    ];
+    ROSTER.forEach((x, i) => {
+      if (d.employees.some((e) => (e.email || '').toLowerCase() === x[3])) return;
+      L.saveEmployee({ name: x[0], designation: x[1], manager: x[5], doj: x[4], dol: '', dept: x[2], location: 'Dubai, UAE', email: x[3], mobile: '9715000' + (110 + i), tel: '', ext: '', status: 'Active' });
+    });
+    const newEmps = ROSTER.map((x) => d.employees.find((e) => (e.email || '').toLowerCase() === x[3])).filter(Boolean);
     Object.assign(d.company, { name: 'TAFASEEL GROUP HOLDING', address: 'DUBAI, UAE', vat: 5, currency: 'AED', warrantyDays: 365, logo: '' });
     const E = emps.filter((e) => e.status === 'Active');
     const pick = (i) => E[i % E.length];
@@ -91,14 +116,23 @@
     L.setAssetState(dsp.id, 'Disposed', 'Beyond repair — test disposal');
     L.saveHW({ type: 'Server', desc: 'Test Server spare', purchaseDate: agoD(90), price: 14000, condition: 'New' });
 
+    /* ---------- one device per roster head, issued + software installed ---------- */
+    const devTypes = [['Laptop', 'Dell Latitude 5440', 4200], ['Desktop', 'Dell OptiPlex 7010', 3100], ['Monitor', 'Dell P2422H 24 inch', 780], ['Phone', 'Yealink T46S', 620]];
+    newEmps.forEach((e, i) => {
+      const dt = devTypes[i % devTypes.length];
+      const a = L.saveHW({ type: dt[0], desc: 'TEST: ' + dt[1] + ' for ' + e.name, compName: 'TEST-' + e.no, serial: 'TST-' + e.no, purchaseDate: agoD(45), price: dt[2], condition: 'Good' });
+      L.issueAssets(e.no, [a.id], agoD(30), 'TEST onboarding allocation');
+    });
+
     /* ---------- software: expiring / expired / exhausted / perpetual ---------- */
-    const sw1 = L.saveSW({ type: 'Application Software', subType: 'Cloud-Based', name: 'Microsoft 365 Test', vendor: 'SoftLine', purchaseDate: agoD(345), expiry: fwdD(20), qty: 10, unitPrice: 62, currency: 'AED' });
+    const sw1 = L.saveSW({ type: 'Application Software', subType: 'Cloud-Based', name: 'Microsoft 365 Test', vendor: 'SoftLine', purchaseDate: agoD(345), expiry: fwdD(20), qty: 25, unitPrice: 62, currency: 'AED' });
     const sw2 = L.saveSW({ type: 'System Software', subType: 'Perpetual', name: 'Endpoint AV Test', vendor: 'SoftLine', purchaseDate: agoD(400), expiry: agoD(10), qty: 15, unitPrice: 90, currency: 'AED' });
     const sw3 = L.saveSW({ type: 'Application Software', subType: 'Perpetual', name: 'Design Suite Test', vendor: 'SoftLine', purchaseDate: agoD(100), expiry: fwdD(200), qty: 2, unitPrice: 2400, currency: 'AED' });
-    const sw4 = L.saveSW({ type: 'Application Software', subType: 'Perpetual', name: 'ERP Client Perpetual', vendor: 'SoftLine', purchaseDate: '2023-01-15', expiry: '', qty: 20, unitPrice: 500, currency: 'AED' });
+    const sw4 = L.saveSW({ type: 'Application Software', subType: 'Perpetual', name: 'ERP Client Perpetual', vendor: 'SoftLine', purchaseDate: '2023-01-15', expiry: '', qty: 30, unitPrice: 500, currency: 'AED' });
     const devs = db().hw.filter((a) => a.holder && (a.type === 'Laptop' || a.type === 'Desktop' || a.type === 'Monitor'));
     const put = (s, n) => { for (let i = 0; i < n; i++) { const a = devs.length ? devs[i % devs.length] : null; try { L.installSW(s.id, a ? a.holder : pick(i).no, a ? a.id : '', agoD(5), 1); } catch (e) { /* pool full */ } } };
     put(sw1, 6); put(sw3, 2); put(sw4, 3);
+    newEmps.forEach((e) => { try { L.installSW(sw1.id, e.no, '', agoD(4), 1); } catch (err) { /* pool full */ } try { L.installSW(sw4.id, e.no, '', agoD(4), 1); } catch (err2) { /* pool full */ } });
 
     /* ---------- consumables: healthy + low-stock alert ---------- */
     const con1 = L.addConsumable({ type: 'Ink_Toner', subtype: 'Black Toner', brand: 'HP', model: '305A', desc: 'HP 305A Black Toner TEST', uom: 'Pcs', reorder: 4 }, true);
@@ -282,6 +316,10 @@
     au(pick(1), 'test.user1', 'Locked', ['IT Support']);
     au(pick(2), 'test.user2', 'Disabled', []);
     au(pick(3), 'test.user3', 'Enabled', ['IT Support']);
+    const itNew = newEmps.find((e) => e.dept === 'IT');
+    if (itNew) au(itNew, itNew.name.toLowerCase().split(/\s+/).join('.'), 'Enabled', ['IT Support']);
+    const hrNew = newEmps.find((e) => e.dept === 'Human Resources');
+    if (hrNew) au(hrNew, hrNew.name.toLowerCase().split(/\s+/).join('.'), 'Enabled', []);
     s.adgroups.push({ id: 'ADG-91', name: 'TEST Distribution', scope: 'Universal', category: 'Distribution', desc: 'Test DL', members: ['test.user1', 'test.user3'] });
     s.gpos.push(
       { id: 'GPO-91', name: 'TEST Baseline', desc: 'Test hardened baseline', ous: 'OU=Workstations,DC=tafaseel,DC=ae', settings: 'Password length = 12\nScreen lock = 5 min', status: 'Linked', version: 2 },
