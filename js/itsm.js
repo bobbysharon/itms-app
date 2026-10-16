@@ -71,7 +71,7 @@ Other: General Query, Feedback`;
   const assignees = (g) => H().techs.filter((t) => t.active === 'Yes' && H().cfg.assignRoles.includes(t.role) && (!g || t.group === g)).map((t) => t.name);
   const techNames = (g) => H().techs.filter((t) => t.active === 'Yes' && (!g || t.group === g)).map((t) => t.name);
   const people = () => L.uniq(H().techs.filter((t) => t.active === 'Yes').map((t) => t.name).concat(H().cfg.parties)).sort();
-  const empOpts = () => db().employees.filter((e) => e.status === 'Active').map((e) => ({ v: e.no, l: `${e.name} (${e.no}) · ${e.dept}` }));
+  const empOpts = () => db().employees.filter((e) => e.status === 'Active' && !e.sys).map((e) => ({ v: e.no, l: `${e.name} (${e.no}) · ${e.dept}` }));
   const assetOpts = (v) => { const held = db().hw.filter((a) => a.holder === v.requester); return (v.requester && held.length ? held : db().hw).map((a) => ({ v: a.id, l: `${a.id} · ${a.desc}` })); };
   const csvEsc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
   const dl = (name, text) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + text], { type: 'text/csv' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000); };

@@ -4,7 +4,7 @@
   const { esc, fmtDate, fmtNum, money, pill, icon: ic } = UI;
   const pages = ITMS.pages; const db = () => S.db; const pf = UI.pf;
   const fresh = () => ITMS.nav && ITMS.nav.fresh; const P = () => (ITMS.nav && ITMS.nav.params) || {};
-  const empOpts = () => db().employees.filter((e) => e.status === 'Active').map((e) => ({ v: e.no, l: `${e.name} (${e.no}) — ${e.dept}` }));
+  const empOpts = () => db().employees.filter((e) => e.status === 'Active' && !e.sys).map((e) => ({ v: e.no, l: `${e.name} (${e.no}) — ${e.dept}` }));
 
   /* ===================== AMC ===================== */
   const FREQ = ['Monthly', 'Quarterly', 'Half-Yearly', 'Annual', 'One-time'];

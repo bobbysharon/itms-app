@@ -10,7 +10,7 @@
   const fresh = () => ITMS.nav && ITMS.nav.fresh;
   const preset = (id, map) => { if (!fresh()) return; const p = P(); const st = (UI.tbl[id] = UI.tbl[id] || { st: { q: '', sort: null, dir: 1, page: 1, f: {} } }).st; st.f = {}; st.q = ''; st.page = 1; Object.keys(map).forEach((k) => { if (p[map[k]]) st.f[k] = p[map[k]]; }); };
   UI.preset = preset;
-  const empOpts = (only) => db().employees.filter((e) => (only ? only(e) : e.status === 'Active')).map((e) => ({ v: e.no, l: `${e.name} (${e.no}) — ${e.dept}` }));
+  const empOpts = (only) => db().employees.filter((e) => !e.sys && (only ? only(e) : e.status === 'Active')).map((e) => ({ v: e.no, l: `${e.name} (${e.no}) — ${e.dept}` }));
   const wd = (d) => (d == null ? null : d);
 
   /* ===================== HARDWARE ASSETS ===================== */

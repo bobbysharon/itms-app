@@ -94,7 +94,7 @@
     render() {
       const d = db();
       return `<div class="card">${UI.table({
-        id: 'emp', rows: () => d.employees, text: (r) => [r.no, r.name, r.designation, r.dept, r.location, r.email].join(' '), sort: 'no',
+        id: 'emp', rows: () => d.employees.filter((e) => !e.sys), text: (r) => [r.no, r.name, r.designation, r.dept, r.location, r.email].join(' '), sort: 'no',
         filters: [{ k: 'dept', label: 'Department', options: () => L.uniq(d.employees.map((e) => e.dept)).sort() }, { k: 'status', label: 'Status', options: ['Active', 'Inactive', 'Left'] }, { k: 'location', label: 'Location', options: () => L.uniq(d.employees.map((e) => e.location)).sort() }],
         cols: [
           { k: 'no', label: 'Emp No', mono: true, render: (r) => `<a class="link" data-act="emp.view" data-id="${r.no}">${r.no}</a>` }, { k: 'name', label: 'Name', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'designation', label: 'Designation' }, { k: 'dept', label: 'Department' }, { k: 'role', label: 'Access role', render: (r) => esc(r.role || '—') },

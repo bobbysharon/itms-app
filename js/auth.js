@@ -25,14 +25,17 @@
   function ensure() {
     const d = db(); if (!d) return;
     d.users = d.users || [];
-    let emp = d.employees.find((e) => ADMIN_EMAILS.indexOf((e.email || '').toLowerCase()) >= 0 || /^bobby sharon$/i.test(e.name || ''));
-    if (!emp) {
-      L.saveEmployee({ name: 'Bobby Sharon', designation: 'IT Manager', manager: '', doj: L.today(), dol: '', dept: 'IT', location: 'Dubai, UAE', email: ADMIN_EMAILS[0], mobile: '', tel: '', ext: '', status: 'Active' });
-      emp = d.employees.find((e) => ADMIN_EMAILS.indexOf((e.email || '').toLowerCase()) >= 0);
+    let sys = d.employees.find((e) => e.no === 'sysadmin');
+    if (!sys) {
+      sys = { no: 'sysadmin', name: 'System Administrator', designation: 'System Account', manager: '', doj: L.today(), dol: '', dept: 'IT', location: 'Dubai, UAE', email: ADMIN_EMAILS[0], mobile: '', tel: '', ext: '', status: 'Active', role: 'Administrator', sys: true };
+      d.employees.push(sys); L.log('System', 'sysadmin system account ensured');
+    } else {
+      sys.status = 'Active'; sys.role = 'Administrator'; if (!sys.email) sys.email = ADMIN_EMAILS[0];
     }
+    d.users.forEach((u) => { if (ADMIN_EMAILS.indexOf(u.email.toLowerCase()) >= 0 && u.empNo !== 'sysadmin') u.empNo = 'sysadmin'; });
     ADMIN_EMAILS.forEach((am) => {
-      if (emp && !d.users.some((u) => u.email.toLowerCase() === am)) {
-        d.users.push({ email: am, hash: pwHash('Admin@12345', SALT), empNo: emp.no, role: 'Administrator', created: L.today() });
+      if (!d.users.some((u) => u.email.toLowerCase() === am)) {
+        d.users.push({ email: am, hash: pwHash('Admin@12345', SALT), empNo: 'sysadmin', role: 'Administrator', created: L.today() });
       }
     });
     (d.employees || []).forEach((e) => {
@@ -176,7 +179,7 @@
           try {
             if (!r.name || !r.name.trim()) throw new Error('name is required');
             const data = { name: r.name.trim(), designation: r.designation || '', manager: r.manager || '', doj: r.doj || '', dol: r.dol || '', dept: r.dept || '', location: r.location || '', email: (r.email || '').trim(), mobile: r.mobile || '', status: ['Active', 'Inactive', 'Left'].indexOf(r.status) >= 0 ? r.status : 'Active', role: validRoles.indexOf(r.role) >= 0 ? r.role : 'Requester' };
-            let e = (r.no && L.emp(r.no.trim())) || (data.email && db().employees.find((x) => (x.email || '').toLowerCase() === data.email.toLowerCase()));
+            let e = (r.no && L.emp(r.no.trim())) || (data.email && db().employees.find((x) => !x.sys && (x.email || '').toLowerCase() === data.email.toLowerCase()));
             if (e) { if (!r.role) delete data.role; L.saveEmployee(data, e.no); updated++; } else { L.saveEmployee(data); created++; }
           } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
         });
