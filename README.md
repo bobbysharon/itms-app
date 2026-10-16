@@ -57,7 +57,7 @@ Build command: *(none)* · Publish directory: `.`
 ## Menu map — one consolidated ITIL service desk (5 groups, 42 pages)
 No duplicates: the old *IT Helpdesk* / *ServiceDesk Plus* / *Enterprise* menus are merged. Every page below is cross-linked (buttons, not dead ends).
 - **Dashboard** — live KPIs + ITIL coverage strip.
-- **Service Desk** — *Operate:* Helpdesk Home, Tickets, Self-Service Portal, Live Chat · *ITIL workflows:* Problems · Changes · Releases, CMDB, Lifecycle Designer, Automation & SLA · *Intake & fulfilment:* Email to Ticket, Preventive Maintenance, Templates & Apps, Solutions & Catalog · *Plan & measure:* Projects & Follow-ups, Scheduler, Surveys, Advanced Reports · *Admin:* ITSM Admin, Enterprise (ESM).
+- **Service Desk** — *Operate:* Helpdesk Home, Tickets, Self-Service Portal (plus a floating live-chat bubble on every screen) · *ITIL workflows:* Problems · Changes · Releases, CMDB, Lifecycle Designer, Automation & SLA · *Intake & fulfilment:* Email to Ticket, Preventive Maintenance, Templates & Apps, Solutions & Catalog · *Plan & measure:* Projects & Follow-ups, Scheduler, Surveys, Advanced Reports · *Admin:* ITSM Admin, Enterprise (ESM).
 - **Assets & Procurement** — *Asset register:* Hardware, Movements, Software Licences, Consumables, Asset Loans, Discovery & Catalog · *Contracts:* AMC Contracts ⇄ Other Contracts (linked both ways) · *Procurement:* Purchase Requests → Purchase Orders → Vendors (full chain, no re-typing).
 - **People & Identity** — Employees ⇄ AD accounts, Onboarding & Offboarding ⇄ AD disable/provision, AD & Group Policy center, Roles & Access.
 - **Govern & Compliance** — IT Workflow (Plan→Retire), IT Budget, Policy Compliance (ISO 27001 / NIST / NESA / ITIL), Archiving & Audit trail.
@@ -73,7 +73,7 @@ Extra pages (data in `db.sdp`):
 |---|---|
 | Self-service portal, knowledge base, service catalog | Self-Service Portal (`#/portal`) + Solutions & Catalog |
 | AD user self-service (password reset / unlock) | Portal → Password/unlock (auto-creates ticket + AD queue) |
-| Live chat technician ↔ user | Live Chat (`#/chat`), convertible to ticket |
+| Live chat technician ↔ user | Floating bubble on every screen (user + agent reply, → ticket) + full console at `#/chat` |
 | CMDB + relationship / impact analysis | CMDB (`#/cmdb`) — CIs, relationship map, 4-hop blast radius for change evidence |
 | Purchase & contract management | Contracts (`#/contracts`) ⇄ AMC register — expiry/renewal tracking |
 | Preventive maintenance tasks | Preventive Maintenance (`#/pmtasks`) — scheduled tasks generate real tickets |
@@ -102,7 +102,7 @@ Extra pages (data in `db.sdp`):
 |---|---|
 | Self-service portal, knowledge base, service catalog | Self-Service Portal (`#/portal`) + Solutions & Catalog |
 | AD user self-service (password reset / unlock) | Portal → Password/unlock (auto-creates ticket + AD queue) |
-| Live chat technician ↔ user | Live Chat (`#/chat`), convertible to ticket |
+| Live chat technician ↔ user | Floating bubble on every screen (user + agent reply, → ticket) + full console at `#/chat` |
 | CMDB + relationship / impact analysis | CMDB (`#/cmdb`) — CIs, relationship map, 4-hop blast radius for change evidence |
 | Purchase & contract management | Contracts (`#/contracts`) — expiry/renewal tracking (AMC stays separate) |
 | Preventive maintenance tasks | Preventive Maintenance (`#/pmtasks`) — scheduled tasks generate real tickets |

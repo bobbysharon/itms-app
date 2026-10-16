@@ -7,7 +7,7 @@
     { id: 'dashboard', single: true },
     {
       id: 'helpdesk', title: 'Service Desk', icon: 'bell', color: '#2f6bff', sections: [
-        { title: 'Operate', items: ['itsm', 'tickets', 'portal', 'chat'] },
+        { title: 'Operate', items: ['itsm', 'tickets', 'portal'] },
         { title: 'ITIL workflows', items: ['itil', 'cmdb', 'lifecycles', 'automation'] },
         { title: 'Intake & fulfilment', items: ['mailticket', 'pmtasks', 'templates', 'kb'] },
         { title: 'Plan & measure', items: ['projects', 'scheduler', 'surveys', 'reportsplus'] },

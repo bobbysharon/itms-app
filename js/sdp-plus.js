@@ -229,11 +229,12 @@
   UI.on('portal.chat', () => {
     const e = portalEmp();
     UI.form({
-      title: 'Start live chat', sub: 'An agent will reply from the Live Chat queue', icon: 'users',
+      title: 'Start live chat', sub: 'Opens in the floating bubble — replies arrive there on any screen', icon: 'users',
       fields: [{ k: 'msg', label: 'How can we help?', type: 'textarea', full: true, req: true }],
       onSubmit: (v) => {
-        D().chats.unshift({ id: nid('ch', 'CHAT-', 3), user: e.name, empNo: e.no, tech: '', status: 'Open', at: now(), msgs: [{ by: e.name, text: v.msg, at: now() }] });
-        S.emit(); UI.toast('Chat opened — see Live Chat for replies'); location.hash = '#/chat';
+        const id = nid('ch', 'CHAT-', 3);
+        D().chats.unshift({ id, user: e.name, empNo: e.no, tech: '', status: 'Open', at: now(), msgs: [{ by: e.name, text: v.msg, at: now() }] });
+        S.emit(); UI.toast('Chat opened in the bubble'); openBubble(id);
       },
     });
   });
@@ -293,6 +294,79 @@
         toolbar: `<button class="btn ghost" data-act="portal.chat">${ic('plus')}New chat (as portal user)</button>` })}</div>`;
     },
   };
+
+  /* ================= LIVE CHAT BUBBLE (floating widget on every screen) ================= */
+  const chatB = (ITMS.chatBubble = { id: null, show: false });
+  function chatMe() { try { const e = (typeof portalEmp === 'function' && portalEmp()) || {}; return e.name || ''; } catch (err) { return ''; } }
+  function drawFab() {
+    if (!db()) return; const n = document.getElementById('chatfabn'); if (!n) return;
+    const c = D().chats.filter((x) => x.status === 'Open').length;
+    n.textContent = c; n.style.display = c ? '' : 'none';
+  }
+  function openBubble(id) {
+    chatB.show = true; if (id) chatB.id = id;
+    const p = document.getElementById('chatpanel'); if (p) p.style.display = '';
+    drawPanel(); drawFab();
+  }
+  function hideBubble() { chatB.show = false; const p = document.getElementById('chatpanel'); if (p) p.style.display = 'none'; }
+  ITMS.chatBubble.open = openBubble; ITMS.chatBubble.close = hideBubble;
+  function buildBubble() {
+    if (!db() || document.getElementById('chatfab')) return;
+    const f = document.createElement('button'); f.id = 'chatfab'; f.title = 'Live chat';
+    f.innerHTML = ic('users') + '<span class="n" id="chatfabn" style="display:none"></span>';
+    f.addEventListener('click', () => (chatB.show ? hideBubble() : openBubble()));
+    document.body.appendChild(f);
+    const p = document.createElement('div'); p.id = 'chatpanel'; p.style.display = 'none'; document.body.appendChild(p);
+    drawFab();
+  }
+  function msgHtml(m, me) { return `<div class="msg ${me ? 'me' : 'them'}"><b>${esc(m.by)}</b>${esc(m.text)}<small>${fdt(m.at)}</small></div>`; }
+  function drawPanel() {
+    if (!db()) return; const p = document.getElementById('chatpanel'); if (!p || !chatB.show) return;
+    const me = chatMe();
+    const chats = D().chats.slice().sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+    const cur = D().chats.find((x) => x.id === chatB.id);
+    let h = `<div class="chhead">Live Chat<span style="margin-left:auto"></span><button class="ibtn" data-c="refresh" title="Refresh">${ic('refresh')}</button><button class="ibtn" data-c="full" title="Full console">${ic('grid')}</button><button class="ibtn x" data-c="x">${ic('x')}</button></div>`;
+    h += `<div class="chid"><label>Chatting as<select class="in" id="chatwho">${empOpts().map((o) => `<option value="${o.v}" ${((portalEmp() || {}).no || '') === o.v ? 'selected' : ''}>${esc(o.l)}</option>`).join('')}</select></label><button class="btn sm" data-c="new">${ic('plus')}New</button></div>`;
+    if (cur) {
+      h += `<div class="chback"><button class="btn xs ghost" data-c="back">← All</button><b style="margin:0 4px">${esc(cur.id)}</b>${cur.status === 'Open' ? `<span style="margin-left:auto"></span><button class="btn xs ghost" data-c="ticket">→ Ticket</button> <button class="btn xs ghost" data-c="close">Close</button>` : `<span style="margin-left:auto">${P('Closed')}</span>`}</div><div class="msgs">${cur.msgs.map((m) => msgHtml(m, m.by === me)).join('')}</div><div class="chsend"><input class="in" id="chatinput" placeholder="Type a reply…" autocomplete="off"><button class="btn sm" data-c="send">Send</button></div>`;
+    } else {
+      h += `<div class="chlist">${chats.slice(0, 20).map((c) => `<a data-c="open" data-id="${c.id}"><b>${esc(c.id)}</b> · ${esc(c.user)}<small>${c.status} · ${esc(((c.msgs[c.msgs.length - 1] || {}).text) || '').slice(0, 60)}</small></a>`).join('') || '<div class="empty">No chats yet — start one.</div>'}</div>`;
+    }
+    p.innerHTML = h;
+    const who = document.getElementById('chatwho');
+    if (who) who.addEventListener('change', () => { portalEmp._no = who.value; drawFab(); });
+    const inp = document.getElementById('chatinput');
+    if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+    p.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); chatCmd(b.getAttribute('data-c'), b.getAttribute('data-id')); }));
+    const ms = p.querySelector('.msgs'); if (ms) ms.scrollTop = ms.scrollHeight;
+  }
+  function sendChat() {
+    const inp = document.getElementById('chatinput'); const t = ((inp && inp.value) || '').trim(); if (!t) return;
+    const c = D().chats.find((x) => x.id === chatB.id); if (!c) return;
+    const me = chatMe() || 'User';
+    c.msgs.push({ by: me, text: t, at: now() });
+    if (!c.tech && techs().indexOf(me) >= 0) c.tech = me;
+    if (me !== c.user) notify('Email', c.user, `[${c.id}] New reply`, t);
+    else if (c.tech) notify('Email', c.tech, `[${c.id}] user replied`, t);
+    S.emit(); drawPanel(); drawFab();
+    const i2 = document.getElementById('chatinput'); if (i2) i2.focus();
+  }
+  function chatCmd(k, id) {
+    if (k === 'x') return hideBubble();
+    if (k === 'refresh') return drawPanel();
+    if (k === 'full') { hideBubble(); location.hash = '#/chat'; return; }
+    if (k === 'back') { chatB.id = null; return drawPanel(); }
+    if (k === 'open') { chatB.id = id; return drawPanel(); }
+    if (k === 'send') return sendChat();
+    if (k === 'ticket') { if (UI.acts['chat.ticket']) UI.acts['chat.ticket']({ dataset: { id: chatB.id } }); return; }
+    if (k === 'close') { const c = D().chats.find((x) => x.id === chatB.id); if (c) { c.status = 'Closed'; S.emit(); } drawPanel(); drawFab(); return; }
+    if (k === 'new') {
+      const e = portalEmp() || {};
+      UI.form({ title: 'Start live chat', sub: 'Replies arrive in this bubble on any screen', icon: 'users', fields: [{ k: 'msg', label: 'How can we help?', type: 'textarea', full: true, req: true }], onSubmit: (v) => { const nid2 = nid('ch', 'CHAT-', 3); D().chats.unshift({ id: nid2, user: e.name || chatMe(), empNo: e.no, tech: '', status: 'Open', at: now(), msgs: [{ by: e.name || chatMe(), text: v.msg, at: now() }] }); S.emit(); openBubble(nid2); } });
+    }
+  }
+  document.addEventListener('DOMContentLoaded', buildBubble);
+  S.subscribe(() => { drawFab(); if (chatB.show && document.activeElement !== document.getElementById('chatinput')) drawPanel(); });
 
   /* ================= 3. CMDB ================= */
   const CI_TYPES = ['Server', 'Network Device', 'Firewall', 'Laptop', 'Desktop', 'Printer', 'Application', 'Database', 'Cloud Service', 'UPS', 'Storage', 'Other'];
