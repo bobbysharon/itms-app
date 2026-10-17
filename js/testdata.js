@@ -326,6 +326,20 @@
       { id: 'PRD-103', brand: 'Dell', model: 'P2422H 24in', type: 'Monitor', uom: 'Nos', price: 780, vendor: V['TechSource Trading'], active: 'Yes' },
       { id: 'PRD-104', brand: 'Yealink', model: 'T46S', type: 'Phone', uom: 'Nos', price: 620, vendor: V['ConnectTel'], active: 'Yes' }
     );
+    s.items.push(
+      { id: 'ITM-001', name: 'Dell Latitude 5440 Laptop', category: 'Hardware', type: 'Laptop', brand: 'Dell', model: 'Latitude 5440', uom: 'Nos', price: 4200, gl: '1510', vendor: 'TechSource Trading', desc: 'Business laptop, 16GB RAM, 512GB SSD', active: 'Yes' },
+      { id: 'ITM-002', name: 'HP LaserJet M404dn Printer', category: 'Hardware', type: 'Printer', brand: 'HP', model: 'LaserJet M404dn', uom: 'Nos', price: 1150, gl: '1510', vendor: 'TechSource Trading', desc: 'Mono laser printer, duplex, network', active: 'Yes' },
+      { id: 'ITM-003', name: 'Dell P2422H 24" Monitor', category: 'Hardware', type: 'Monitor', brand: 'Dell', model: 'P2422H', uom: 'Nos', price: 780, gl: '1510', vendor: 'TechSource Trading', desc: '24 inch IPS monitor', active: 'Yes' },
+      { id: 'ITM-004', name: 'Yealink T46S IP Phone', category: 'Hardware', type: 'Phone', brand: 'Yealink', model: 'T46S', uom: 'Nos', price: 620, gl: '1510', vendor: 'ConnectTel', desc: 'SIP desk phone', active: 'Yes' },
+      { id: 'ITM-005', name: 'Cisco Catalyst 9300 Switch', category: 'Network', type: 'Switch', brand: 'Cisco', model: 'C9300-48P', uom: 'Nos', price: 8500, gl: '1510', vendor: 'NetWorld', desc: '48-port PoE+ switch', active: 'Yes' },
+      { id: 'ITM-006', name: 'Fortinet FortiGate 60F Firewall', category: 'Network', type: 'Firewall', brand: 'Fortinet', model: 'FG-60F', uom: 'Nos', price: 3200, gl: '1510', vendor: 'NetWorld', desc: 'Next-gen firewall', active: 'Yes' },
+      { id: 'ITM-007', name: 'Ubiquiti UniFi AP U6-Pro', category: 'Network', type: 'Access Point', brand: 'Ubiquiti', model: 'U6-Pro', uom: 'Nos', price: 450, gl: '1510', vendor: 'NetWorld', desc: 'WiFi 6 access point', active: 'Yes' },
+      { id: 'ITM-008', name: 'Microsoft 365 Business Premium', category: 'Software', type: 'Subscription', brand: 'Microsoft', model: 'M365 BP', uom: 'User', price: 180, gl: '5240', vendor: 'CloudServ', desc: 'Per-user annual subscription', active: 'Yes' },
+      { id: 'ITM-009', name: 'Windows Server 2022 Standard', category: 'Software', type: 'License', brand: 'Microsoft', model: 'WS2022', uom: 'Licence', price: 3500, gl: '1520', vendor: 'CloudServ', desc: 'Server OS licence', active: 'Yes' },
+      { id: 'ITM-010', name: 'HP 305A Black Toner', category: 'Consumable', type: 'Cartridge', brand: 'HP', model: '305A', uom: 'Nos', price: 78, gl: '5220', vendor: 'TechSource Trading', desc: 'Black toner cartridge', active: 'Yes' },
+      { id: 'ITM-011', name: 'A4 Paper 80gsm Ream', category: 'Office', type: 'Paper', brand: 'Double A', model: 'A4-80', uom: 'Ream', price: 17, gl: '5290', vendor: 'OfficePlus', desc: 'A4 copy paper, 500 sheets', active: 'Yes' },
+      { id: 'ITM-012', name: 'Ergonomic Office Chair', category: 'Office', type: 'Furniture', brand: 'Herman Miller', model: 'Aeron', uom: 'Nos', price: 1200, gl: '5290', vendor: 'OfficePlus', desc: 'Ergonomic task chair', active: 'Yes' }
+    );
     s.scans.push({ id: 'SCAN-11', method: 'Network scan', scope: '192.168.10.0/24', date: agoD(2), found: 3, imported: 1, status: 'Completed' });
     s.discovered.push(
       { id: 'DISC-111', scan: 'SCAN-11', host: 'TEST-PC-01', ip: '192.168.10.21', mac: 'AA:BB:CC:01:11:22', os: 'Win 11', status: 'New' },

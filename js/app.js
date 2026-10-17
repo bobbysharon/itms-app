@@ -2,7 +2,7 @@
 (function () {
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
-  ITMS.BUILD = '2026-10-17 · Invoice print + procurement view';
+  ITMS.BUILD = '2026-10-17 · Item Master + AMC/Contract finance';
   try { console.info('%cITMS build ' + ITMS.BUILD, 'color:#2f6bff;font-weight:bold'); } catch (e) { /* ignore */ }
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
@@ -21,6 +21,7 @@
         { title: 'Asset register', items: ['hardware', 'movements', 'software', 'consumables', 'loans', 'discovery'] },
         { title: 'Contracts', items: ['amc', 'contracts'] },
         { title: 'Procurement', items: ['requests', 'orders', 'vendors'] },
+        { title: 'Item Master', items: ['itemmaster'] },
       ],
     },
     {

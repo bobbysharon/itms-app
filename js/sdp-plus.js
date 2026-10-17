@@ -22,7 +22,7 @@
   function ensure() {
     const d = db(); if (!d) return;
     const s = (d.sdp = d.sdp || {});
-    const arr = ['contracts', 'cis', 'links', 'maint', 'inbox', 'rules', 'notiflog', 'escalations', 'schedules', 'templates', 'actions', 'scans', 'discovered', 'products', 'loans', 'surveys', 'responses', 'chats', 'adreqs', 'archives', 'archiveData', 'instances', 'devices', 'apps', 'toollog', 'adconns', 'adusers', 'adgroups', 'gpos', 'adlog', 'spaces'];
+    const arr = ['contracts', 'cis', 'links', 'maint', 'inbox', 'rules', 'notiflog', 'escalations', 'schedules', 'templates', 'actions', 'scans', 'discovered', 'products', 'loans', 'surveys', 'responses', 'chats', 'adreqs', 'archives', 'archiveData', 'instances', 'devices', 'apps', 'toollog', 'adconns', 'adusers', 'adgroups', 'gpos', 'adlog', 'spaces', 'items'];
     arr.forEach((k) => { if (!s[k]) s[k] = []; });
     s.seq = s.seq || {};
     s.lifecycles = s.lifecycles || {
@@ -537,7 +537,7 @@
   /* ================= 4. CONTRACTS (non-AMC) ================= */
   UI.on('contracts.new', () => {
     if (deny('create')) return;
-    UI.form({ title: 'New contract', icon: 'receipt', fields: [{ k: 'title', label: 'Contract title', req: true, full: true }, { k: 'vendor', label: 'Supplier', type: 'select', options: () => db().vendors.map((v) => v.name), req: true }, { k: 'type', label: 'Type', type: 'select', options: ['Maintenance', 'Lease', 'Support', 'Licence Subscription', 'Warranty', 'Other'], blank: false }, { k: 'start', label: 'Start', type: 'date', req: true }, { k: 'end', label: 'End', type: 'date', req: true }, { k: 'value', label: 'Value', type: 'number' }, { k: 'owner', label: 'Owner', type: 'select', options: () => techs() }, { k: 'assets', label: 'Covered assets', type: 'multi', options: () => db().hw.map((a) => ({ v: a.id, l: `${a.id} · ${a.desc}` })), full: true }, { k: 'notes', label: 'Terms / notes', type: 'textarea', full: true }], onSubmit: (v) => { v.id = nid('ct', 'CTR-', 3); v.status = 'Active'; D().contracts.unshift(v); L.log('Contract', `Contract ${v.id} ${v.title} created`, v.id); S.emit(); } });
+    UI.form({ title: 'New contract', icon: 'receipt', size: 'lg', fields: [{ k: 'title', label: 'Contract title', req: true, full: true }, { k: 'vendor', label: 'Supplier', type: 'select', options: () => db().vendors.map((v) => v.name), req: true }, { k: 'type', label: 'Type', type: 'select', options: ['Maintenance', 'Lease', 'Support', 'Licence Subscription', 'Warranty', 'Other'], blank: false }, { k: 'start', label: 'Start', type: 'date', req: true }, { k: 'end', label: 'End', type: 'date', req: true }, { k: 'value', label: 'Value', type: 'number' }, { k: 'owner', label: 'Owner', type: 'select', options: () => techs() }, { k: 'assets', label: 'Covered assets', type: 'multi', options: () => db().hw.map((a) => ({ v: a.id, l: `${a.id} · ${a.desc}` })), full: true }, { section: 'Invoice & finance' }, { k: 'invNo', label: 'Invoice number' }, { k: 'invDate', label: 'Invoice date', type: 'date' }, { k: 'gl', label: 'GL account', type: 'select', options: () => D().fin.coa.map((g) => ({ v: g.code, l: g.code + ' · ' + g.name })) }, { k: 'notes', label: 'Terms / notes', type: 'textarea', full: true }], onSubmit: (v) => { v.id = nid('ct', 'CTR-', 3); v.status = 'Active'; v.invNo = v.invNo || ''; v.invDate = v.invDate || v.start; v.gl = v.gl || '5240'; D().contracts.unshift(v); L.log('Contract', `Contract ${v.id} ${v.title} created`, v.id); if (ITMS.ap && ITMS.ap.postContract) { try { ITMS.ap.postContract(v, 'CON'); } catch (e) { UI.toast('Finance: ' + e.message, 'err'); } } S.emit(); } });
   });
   UI.on('contracts.edit', (el) => { const r = D().contracts.find((x) => x.id === el.dataset.id); UI.form({ title: 'Edit ' + r.id, icon: 'receipt', fields: [{ k: 'title', label: 'Contract title', req: true, full: true }, { k: 'type', label: 'Type', type: 'select', options: ['Maintenance', 'Lease', 'Support', 'Licence Subscription', 'Warranty', 'Other'], blank: false }, { k: 'start', label: 'Start', type: 'date' }, { k: 'end', label: 'End', type: 'date' }, { k: 'value', label: 'Value', type: 'number' }, { k: 'status', label: 'Status', type: 'select', options: ['Active', 'Expired', 'Terminated', 'Renewal'], blank: false }, { k: 'notes', label: 'Terms / notes', type: 'textarea', full: true }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
   UI.on('contracts.renew', (el) => { const r = D().contracts.find((x) => x.id === el.dataset.id); r.status = 'Renewal'; r.end = L.addYears(r.end || today(), 1); L.log('Contract', `Contract ${r.id} sent for renewal`, r.id); S.emit(); UI.toast('Sent for renewal (+1 year proposed)'); });
@@ -828,6 +828,49 @@
   UI.on('surveys.new', () => { UI.form({ title: 'New survey', icon: 'trend', fields: [{ k: 'title', label: 'Title', req: true, full: true }, { k: 'q', label: 'Question (1-5 scale)', full: true, req: true }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: { active: 'Yes' }, onSubmit: (v) => { v.id = nid('svy', 'SV-', 2); D().surveys.unshift(v); S.emit(); } }); });
   UI.on('surveys.edit', (el) => { const r = D().surveys.find((x) => x.id === el.dataset.id); if (!r) return; UI.form({ title: 'Edit ' + r.id, icon: 'trend', fields: [{ k: 'title', label: 'Title', req: true, full: true }, { k: 'q', label: 'Question (1-5 scale)', full: true }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
   UI.on('products.edit', (el) => { const r = D().products.find((x) => x.id === el.dataset.id); if (!r) return; UI.form({ title: 'Edit ' + r.id, icon: 'box', fields: [{ k: 'brand', label: 'Brand', req: true }, { k: 'model', label: 'Model', req: true }, { k: 'price', label: 'Std price', type: 'number' }, { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
+
+  /* ================= ITEM MASTER ================= */
+  const ITEM_CATS = ['Hardware', 'Software', 'Network', 'Consumable', 'Office', 'Other'];
+  const ITEM_TYPES = ['Laptop', 'Desktop', 'Monitor', 'Printer', 'Phone', 'Server', 'Storage', 'Peripheral', 'UPS', 'Switch', 'Router', 'Firewall', 'Access Point', 'License', 'Subscription', 'Toner', 'Cartridge', 'Cable', 'Battery', 'Paper', 'Furniture', 'Appliance', 'Other'];
+  const glOpts = () => D().fin.coa.map((g) => ({ v: g.code, l: g.code + ' · ' + g.name }));
+  const itemFields = () => [
+    { section: 'Item identity' },
+    { k: 'name', label: 'Item name', req: true, full: true },
+    { k: 'category', label: 'Category', type: 'select', options: ITEM_CATS, req: true, blank: false },
+    { k: 'type', label: 'Type / subtype', type: 'select', options: ITEM_TYPES, blank: false },
+    { k: 'brand', label: 'Brand' }, { k: 'model', label: 'Model' },
+    { k: 'uom', label: 'Unit of measure', type: 'select', options: ['Nos', 'Set', 'Box', 'Pack', 'Ream', 'Meter', 'User', 'Licence'], blank: false },
+    { section: 'Commercials' },
+    { k: 'price', label: 'Standard price', type: 'number', step: '0.01' },
+    { k: 'gl', label: 'GL account', type: 'select', options: glOpts, blank: false },
+    { k: 'vendor', label: 'Preferred vendor', type: 'select', options: () => db().vendors.map((v) => v.name) },
+    { k: 'desc', label: 'Description', type: 'textarea', full: true },
+    { k: 'active', label: 'Active', type: 'select', options: ['Yes', 'No'], blank: false },
+  ];
+  UI.on('itemmaster.new', () => { if (deny('create')) return; UI.form({ title: 'New item', icon: 'box', size: 'lg', fields: itemFields(), values: { category: 'Hardware', uom: 'Nos', active: 'Yes', price: 0 }, onSubmit: (v) => { v.id = nid('it', 'ITM-', 3); v.price = +v.price || 0; D().items.unshift(v); L.log('Item', `Item ${v.id} ${v.name} created`, v.id); S.emit(); UI.toast('Item created: ' + v.id); } }); });
+  UI.on('itemmaster.edit', (el) => { const r = D().items.find((x) => x.id === el.dataset.id); if (!r) return; UI.form({ title: 'Edit ' + r.id, icon: 'box', size: 'lg', fields: itemFields(), values: r, onSubmit: (v) => { Object.assign(r, v); r.price = +r.price || 0; S.emit(); } }); });
+  UI.on('itemmaster.del', async (el) => { if (D().pos.some((p) => p.lines.some((l) => l.itemId === el.dataset.id))) return UI.toast('Item used in purchase orders — cannot delete', 'err'); if (await UI.confirm('Delete item ' + el.dataset.id + '?', 'Delete', true)) { D().items = D().items.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  pages.itemmaster = {
+    title: 'Item Master', crumb: 'Every asset & consumable item with its GL account — the source for all procurement', icon: 'box', color: '#3b82f6', group: 'Assets',
+    render() {
+      const d = D();
+      return `<div class="card">${UI.table({
+        id: 'itm', rows: () => d.items, sort: 'id', text: (r) => [r.id, r.name, r.category, r.vendor].join(' '),
+        filters: [{ k: 'category', label: 'Category', options: ITEM_CATS }, { k: 'active', label: 'Active', options: ['Yes', 'No'] }, { k: 'vendor', label: 'Vendor', options: () => db().vendors.map((v) => v.name) }],
+        cols: [
+          { k: 'id', label: 'Code', mono: true }, { k: 'name', label: 'Item', render: (r) => `<b>${esc(r.name)}</b>` },
+          { k: 'category', label: 'Category', render: (r) => P(r.category) }, { k: 'type', label: 'Type' },
+          { k: 'brand', label: 'Brand' }, { k: 'model', label: 'Model' }, { k: 'uom', label: 'UoM' },
+          { k: 'price', label: 'Std price', num: true, render: (r) => fmtNum(r.price, 2) },
+          { k: 'gl', label: 'GL account', mono: true, render: (r) => r.gl ? `<span class="link" data-go="#/finance">${r.gl} · ${esc(glName(r.gl))}</span>` : '—' },
+          { k: 'vendor', label: 'Vendor', render: (r) => esc(r.vendor || '—') }, { k: 'active', label: 'Active', render: (r) => P(r.active === 'Yes' ? 'Published' : 'Draft') },
+        ],
+        actions: (r) => ea('itemmaster', r.id),
+        toolbar: tbNew('itemmaster.new', 'New item'),
+        empty: 'No items yet — add every asset and consumable here so procurement, GRN and finance all reference the same item with its GL account.',
+      })}</div>`;
+    },
+  };
   UI.on('instances.edit', (el) => { const r = D().instances.find((x) => x.id === el.dataset.id); if (!r) return; UI.form({ title: 'Edit ' + r.id, icon: 'spark', fields: [{ k: 'name', label: 'Desk name', req: true }, { k: 'dept', label: 'Department' }, { k: 'status', label: 'Status', type: 'select', options: ['Draft', 'Live'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); r.portal = r.status === 'Live' ? 'Yes' : 'No'; S.emit(); } }); });
   pages.surveys = {
     title: 'Surveys', crumb: 'General + request-linked surveys with reports', icon: 'trend', color: '#00a8e8',
@@ -1352,6 +1395,12 @@
     if (val <= 0) return;
     postJV({ no: 'IS', date: r.date, type: 'Stock Issue', ref: r.id, desc: `Consumable issue ${r.id}`, lines: [{ gl: '5220', dr: val, cr: 0, cx: 'OPEX', ref: '' }, { gl: '1410', dr: 0, cr: val, cx: '', ref: '' }] });
   }
+  function postContract(c, kind) {
+    const amt = r2(+c.cost || +c.value || 0); if (amt <= 0) return;
+    const gl = c.gl || (kind === 'AMC' ? '5230' : '5240');
+    const invNo = c.invNo || '';
+    postJV({ no: kind === 'AMC' ? 'AMC' : 'CON', date: c.invDate || c.start || today(), type: kind === 'AMC' ? 'AMC' : 'Contract', ref: c.id, desc: `${kind} ${c.id} — ${c.title} (${(db().vendors.find((v) => v.id === c.vendorId) || {}).name || c.vendor || ''})${invNo ? ' · Invoice ' + invNo : ''}`, lines: [{ gl, dr: amt, cr: 0, cx: 'OPEX', ref: invNo || c.id }, { gl: '2110', dr: 0, cr: amt, cx: '', ref: 'AP ' + ((db().vendors.find((v) => v.id === c.vendorId) || {}).name || c.vendor || '') }] });
+  }
   let lastFin = 0;
   S.subscribe(() => {
     const t = Date.now(); if (t - lastFin < 20000) return; lastFin = t;
@@ -1409,7 +1458,7 @@
     S.emit();
     return inv;
   }
-  ITMS.ap = Object.assign(ITMS.ap || {}, { makeInvoice });
+  ITMS.ap = Object.assign(ITMS.ap || {}, { makeInvoice, postContract });
   function pickInvoice(kind) {
     const f = D().fin; f.invoices = f.invoices || [];
     const rows = [];
