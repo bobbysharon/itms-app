@@ -383,6 +383,36 @@
     UI.toast('Test data ready — every module, status and type covered');
   }
 
+  /* ---------- renumber PR/PO/GRN docs into the current period, cascading refs ---------- */
+  function renumberDocs() {
+    const d = db();
+    const mm = String(new Date().getMonth() + 1).padStart(2, '0'), yy = new Date().getFullYear();
+    const prMap = {}, poMap = {}, grnMap = {};
+    d.prs.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).forEach((p, i) => { const nn = `PR-${mm}-${yy}-` + String(i + 1).padStart(4, '0'); if (nn !== p.prNo) { prMap[p.prNo] = nn; p.prNo = nn; } });
+    const rePr = (ref) => { if (!ref || !prMap[String(ref).replace(/-\d+$/, '')]) return ref; return prMap[String(ref).replace(/-\d+$/, '')] + '-' + String(ref).match(/-(\d+)$/)[1]; };
+    d.pos.forEach((p) => (p.lines || []).forEach((l) => { if (l.prRef) l.prRef = rePr(l.prRef); }));
+    (d.hw || []).forEach((a) => { if (a.prRef) a.prRef = rePr(a.prRef); });
+    d.pos.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).forEach((p, i) => { const nn = `PO-${mm}-${yy}-` + String(i + 1).padStart(4, '0'); if (nn !== p.poNo) { poMap[p.poNo] = nn; p.poNo = nn; } });
+    d.hw.forEach((a) => { if (a.poNo && poMap[a.poNo]) a.poNo = poMap[a.poNo]; });
+    d.sw.forEach((s) => { if (s.poNo && poMap[s.poNo]) s.poNo = poMap[s.poNo]; });
+    (d.consPurch || []).forEach((r) => { if (r.poNo && poMap[r.poNo]) r.poNo = poMap[r.poNo]; });
+    (d.grns || []).forEach((g) => { if (g.poNo && poMap[g.poNo]) g.poNo = poMap[g.poNo]; });
+    D().fin.payments.forEach((r) => { if (r.poNo && poMap[r.poNo]) r.poNo = poMap[r.poNo]; });
+    (d.grns || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).forEach((g, i) => { const nn = `GRN-${yy}-` + String(i + 1).padStart(4, '0'); if (nn !== g.grnNo) { grnMap[g.grnNo] = nn; g.grnNo = nn; } });
+    d.hw.forEach((a) => { if (a.grn && grnMap[a.grn]) a.grn = grnMap[a.grn]; });
+    const seen = D().fin.seen;
+    Object.keys(grnMap).forEach((k) => { if (seen.grn[k]) { seen.grn[grnMap[k]] = 1; delete seen.grn[k]; } });
+    D().fin.jv.forEach((e) => {
+      if (e.ref && poMap[e.ref]) e.ref = poMap[e.ref];
+      if (e.ref && grnMap[e.ref]) e.ref = grnMap[e.ref];
+      if (e.desc) { Object.keys(poMap).forEach((k) => { e.desc = e.desc.split(k).join(poMap[k]); }); Object.keys(grnMap).forEach((k) => { e.desc = e.desc.split(k).join(grnMap[k]); }); }
+    });
+    d.seq.pr = d.prs.length; d.seq.po = d.pos.length;
+    let mx = 0; (d.grns || []).forEach((g) => { const m = String(g.grnNo).match(/(\d+)$/); if (m) mx = Math.max(mx, +m[1]); });
+    d.seq.grn = mx;
+    return { pr: Object.keys(prMap).length, po: Object.keys(poMap).length, grn: Object.keys(grnMap).length };
+  }
+
   /* ---------- roll every transaction date forward so latest = today ---------- */
   const isD = (s) => /^\d{4}-\d{2}-\d{2}/.test(String(s || ''));
   function shiftD(s, off) { if (!isD(s)) return s; const d = new Date(String(s).slice(0, 10) + 'T00:00:00'); d.setDate(d.getDate() + off); return d.toISOString().slice(0, 10); }
@@ -467,9 +497,10 @@
     return off;
   }
   UI.on('data.roll', async () => {
-    if (await UI.confirm('Shift <b>every transaction date</b> forward so the latest lands today? Gaps between records are preserved, so all statuses, ageing and finance tallies stay consistent.', 'Roll dates to current')) {
+    if (await UI.confirm('Shift <b>every transaction date</b> forward so the latest lands today, and renumber PR / PO / GRN documents into the current period (all references follow)? Gaps between records are preserved, so all statuses, ageing and finance tallies stay consistent.', 'Roll dates to current')) {
       const n = rollDates();
-      UI.toast(n ? `All dates moved forward ${n} day(s)` : 'Dates are already current');
+      const rn = renumberDocs(); S.emit();
+      UI.toast(`Rolled ${n} day(s) · renumbered PR ${rn.pr}, PO ${rn.po}, GRN ${rn.grn}`);
     }
   });
 

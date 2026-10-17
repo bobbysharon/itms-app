@@ -1263,10 +1263,13 @@
     title: 'Finance', crumb: 'Expenses · vendor payments · budget link', icon: 'dollar', color: '#3b82f6',
     render() {
       const d = D(); const tab = UI.curTab('finance', 'exp');
-      const tabs = UI.tabs('finance', [{ id: 'exp', label: 'Expenses', count: d.fin.expenses.filter((e) => e.status === 'Submitted').length }, { id: 'pay', label: 'Vendor payments', count: d.fin.payments.length }, { id: 'jv', label: 'Journal', count: d.fin.jv.length }, { id: 'ledger', label: 'Ledger' }, { id: 'tb', label: 'Trial balance' }, { id: 'recon', label: 'Reconciliation' }, { id: 'coa', label: 'COA' }, { id: 'links', label: 'Linked areas' }]);
+      const tabs = UI.tabs('finance', [{ id: 'exp', label: 'Expenses', count: d.fin.expenses.filter((e) => e.status === 'Submitted').length }, { id: 'pay', label: 'Vendor payments', count: d.fin.payments.length }, { id: 'bills', label: 'AP Bills', count: d.fin.jv.filter((e) => e.type === 'Purchase Bill' && !e.paid).length }, { id: 'invoices', label: 'Invoices', count: (D().fin.invoices || []).length }, { id: 'grninv', label: 'GRN → invoices' }, { id: 'jv', label: 'Journal', count: d.fin.jv.length }, { id: 'ledger', label: 'Ledger' }, { id: 'tb', label: 'Trial balance' }, { id: 'recon', label: 'Reconciliation' }, { id: 'coa', label: 'COA' }, { id: 'links', label: 'Linked areas' }]);
       let body = '';
       if (tab === 'exp') body = UI.table({ id: 'expt', rows: () => d.fin.expenses.map((e) => Object.assign({ who: L.empName(e.empNo) }, e)), sort: 'date', dir: -1, text: (r) => r.id + r.who + r.desc, filters: [{ k: 'status', label: 'Status', options: ['Submitted', 'Approved', 'Rejected', 'Paid'] }, { k: 'category', label: 'Category', options: budgetCats }], cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'who', label: 'Employee' }, { k: 'date', label: 'Date' }, { k: 'category', label: 'Budget category' }, { k: 'desc', label: 'Description', render: (r) => clip(r.desc) }, { k: 'amount', label: 'Amount', num: true, render: (r) => fmtNum(r.amount, 2) }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Paid' ? 'Published' : r.status === 'Rejected' ? 'Expired' : r.status === 'Approved' ? 'Published' : 'Draft') }], actions: (r) => (r.status === 'Submitted' ? `<button class="btn xs" data-act="exp.ok" data-id="${r.id}">Approve</button> <button class="btn xs ghost" data-act="exp.no" data-id="${r.id}">Reject</button> <button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>` : r.status === 'Approved' ? `<button class="btn xs" data-act="exp.pay" data-id="${r.id}">Pay + post</button> <button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>` : `<button class="btn xs ghost" data-act="exp.del" data-id="${r.id}">Delete</button>`), toolbar: tbNew('exp.new', 'New expense') });
       else if (tab === 'pay') body = UI.table({ id: 'payt', rows: () => d.fin.payments, sort: 'date', dir: -1, text: (r) => r.id + r.poNo + r.vendor, cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'poNo', label: 'PO', mono: true, render: (r) => `<a class="link" data-act="po.view" data-id="${r.poNo}">${r.poNo}</a>` }, { k: 'vendor', label: 'Vendor' }, { k: 'amount', label: 'Amount', num: true, render: (r) => fmtNum(r.amount, 2) }, { k: 'date', label: 'Paid on' }, { k: 'mode', label: 'Mode' }, { k: 'ref', label: 'Reference' }], actions: (r) => `<button class="btn xs ghost" data-act="pay.del" data-id="${r.id}">Delete</button>`, toolbar: tbNew('pay.new', 'Record payment') });
+      else if (tab === 'bills') body = UI.table({ id: 'finbill', rows: () => d.fin.jv.filter((e) => e.type === 'Purchase Bill'), sort: 'date', dir: -1, text: (r) => [r.id, r.ref, r.desc].join(' '), filters: [{ k: 'paid', label: 'Status', options: ['Unpaid', 'Paid'], get: (r) => (r.paid ? 'Paid' : 'Unpaid') }], cols: [{ k: 'date', label: 'Bill date' }, { k: 'id', label: 'Bill No', mono: true }, { k: 'vendor', label: 'Vendor', val: (r) => billVend(r), render: (r) => esc(billVend(r)) }, { k: 'ref', label: 'GRN', mono: true, render: (r) => `<a class="link" data-act="grn.print" data-id="${r.ref}">${r.ref}</a>` }, { k: 'due', label: 'Due', val: (r) => billDue(r), render: (r) => (billDue(r) < L.today() && !r.paid ? P('Overdue', 'coral') : billDue(r)) }, { k: 'total', label: 'Amount', num: true, render: (r) => fmtNum(r.total, 2) }, { k: 'paid', label: 'Status', render: (r) => P(r.paid ? 'Published' : 'Draft') }], actions: (r) => (r.paid ? `<button class="ibtn" data-act="jv.view" data-id="${r.id}">${ic('eye')}</button>` : `<button class="btn xs" data-act="bill.pay" data-id="${r.id}">Pay</button> <button class="ibtn" data-act="jv.view" data-id="${r.id}">${ic('eye')}</button>`), toolbar: '' });
+      else if (tab === 'invoices') body = UI.table({ id: 'fininv', rows: () => (D().fin.invoices || []), sort: 'date', dir: -1, text: (r) => [r.id, r.poNo, r.vendor].join(' '), cols: [{ k: 'id', label: 'Invoice No', mono: true }, { k: 'poNo', label: 'PO No', mono: true, render: (r) => `<a class="link" data-act="po.view" data-id="${r.poNo}">${r.poNo}</a>` }, { k: 'vendor', label: 'Vendor' }, { k: 'date', label: 'Date' }, { k: 'dueDate', label: 'Due Date' }, { k: 'status', label: 'Status', render: (r) => P(r.status) }], actions: (r) => `<button class="ibtn" data-act="inv.view" data-id="${r.id}">${ic('eye')}</button><button class="btn xs" data-act="inv.post" data-id="${r.id}">${ic('receipt')}Post</button>`, toolbar: `<button class="btn" data-act="po.generateInvoice">${ic('receipt')}Generate from PO</button> <button class="btn ghost" data-act="grn.generateInvoice">${ic('receipt')}Generate from GRN</button>` });
+      else if (tab === 'grninv') body = UI.table({ id: 'grninv', rows: () => (db().grns || []).map((g) => { const p = L.po(g.poNo) || {}; const inv = (D().fin.invoices || []).find((i) => i.grnNo === g.grnNo); return { grnNo: g.grnNo, poNo: g.poNo, vendor: p.vendor, date: g.date, amount: inv ? inv.total : 0, invId: inv ? inv.id : '', status: inv ? inv.status : 'Not invoiced' }; }), sort: 'grnNo', dir: -1, text: (r) => [r.grnNo, r.poNo, r.vendor].join(' '), cols: [{ k: 'grnNo', label: 'GRN No', mono: true, render: (r) => `<a class="link" data-act="grn.print" data-id="${r.grnNo}">${r.grnNo}</a>` }, { k: 'poNo', label: 'PO No', mono: true, render: (r) => `<a class="link" data-act="po.view" data-id="${r.poNo}">${r.poNo}</a>` }, { k: 'vendor', label: 'Vendor' }, { k: 'date', label: 'GRN date', render: (r) => fmtDate(r.date) }, { k: 'amount', label: 'Invoice value', num: true, render: (r) => (r.amount ? fmtNum(r.amount, 2) : '') }, { k: 'status', label: 'Invoice status', render: (r) => P(r.status) }], actions: (r) => (r.invId ? `<button class="ibtn" data-act="inv.view" data-id="${r.invId}">${ic('eye')}</button>` : `<button class="btn xs" data-act="grn.generateInvoice" data-id="${r.grnNo}">${ic('receipt')}Generate invoice</button>`), toolbar: `<button class="btn ghost" data-act="grn.generateInvoice">${ic('receipt')}Generate from GRN</button>` });
       else if (tab === 'jv') body = UI.table({ id: 'finjv', rows: () => d.fin.jv, sort: 'at', dir: -1, text: (r) => [r.id, r.type, r.ref, r.desc].join(' '), filters: [{ k: 'type', label: 'Transaction type', options: ['Purchase Bill', 'Payment', 'Expense', 'Depreciation', 'Disposal', 'Stock Issue'] }], cols: [{ k: 'date', label: 'Date' }, { k: 'id', label: 'Voucher No', mono: true }, { k: 'type', label: 'Type' }, { k: 'ref', label: 'Reference', mono: true, render: (r) => (r.ref && r.ref.indexOf('GRN-') === 0 ? `<a class="link" data-act="grn.print" data-id="${r.ref}">${r.ref}</a>` : r.ref && r.ref.indexOf('PO-') === 0 ? `<a class="link" data-act="po.view" data-id="${r.ref}">${r.ref}</a>` : r.ref && r.ref.indexOf('REQ-') === 0 ? `<a class="link" data-act="rq.view" data-id="${r.ref}">${r.ref}</a>` : r.ref && r.ref.indexOf('EXP-') === 0 ? `<a class="link" data-go="#/finance">${r.ref}</a>` : esc(r.ref)) }, { k: 'desc', label: 'Narration', render: (r) => clip(r.desc) }, { k: 'total', label: 'Amount', num: true, render: (r) => fmtNum(r.total, 2) }], actions: (r) => `<button class="ibtn" data-act="jv.view" data-id="${r.id}">${ic('eye')}</button>`, toolbar: `<button class="btn" data-act="fin.dep">${ic('dollar')}Run depreciation</button>` });
       else if (tab === 'ledger') body = UI.table({ id: 'finlg', rows: () => { const out = []; d.fin.jv.forEach((e) => (e.lines || []).forEach((l) => out.push({ eid: e.id, edate: e.date, etype: e.type, eref: e.ref, edesc: e.desc, gl: l.gl, dr: +l.dr || 0, cr: +l.cr || 0, cx: l.cx || '' }))); return out; }, sort: 'edate', dir: -1, text: (r) => [r.eid, r.eref, r.gl, r.edesc].join(' '), filters: [{ k: 'gl', label: 'GL account', options: () => d.fin.coa.map((g) => g.code) }], cols: [{ k: 'edate', label: 'Date' }, { k: 'eid', label: 'Voucher', mono: true }, { k: 'etype', label: 'Type' }, { k: 'gl', label: 'GL', mono: true, render: (r) => `${r.gl} · ${esc(glName(r.gl))}` }, { k: 'dr', label: 'Debit', num: true, render: (r) => (r.dr ? fmtNum(r.dr, 2) : '') }, { k: 'cr', label: 'Credit', num: true, render: (r) => (r.cr ? fmtNum(r.cr, 2) : '') }, { k: 'cx', label: 'CAPEX/OPEX' }], foot: (rows) => `<tr><td colspan="4">Total (filtered)</td><td class="num">${fmtNum(rows.reduce((s, r) => s + r.dr, 0), 2)}</td><td class="num">${fmtNum(rows.reduce((s, r) => s + r.cr, 0), 2)}</td><td class="num">Bal ${fmtNum(rows.reduce((s, r) => s + r.dr - r.cr, 0), 2)}</td></tr>` });
       else if (tab === 'tb') {
@@ -1378,6 +1381,97 @@
     const ov = modal(`<header><span class="gem" style="width:38px;height:38px;border-radius:13px">${ic('receipt')}</span><div><h3>${esc(e.id)} · ${esc(e.type)}</h3><small>${esc(e.ref)} · ${esc(e.date)}</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><p>${esc(e.desc || '')}</p><table class="t"><thead><tr><th>GL</th><th>Account</th><th></th><th class="num">Debit</th><th class="num">Credit</th></tr></thead><tbody>${(e.lines || []).map((l) => `<tr><td class="mono">${esc(l.gl)}</td><td>${esc(glName(l.gl))}</td><td>${esc(l.cx || '')}${l.ref ? ' · ' + esc(l.ref) : ''}</td><td class="num">${l.dr ? fmtNum(l.dr, 2) : ''}</td><td class="num">${l.cr ? fmtNum(l.cr, 2) : ''}</td></tr>`).join('')}</tbody></table></div><footer><button class="btn ghost" data-x>Close</button></footer>`, 'md');
     return ov;
   });
+  function finInvId() { const f = D().fin; f.invSeq = (f.invSeq || 0) + 1; return 'INV-' + String(f.invSeq).padStart(4, '0'); }
+  function makeInvoice(poNo, grnNo) {
+    const po = L.po(poNo); if (!po) throw new Error('Purchase order not found');
+    if (po.approval !== 'Approved') throw new Error('PO must be Approved before invoicing');
+    const f = D().fin; f.invoices = f.invoices || [];
+    const grns = grnNo ? (db().grns || []).filter((g) => g.grnNo === grnNo) : (db().grns || []).filter((g) => g.poNo === poNo);
+    if (!grns.length) throw new Error('No goods receipt (GRN) found — receive the goods first');
+    if (grnNo && f.invoices.some((i) => i.grnNo === grnNo)) throw new Error('Invoice already generated for ' + grnNo);
+    if (!grnNo && f.invoices.some((i) => i.poNo === poNo)) throw new Error('Invoice already generated for ' + poNo);
+    const lines = []; let excl = 0, vat = 0;
+    grns.forEach((g) => (g.lines || []).forEach((gl) => {
+      const pl = (po.lines || []).find((x) => x.line === gl.line); if (!pl || !(+gl.qty > 0)) return;
+      const t = L.lineTotals(po, Object.assign({}, pl, { qty: gl.qty }));
+      excl += t.excl; vat += t.vat;
+      lines.push(Object.assign({}, pl, { qty: gl.qty, recvQty: gl.qty, total: t.total, grnNo: g.grnNo }));
+    }));
+    if (!lines.length) throw new Error('No quantity received yet');
+    const inv = {
+      id: finInvId(), poNo: po.poNo, grnNo: grnNo || (grns[0] || {}).grnNo || '', grns: grns.map((g) => g.grnNo),
+      date: today(), dueDate: L.addDays(today(), 30), vendor: po.vendor, currency: po.currency, vatIncl: po.vatIncl,
+      status: 'Draft', excl: r2(excl), vat: r2(vat), total: r2(excl + vat), lines, createdAt: now(),
+    };
+    f.invoices.unshift(inv);
+    po.invoice = 'Invoiced';
+    L.log('Finance', `Invoice ${inv.id} generated for ${po.poNo}${inv.grnNo ? ' from ' + inv.grnNo : ''}`, inv.id);
+    S.emit();
+    return inv;
+  }
+  ITMS.ap = Object.assign(ITMS.ap || {}, { makeInvoice });
+  function pickInvoice(kind) {
+    const f = D().fin; f.invoices = f.invoices || [];
+    const rows = [];
+    if (kind === 'po') {
+      (db().pos || []).forEach((p) => {
+        const gs = (db().grns || []).filter((g) => g.poNo === p.poNo);
+        if (p.approval === 'Approved' && gs.length && !f.invoices.some((i) => i.poNo === p.poNo)) rows.push({ id: p.poNo, label: p.poNo, sub: `${p.vendor} · ${gs.map((g) => g.grnNo).join(', ')}` });
+      });
+    } else {
+      (db().grns || []).forEach((g) => {
+        const p = L.po(g.poNo); if (!p || p.approval !== 'Approved') return;
+        if (f.invoices.some((i) => i.grnNo === g.grnNo)) return;
+        rows.push({ id: g.grnNo, label: g.grnNo, sub: `${g.poNo} · ${p.vendor} · ${fmtDate(g.date)}` });
+      });
+    }
+    if (!rows.length) return UI.toast('Nothing available to invoice — receive goods against an approved PO first', 'err');
+    const act = kind === 'po' ? 'po.generateInvoice' : 'grn.generateInvoice';
+    const ov = modal(`<header><span class="gem" style="width:38px;height:38px;border-radius:13px">${ic('receipt')}</span><div><h3>Generate invoice from ${kind === 'po' ? 'purchase order' : 'GRN'}</h3><small>Approved, received and not yet invoiced — one invoice per ${kind === 'po' ? 'PO' : 'GRN'}</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body">${UI.table({ id: 'pickinv', rows: () => rows, text: (r) => r.id + r.sub, cols: [{ k: 'label', label: kind === 'po' ? 'PO No' : 'GRN No', mono: true }, { k: 'sub', label: 'Details' }], actions: (r) => `<button class="btn xs" data-act="${act}" data-id="${r.id}">${ic('receipt')}Generate</button>` })}</div><footer><button class="btn ghost" data-x>Close</button></footer>`, 'lg');
+    ov.addEventListener('click', (e) => { const a = e.target.closest('[data-act]'); if (e.target.closest('[data-x]') || a) UI.close(ov); });
+  }
+  UI.on('po.generateInvoice', (el) => {
+    if (!el.dataset.id) return pickInvoice('po');
+    try { const inv = makeInvoice(el.dataset.id); UI.toast('Invoice ' + inv.id + ' generated for ' + el.dataset.id); } catch (e) { UI.toast(e.message, 'err'); }
+  });
+  UI.on('grn.generateInvoice', (el) => {
+    if (!el.dataset.id) return pickInvoice('grn');
+    const g = (db().grns || []).find((x) => x.grnNo === el.dataset.id); if (!g) return UI.toast('GRN not found', 'err');
+    try { const inv = makeInvoice(g.poNo, g.grnNo); UI.toast('Invoice ' + inv.id + ' generated from ' + g.grnNo); } catch (e) { UI.toast(e.message, 'err'); }
+  });
+  UI.on('grn.invoice', (el) => UI.acts['grn.generateInvoice'](el));
+  UI.on('inv.view', (el) => {
+    const inv = (D().fin.invoices || []).find((x) => x.id === el.dataset.id); if (!inv) return;
+    const po = L.po(inv.poNo);
+    const ov = modal(`<header><span class="gem" style="width:38px;height:38px;border-radius:13px">${ic('receipt')}</span><div><h3>${esc(inv.id)}</h3><small>${esc(po ? po.vendor : '—')} · ${esc(inv.grnNo || '—')}</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><div class="grid g2"><dl class="kv"><dt>PO No</dt><dd>${esc(inv.poNo)}</dd><dt>GRN No</dt><dd>${esc(inv.grnNo || '—')}</dd><dt>Invoice Date</dt><dd>${fmtDate(inv.date)}</dd><dt>Due Date</dt><dd>${fmtDate(inv.dueDate)}</dd><dt>Status</dt><dd>${P(inv.status)}</dd><dt>Total</dt><dd>${fmtNum(inv.total, 2)}</dd></dl><div><h3 style="font:650 14px var(--head);margin:0 0 8px">Lines</h3><table class="t"><thead><tr><th>Line</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Total</th></tr></thead><tbody>${(inv.lines || []).map((l) => `<tr><td>${l.line}</td><td>${esc(l.desc)}</td><td class="num">${l.qty || l.invoiceQty || 0}</td><td class="num">${fmtNum(l.price, 2)}</td><td class="num">${fmtNum(l.price * (l.qty || l.invoiceQty || 0), 2)}</td></tr>`).join('')}</tbody></table></div></div></div><footer><button class="btn ghost" data-x>Close</button></footer>`, 'lg');
+    return ov;
+  });
+  UI.on('inv.post', (el) => {
+    const inv = (D().fin.invoices || []).find((x) => x.id === el.dataset.id); if (!inv) return;
+    if (inv.status === 'Posted') return UI.toast('Invoice already posted', 'err');
+    const grn = (db().grns || []).find((g) => g.grnNo === inv.grnNo);
+    if (!grn) return UI.toast('A GRN is required to post — generate this invoice from a GRN', 'err');
+    const po = L.po(inv.poNo); if (!po) return UI.toast('PO not found', 'err');
+    let bill = D().fin.jv.find((e) => e.type === 'Purchase Bill' && e.ref === grn.grnNo);
+    if (!bill) {
+      try { postBill(grn); } catch (e) { return UI.toast(e.message, 'err'); }
+      D().fin.seen.grn[grn.grnNo] = 1;
+      bill = D().fin.jv.find((e) => e.type === 'Purchase Bill' && e.ref === grn.grnNo);
+    }
+    inv.status = 'Posted';
+    if (bill) { inv.billId = bill.id; bill.paid = false; }
+    S.emit(); UI.toast('Invoice ' + inv.id + ' posted' + (bill ? ' — voucher ' + bill.id : ''));
+  });
+  UI.on('bill.pay', (el) => {
+    const e = D().fin.jv.find((x) => x.id === el.dataset.id); if (!e || e.paid || e.type !== 'Purchase Bill') return;
+    const g = db().grns.find((x) => x.grnNo === e.ref); const pono = g ? g.poNo : '';
+    const amt = +e.total || 0;
+    try { postJV({ no: 'PV', date: today(), type: 'Payment', ref: pono || e.ref, desc: `Bill ${e.id} paid (${billVend(e)})`, lines: [{ gl: '2110', dr: amt, cr: 0, cx: '', ref: '' }, { gl: '1110', dr: 0, cr: amt, cx: '', ref: '' }] }); } catch (err) { return UI.toast(err.message, 'err'); }
+    e.paid = true; const p = pono ? L.po(pono) : null; if (p) p.invoice = 'Paid';
+    S.emit(); UI.toast('Bill paid with voucher');
+  });
+  const billVend = (e) => { const g = db().grns.find((x) => x.grnNo === e.ref); if (!g) return ''; const p = L.po(g.poNo); return p ? p.vendor : ''; };
+  const billDue = (e) => L.addDays((e.date || '').slice(0, 10), 30);
   UI.on('coa.new', () => { UI.form({ title: 'New GL account', icon: 'plus', fields: [{ k: 'code', label: 'Code', req: true }, { k: 'name', label: 'Name', req: true, full: true }, { k: 'type', label: 'Type', type: 'select', options: ['Asset', 'Liability', 'Equity', 'Income', 'Expense'], blank: false }], onSubmit: (v) => { if (D().fin.coa.some((g) => g.code === v.code.trim())) throw new Error('Code exists'); D().fin.coa.push({ code: v.code.trim(), name: v.name.trim(), type: v.type }); S.emit(); } }); });
   UI.on('coa.edit', (el) => { const r = D().fin.coa.find((x) => x.code === el.dataset.id); UI.form({ title: 'Edit ' + r.code, icon: 'edit', fields: [{ k: 'name', label: 'Name', req: true, full: true }, { k: 'type', label: 'Type', type: 'select', options: ['Asset', 'Liability', 'Equity', 'Income', 'Expense'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); S.emit(); } }); });
   UI.on('coa.del', async (el) => { if (D().fin.jv.some((e) => (e.lines || []).some((l) => l.gl === el.dataset.id))) return UI.toast('Account has postings — cannot delete', 'err'); if (await UI.confirm('Delete GL ' + el.dataset.id + '?', 'Delete', true)) { D().fin.coa = D().fin.coa.filter((x) => x.code !== el.dataset.id); S.emit(); } });
