@@ -123,7 +123,7 @@
     title: 'Purchase Orders', crumb: 'Approve → receive goods (GRN) → stock updates automatically', icon: 'cart', color: '#3b82f6', group: 'Procurement',
     render() {
       const d = db(); const tab = UI.curTab('orders', 'po'); let body;
-      const invCount = (((d.sdp || {}).fin) || {}).invoices || []).length;
+      const invCount = (((d.sdp || {}).fin || {}).invoices || []).length;
       if (tab === 'po') {
         body = UI.table({
           id: 'po', rows: () => d.pos, sort: 'poNo', dir: -1, text: (r) => [r.poNo, r.vendor, r.lines.map((l) => l.desc + ' ' + l.prRef).join(' ')].join(' '),
