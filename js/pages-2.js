@@ -123,6 +123,7 @@
     title: 'Purchase Orders', crumb: 'Approve → receive goods (GRN) → stock updates automatically', icon: 'cart', color: '#3b82f6', group: 'Procurement',
     render() {
       const d = db(); const tab = UI.curTab('orders', 'po'); let body;
+      const invCount = (((d.sdp || {}).fin) || {}).invoices || []).length;
       if (tab === 'po') {
         body = UI.table({
           id: 'po', rows: () => d.pos, sort: 'poNo', dir: -1, text: (r) => [r.poNo, r.vendor, r.lines.map((l) => l.desc + ' ' + l.prRef).join(' ')].join(' '),
@@ -136,14 +137,30 @@
           actions: (r) => { const rc = L.poReceipt(r); return `<button class="ibtn" title="View / print" data-act="po.view" data-id="${r.poNo}">${ic('eye')}</button>${r.approval === 'Draft' ? `<button class="ibtn" style="--c:#10d9a0" title="Approve" data-act="po.approve" data-id="${r.poNo}">${ic('check')}</button>` : ''}${r.approval === 'Approved' && rc !== 'Received' ? `<button class="ibtn" style="--c:#00c2ff" title="Receive goods (GRN)" data-act="po.receive" data-id="${r.poNo}">${ic('receipt')}</button>` : ''}<button class="ibtn" title="Edit" data-act="po.edit" data-id="${r.poNo}">${ic('edit')}</button>`; },
           toolbar: `<button class="btn mint" data-act="po.convert">${ic('link')}Convert PR → PO</button>`,
         });
-      } else {
+      } else if (tab === 'grn') {
         body = UI.table({
           id: 'grn', rows: () => d.grns.slice(), sort: 'grnNo', dir: -1, text: (r) => [r.grnNo, r.poNo, r.lines.map((l) => l.desc).join(' ')].join(' '),
           cols: [{ k: 'grnNo', label: 'GRN No', mono: true, render: (r) => `<b>${r.grnNo}</b>` }, { k: 'date', label: 'Date', render: (r) => fmtDate(r.date) }, { k: 'poNo', label: 'PO No', mono: true, render: (r) => `<a class="link" data-act="po.view" data-id="${r.poNo}">${r.poNo}</a>` }, { k: 'vendor', label: 'Vendor', val: (r) => (L.po(r.poNo) || {}).vendor }, { k: 'items', label: 'Items received', val: (r) => r.lines.map((l) => l.desc).join(', '), render: (r) => esc(r.lines.map((l) => `${l.qty} × ${l.desc}`).join('; ')) }, { k: 'qty', label: 'Qty', num: true, val: (r) => r.lines.reduce((s, l) => s + l.qty, 0) }],
           actions: (r) => `<button class="ibtn" title="Print GRN" data-act="grn.print" data-id="${r.grnNo}">${ic('print')}</button> <button class="btn xs" data-act="grn.generateInvoice" data-id="${r.grnNo}">${ic('receipt')}Invoice</button>`, empty: 'Receive goods against an approved PO to create a GRN.',
         });
+      } else if (tab === 'inv') {
+        const invs = (((d.sdp || {}).fin) || {}).invoices || [];
+        body = UI.table({
+          id: 'inv', rows: () => invs.slice(), sort: 'date', dir: -1, text: (r) => [r.id, r.poNo, r.vendor].join(' '),
+          cols: [
+            { k: 'id', label: 'Invoice No', mono: true, render: (r) => `<b>${r.id}</b>` },
+            { k: 'date', label: 'Date', render: (r) => fmtDate(r.date) },
+            { k: 'poNo', label: 'PO No', mono: true, render: (r) => `<a class="link" data-act="po.view" data-id="${r.poNo}">${r.poNo}</a>` },
+            { k: 'grnNo', label: 'GRN No', mono: true, render: (r) => esc(r.grnNo || '—') },
+            { k: 'vendor', label: 'Vendor' },
+            { k: 'total', label: 'Total', num: true, render: (r) => `${r.currency} ${fmtNum(r.total, 2)}` },
+            { k: 'status', label: 'Status', render: (r) => pill(r.status) },
+          ],
+          actions: (r) => `<button class="ibtn" title="View" data-act="inv.view" data-id="${r.id}">${ic('eye')}</button><button class="ibtn" title="Print" data-act="inv.print" data-id="${r.id}">${ic('print')}</button>`,
+          empty: 'No invoices yet — generate one from a PO or GRN.',
+        });
       }
-      return `${UI.tabs('orders', [{ id: 'po', label: 'Purchase Orders', count: d.pos.length }, { id: 'grn', label: 'Goods Receipts (GRN)', count: d.grns.length }])}<div class="card">${body}</div>`;
+      return `${UI.tabs('orders', [{ id: 'po', label: 'Purchase Orders', count: d.pos.length }, { id: 'grn', label: 'Goods Receipts (GRN)', count: d.grns.length }, { id: 'inv', label: 'Invoices', count: invCount }])}<div class="card">${body}</div>`;
     },
   };
   UI.on('po.approve', async (el) => {
