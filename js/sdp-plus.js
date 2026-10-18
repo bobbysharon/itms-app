@@ -343,9 +343,9 @@
     const itemsel = (v) => { try { return (ITMS.itsm && ITMS.itsm.itemsOf) ? ITMS.itsm.itemsOf(v.category, v.sub) : []; } catch (er) { return []; } };
     UI.form({
       title: 'New service request', sub: `${e.name} · ${e.dept || ''}`, icon: 'plus',
-      fields: [{ k: 'subject', label: 'What do you need?', req: true, full: true },
+      fields: [{ k: 'requester', label: 'Requester (locked to you)', type: 'select', options: [{ v: e.no, l: `${e.name} (${e.no})` }], req: true, ro: true, blank: false },
+        { k: 'subject', label: 'What do you need?', req: true, full: true },
         { section: 'Classification' },
-        { k: 'type', label: 'Request type', type: 'select', options: () => H().cfg.reqTypes, blank: false },
         { k: 'category', label: 'Category', type: 'select', options: catsel, req: true },
         { k: 'sub', label: 'Subcategory', type: 'select', options: subsel },
         { k: 'item', label: 'Item', type: 'select', options: itemsel },
