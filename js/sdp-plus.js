@@ -157,9 +157,14 @@
     return curRole();
   }
   function canPage(id) {
-    if (id === 'dashboard') return true;
+    if (id === 'dashboard' || id === 'portal') return true; // ESS portal available to all employees by default
     if (effRole() === 'Administrator') return true;
     const r = D().roles.find((x) => x.name === effRole());
+    // per-employee module assignment (extends role-based access)
+    try {
+      const uno = curUser();
+      if (uno) { const e = L.emp(uno); const mods = (e && Array.isArray(e.modules)) ? e.modules : ['portal']; if (mods.indexOf(id) >= 0) return true; }
+    } catch (e) { /* ignore */ }
     if (!r || r.active !== 'Yes' || !r.access) return true;
     return r.access.indexOf(id) >= 0;
   }
@@ -339,6 +344,27 @@
       onSubmit: (v) => { const r = mkTicket({ requester: e.no, subject: v.subject, category: v.category, desc: v.desc, type: 'Service Request', mode: 'Self-Service Portal', source: 'Self-Service Portal' }); runRules('create'); UI.toast(`${r.id} submitted — track it under My requests`); },
     });
   });
+  UI.on('portal.leave', () => {
+    const e = portalEmp();
+    if (!e) { UI.toast('Select an employee first', 'err'); return; }
+    UI.form({ title: 'Apply for leave', sub: `${e.name} A� ${e.dept || ''}`, icon: 'cal', fields: [{ k: 'type', label: 'Leave type', type: 'select', options: () => D().hr.leaveTypes.map((x) => x.type), blank: false }, { k: 'from', label: 'From', type: 'date', req: true }, { k: 'to', label: 'To', type: 'date', req: true }, { k: 'reason', label: 'Reason', type: 'textarea', full: true }], values: { type: (D().hr.leaveTypes[0] || {}).type || 'Annual', from: today(), to: today() }, onSubmit: (v) => {
+      if (v.to < v.from) throw new Error('To date is before From date');
+      const days = leaveDays(v.from, v.to); const b = hrBal(e.no, v.type);
+      if (b.allow > 0 && days > b.left) throw new Error(`Only ${b.left} ${v.type} day(s) left this year`);
+      D().hr.leaves.unshift({ id: nid('lv', 'LV-', 3), empNo: e.no, type: v.type, from: v.from, to: v.to, days, reason: v.reason || '', status: 'Pending', at: now(), source: 'Self-Service Portal' });
+      S.emit(); UI.toast('Leave submitted for HR approval');
+    } });
+  });
+  UI.on('portal.hrreq', () => {
+    const e = portalEmp();
+    if (!e) { UI.toast('Select an employee first', 'err'); return; }
+    UI.form({ title: 'HR request', sub: `${e.name} A� ${e.dept || ''}`, icon: 'users', fields: [{ k: 'kind', label: 'Request type', type: 'select', options: ['Onboarding support', 'Offboarding / exit', 'Document / letter', 'Payroll query', 'Benefits / insurance', 'Other HR request'], blank: false }, { k: 'subject', label: 'Subject', req: true, full: true }, { k: 'details', label: 'Details', type: 'textarea', full: true, req: true }], onSubmit: (v) => {
+      D().hr.onb = D().hr.onb || [];
+      D().hr.onb.unshift({ id: nid('hrq', 'HRQ-', 3), kind: v.kind, empNo: e.no, who: e.name, subject: v.subject, details: v.details, status: 'Pending IT', at: now(), source: 'Self-Service Portal' });
+      S.emit(); UI.toast('HR request submitted for review');
+    } });
+  });
+
   UI.on('portal.cat', (el) => {
     const e = portalEmp(); const c = H().catalog.find((x) => x.id === el.dataset.id); if (!c) return;
     const r = mkTicket({ requester: e.no, subject: c.title, desc: c.desc, category: c.category, type: 'Service Request', mode: 'Self-Service Portal', source: 'Service Catalog', desk: c.desk || 'IT' });
@@ -371,6 +397,7 @@
     render() {
       const d = D(), h = H(); const e = portalEmp();
       const my = h ? h.requests.filter((r) => r.requester === e.no).slice(0, 8) : [];
+      const myLeave = (d.hr && d.hr.leaves ? d.hr.leaves.filter((l) => l.empNo === e.no) : []);
       const kb = h ? h.solutions.filter((s) => s.status === 'Published').slice(0, 6) : [];
       const news = h ? h.news.filter((n) => n.active === 'Yes').slice(0, 3) : [];
       const site = curSite();
@@ -381,6 +408,8 @@
         <div class="card"><h3>Solve it yourself</h3><p style="color:var(--muted)">${kb.length} published solutions · searchable in Solutions & Catalog.</p><button class="btn ghost" data-go="#/kb">Open knowledge base</button></div>
         <div class="card"><h3>My open tickets</h3><b style="font-size:26px">${my.filter((r) => ['Open', 'Assigned', 'In Progress', 'On Hold'].includes(r.status)).length}</b><small style="color:var(--muted)"> shown below</small></div>
       </div>
+      <div class="grid g2 mt"><div class="card"><h3>HR self-service</h3><p style="color:var(--muted)">Apply for leave and HR requests; routed to HR for review and approval.</p><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-act="portal.leave">${ic('cal')}Apply leave</button><button class="btn ghost" data-act="portal.hrreq">${ic('users')}HR request</button><button class="btn ghost" data-go="#/hr">${ic('users')}My HR record</button></div></div>
+        <div class="card"><h3>My leave</h3><b style="font-size:26px">${myLeave.filter((l) => l.status === 'Pending').length}</b><small style="color:var(--muted)"> pending, ${myLeave.filter((l) => l.status === 'Approved').length} approved, ${myLeave.filter((l) => l.status === 'Rejected').length} rejected</small></div></div>
       ${news.map((n) => `<div class="note-box" style="margin-top:10px"><b>${esc(n.title)}</b> — ${esc(n.desc)}</div>`).join('')}
       <div class="grid g2 mt"><div class="card"><h3>Service catalog — one click</h3><div class="grid g2">${(h ? h.catalog.filter((c) => c.active !== 'No').slice(0, 8) : []).map((c) => `<div class="card"><b>${esc(c.title)}</b> ${c.desk && c.desk !== 'IT' ? `<span class="pill p-blue">${esc(c.desk)}</span>` : ''}<br><small style="color:var(--muted)">${esc(c.desc || '').slice(0, 80)}</small><div style="margin-top:8px"><button class="btn sm" data-act="portal.cat" data-id="${c.id}">Request</button></div></div>`).join('') || '<div class="empty">No catalog items — add them in Solutions & Catalog</div>'}</div></div>
       <div class="card"><h3>My requests</h3><table class="t"><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th></th></tr></thead><tbody>${my.map((r) => `<tr><td class="mono">${r.id}</td><td>${esc(r.subject)}</td><td>${P(r.status)}</td><td>${r.status === 'Resolved' ? `<button class="btn xs" data-act="portal.rate" data-id="${r.id}">Rate</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty">No requests yet</div></td></tr>'}</tbody></table></div></div>`;

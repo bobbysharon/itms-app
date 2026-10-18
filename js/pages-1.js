@@ -157,6 +157,7 @@
   const empFields = () => [
     { section: 'Employee' }, { k: 'name', label: 'Employee name', req: true }, { k: 'designation', label: 'Designation', type: 'select', options: () => db().lists.designations || [] }, { k: 'dept', label: 'Department', type: 'select', options: () => db().lists.departments || [], req: true },
     { k: 'manager', label: 'Reporting manager', type: 'select', options: () => db().employees.map((e) => e.name) }, { k: 'location', label: 'Location', type: 'select', options: () => db().lists.locations || [] }, { k: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive', 'Left'], blank: false }, { k: 'role', label: 'Access role', type: 'select', options: () => { try { return ITMS.sdp.D().roles.map((r) => r.name); } catch (e) { return ['Administrator', 'Group Lead', 'Technician', 'Requester', 'Auditor', 'Vendor / External']; } } },
+    { k: 'modules', label: 'Assigned modules (ESS)', type: 'multi', options: () => (typeof ITMS !== 'undefined' && ITMS.pages ? Object.keys(ITMS.pages).sort().map((p) => ({ v: p, l: p })) : []), blank: true },
     { section: 'Dates & contact' }, { k: 'doj', label: 'Date of joining', type: 'date' }, { k: 'dol', label: 'Date of leaving', type: 'date' }, { k: 'email', label: 'Email', type: 'email' }, { k: 'mobile', label: 'Mobile', type: 'tel' }, { k: 'tel', label: 'Telephone', type: 'tel' }, { k: 'ext', label: 'Extension' },
   ];
   const heldBy = (no) => db().hw.filter((a) => a.holder === no);
