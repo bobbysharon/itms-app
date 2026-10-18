@@ -31,7 +31,54 @@ Biometric & Access Control: Attendance Device, Door Access, User Enrolment, CCTV
 Printing & Scanning: Printer, Scanner, Toner / Consumable, Network Printing
 Cloud & Infrastructure: Microsoft 365 / Entra, Azure, Backup, Virtualization, Database
 Service Request: New Hardware, New Software, Move / Add / Change, Onboarding, Offboarding, Information
-Other: General Query, Feedback`;
+Other: General Query, Feedback
+Hardware > Monitor & Display: No display, Flickering, Resolution, Cable / Adapter
+Hardware > Server: Not booting, Performance, Storage, RAID, Hardware failure
+Hardware > Storage & Backup Device: Backup failed, Restore, Capacity, Tape / Media
+Hardware > Peripheral: Mouse, Keyboard, Webcam, Docking station, Headset
+Hardware > Mobile & Tablet: Not booting, App issue, Network, MDM enrolment
+Software > Business Application: Login, Error, Performance, Report, Data issue
+Software > Antivirus & Endpoint: Scan, Update, Quarantine, Policy
+Software > Installation: New install, Upgrade, Uninstall, Patch
+Software > Licence & Activation: Activation, Renewal, Transfer, Expiry
+Software > Browser: Performance, Cache, Extension, Compatibility
+Network & Connectivity > Wi-Fi: No signal, Slow, Authentication, Coverage
+Network & Connectivity > VPN: Connection, Authentication, Performance, Timeout
+Network & Connectivity > Internet: Slow, Down, DNS, Proxy
+Network & Connectivity > Firewall: Rule change, Blocked traffic, VPN tunnel
+Network & Connectivity > Switch / Router: Down, Performance, Config, Port
+Email & Collaboration > Mailbox: Full, Sync, Access, Rules
+Email & Collaboration > Calendar: Sync, Sharing, Booking, Time zone
+Email & Collaboration > Teams / Zoom: Meeting, Audio / Video, Recording, Chat
+Accounts & Access > New Account: Create, Modify, Disable, Delete
+Accounts & Access > Permission / Access: Grant, Revoke, Modify, Review
+Accounts & Access > Shared Folder: Access, Mapping, Permission
+Accounts & Access > Offboarding: Disable, Revoke, Handover
+Telephony & Contact Centre > IP Phone: No dial tone, Quality, Registration, Headset
+Telephony & Contact Centre > Call Recording: Playback, Storage, Access
+Security & Compliance > Malware: Detection, Removal, Quarantine
+Security & Compliance > Vulnerability: Scan, Patch, Remediation
+Security & Compliance > Access Review: Quarterly review, Revocation
+ERP & Business Apps > Access / Role: Grant, Revoke, Modify, Review
+ERP & Business Apps > Error: Application error, Integration error, Data error
+ERP & Business Apps > Report: Missing data, Wrong output, Performance
+ERP & Business Apps > Master Data: Create, Update, Delete, Sync
+Biometric & Access Control > Attendance Device: Not working, Sync, Enrolment
+Biometric & Access Control > Door Access: Not working, Card issue, Permission
+Biometric & Access Control > CCTV: No feed, Recording, Access
+Printing & Scanning > Printer: Offline, Paper jam, Quality, Network
+Printing & Scanning > Scanner: Not working, Quality, Driver
+Printing & Scanning > Toner / Consumable: Replace, Low, Order
+Cloud & Infrastructure > Microsoft 365 / Entra: Login, Licence, Sync
+Cloud & Infrastructure > Azure: VM, Storage, Network, Access
+Cloud & Infrastructure > Backup: Failed, Restore, Schedule
+Cloud & Infrastructure > Virtualization: VM down, Performance, Storage
+Cloud & Infrastructure > Database: Performance, Backup, Access, Space
+Service Request: New Hardware, New Software, Move / Add / Change, Onboarding, Offboarding, Information, Access Request
+HR & People: Leave, Onboarding, Offboarding, Payroll, Benefits, Document
+Facilities: Desk, Chair, AC, Lighting, Cleaning, Access card
+Procurement: Purchase request, Vendor, Invoice, Contract
+General: General Query, Feedback, Complaint, Suggestion`;
   const DEF = {
     groups: ['Service Desk (L1)', 'Desktop Support (L2)', 'Network & Infrastructure', 'Applications & ERP', 'Security & Compliance', 'Telephony & Genesys', 'Vendor / External'],
     reqTypes: ['Incident', 'Service Request'], modes: ['Web Form', 'Email', 'Phone', 'Walk-in', 'Chat', 'Self-Service Portal'], levels: ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4'],
@@ -550,5 +597,5 @@ Other: General Query, Feedback`;
   if (od) pages.dashboard.render = function () { const out = od.apply(this, arguments); try { const h = H(), op = h.requests.filter(isOpen); const it = h.items.filter(itOpen); const ov = it.filter((i) => tl(i) === 'Overdue').length; return out + `<div class="card mt"><h3><span class="pip" style="--c:${C.violet}"></span>IT Helpdesk <a class="link" style="margin-left:auto;font-size:12px" data-go="#/itsm">Open helpdesk →</a></h3><div class="grid g3">${kpi(op.length, 'Open requests', C.blue)}${kpi(op.filter((r) => slaState(r) === 'Overdue').length, 'SLA overdue', C.coral)}${kpi(it.length + ' / ' + ov, 'Follow-ups open / overdue', ov ? C.amber : C.mint)}</div></div>`; } catch (e) { return out; } };
   const oh = UI.acts['hw.view']; UI.on('hw.view', function (el, e) { oh(el, e); const b = lastBody(); const id = el.dataset.id; if (b) { const rs = H().requests.filter((r) => r.asset === id); b.insertAdjacentHTML('beforeend', `<div class="mt"><h3 style="font:650 14px var(--head);margin:0 0 8px">Helpdesk requests for this asset <button class="btn xs" data-act="rq.newfor" data-asset="${id}" data-emp="${(L.hw(id) || {}).holder || ''}">${ic('plus')}Raise</button></h3>${rs.length ? `<table class="t"><tbody>${rs.map((r) => `<tr><td><a class="link" data-act="rq.view" data-id="${r.id}">${r.id}</a></td><td>${esc(r.subject)}</td><td>${P(r.status)}</td><td>${fdt(r.created)}</td></tr>`).join('')}</tbody></table>` : '<small style="color:var(--muted)">No requests logged</small>'}</div>`); } });
   const oe = UI.acts['emp.view']; UI.on('emp.view', function (el, e) { oe(el, e); const b = lastBody(); if (!b) return; const no = el.dataset.id; const rs = H().requests.filter((r) => r.requester === no); b.insertAdjacentHTML('beforeend', `<div class="mt"><h3 style="font:650 14px var(--head);margin:0 0 8px">Helpdesk requests (${rs.length}) <button class="btn xs" data-act="rq.newfor" data-emp="${no}">${ic('plus')}New request</button></h3>${rs.length ? `<table class="t"><tbody>${rs.slice(0, 8).map((r) => `<tr><td><a class="link" data-act="rq.view" data-id="${r.id}">${r.id}</a></td><td>${esc(r.subject)}</td><td>${P(r.status)}</td><td>${fdt(r.created)}</td></tr>`).join('')}</tbody></table>` : '<small style="color:var(--muted)">None</small>'}</div>`); });
-  ITMS.itsm = { createReq, slaState, tl, openReq, loadSample, removeSample, assignees };
+  ITMS.itsm = { createReq, slaState, tl, openReq, loadSample, removeSample, assignees, cats, subsOf, itemsOf, tree };
 })();

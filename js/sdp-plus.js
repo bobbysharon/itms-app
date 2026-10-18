@@ -338,10 +338,21 @@
     if (deny('create')) return;
     const e = portalEmp();
     const h = H(); const catsel = cats();
+    const subsel = (v) => { try { return (ITMS.itsm && ITMS.itsm.subsOf) ? ITMS.itsm.subsOf(v.category) : []; } catch (er) { return []; } };
+    const itemsel = (v) => { try { return (ITMS.itsm && ITMS.itsm.itemsOf) ? ITMS.itsm.itemsOf(v.category, v.sub) : []; } catch (er) { return []; } };
     UI.form({
       title: 'New service request', sub: `${e.name} · ${e.dept || ''}`, icon: 'plus',
-      fields: [{ k: 'subject', label: 'What do you need?', req: true, full: true }, { k: 'category', label: 'Category', type: 'select', options: catsel, req: true }, { k: 'desc', label: 'Details', type: 'textarea', full: true }],
-      onSubmit: (v) => { const r = mkTicket({ requester: e.no, subject: v.subject, category: v.category, desc: v.desc, type: 'Service Request', mode: 'Self-Service Portal', source: 'Self-Service Portal' }); runRules('create'); UI.toast(`${r.id} submitted — track it under My requests`); },
+      fields: [{ k: 'subject', label: 'What do you need?', req: true, full: true },
+        { section: 'Classification' },
+        { k: 'type', label: 'Request type', type: 'select', options: () => H().cfg.reqTypes, blank: false },
+        { k: 'category', label: 'Category', type: 'select', options: catsel, req: true },
+        { k: 'sub', label: 'Subcategory', type: 'select', options: subsel },
+        { k: 'item', label: 'Item', type: 'select', options: itemsel },
+        { k: 'impact', label: 'Impact', type: 'select', options: IMP, blank: false },
+        { k: 'urgency', label: 'Urgency', type: 'select', options: URG, blank: false },
+        { k: 'desc', label: 'Details', type: 'textarea', full: true }],
+      deps: { category: 1, sub: 1 },
+      onSubmit: (v) => { const r = mkTicket({ requester: e.no, subject: v.subject, category: v.category, sub: v.sub, item: v.item, desc: v.desc, type: v.type || 'Service Request', impact: v.impact, urgency: v.urgency, mode: 'Self-Service Portal', source: 'Self-Service Portal' }); runRules('create'); UI.toast(`${r.id} submitted — track it under My requests`); },
     });
   });
   UI.on('portal.leave', () => {
