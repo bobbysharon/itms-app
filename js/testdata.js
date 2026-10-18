@@ -1032,6 +1032,15 @@
       added++;
     }
 
+    /* ---------- ITIL PRACTICES: ensure every practice has sample data ---------- */
+    try {
+      if (typeof ITMS !== 'undefined' && ITMS.itil && ITMS.itil.ensureItil) {
+        ITMS.itil.ensureItil();
+        const it = (d.itil = d.itil || ITMS.sdp.D().itil || {});
+        if (!(it.majorIncidents || []).length) { it.seeded = false; ITMS.itil.ensureItil(); }
+      }
+    } catch (e) { /* never break top-up */ }
+
     /* ---------- BUDGET: ensure entries exist ---------- */
     if (!d.budgets.length) {
       const curYear = new Date().getFullYear();
