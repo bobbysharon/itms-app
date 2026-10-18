@@ -15,6 +15,30 @@
     title: 'Dashboard', crumb: 'Live command centre — every figure is computed from your modules', icon: 'grid', color: '#2f6bff', group: 'Overview',
     render() {
       const s = L.stats(); const k = s.kpi; const d = db(); const a = s.alerts;
+      const _it = (ITMS.sdp && ITMS.sdp.D && ITMS.sdp.D().itil) || {};
+      const _hd = d.hd || {};
+      const _openMI = (_it.majorIncidents || []).filter((r) => r.status !== 'Closed').length;
+      const _openCHG = (_hd.changes || []).filter((r) => !/closed|rejected/i.test(r.status || '')).length;
+      const _openPRB = (_hd.problems || []).filter((r) => !/closed|resolved/i.test(r.status || '')).length;
+      const _openINC = (_hd.requests || []).filter((r) => r.type === 'Incident' && !/closed|resolved|cancelled/i.test(r.status || '')).length;
+      const _depFlight = (_it.deployments || []).filter((r) => ['Plan', 'Test', 'Deploy', 'Verify'].includes(r.status)).length;
+      const _slaRisk = (_it.slm || []).filter((r) => r.status === 'At risk' || r.status === 'Breached').length;
+      const _secOpen = (_it.securityRisks || []).filter((r) => r.status !== 'Closed').length;
+      const _impOpen = (_it.improvements || []).filter((r) => !/closed|measured/i.test(r.status || '')).length;
+      const _openReq = (_hd.requests || []).filter((r) => !/closed|resolved|cancelled/i.test(r.status || '')).length;
+      const _srCount = (_hd.requests || []).filter((r) => r.type === 'Service Request').length;
+      const _incCount = (_hd.requests || []).filter((r) => r.type === 'Incident').length;
+      const _probCount = (_hd.problems || []).length;
+      const _chgCount = (_hd.changes || []).length;
+      const _relCount = (_hd.releases || []).length;
+      const _kbCount = (_hd.solutions || []).length;
+      const _catCount = (_hd.catalog || []).length;
+      const _slaActive = (_it.slm || []).filter((r) => r.status === 'Active').length;
+      const _slaBreached = (_it.slm || []).filter((r) => r.status === 'Breached').length;
+      const _avgAvail = (_it.availability || []).length ? ((_it.availability.reduce((a, r) => a + (+r.achievedPct || 0), 0) / _it.availability.length)).toFixed(2) : '0';
+      const _contCount = (_it.continuity || []).length;
+      const _supCount = (_it.supplierEvals || []).length;
+      const _impCount = (_it.improvements || []).length;
       const kp = (icon, val, label, sub, c, g, href, dec) => `<div class="card kpi tilt glow" style="--c:${c};--g:${g}" ${go(href)}><div class="gem">${ic(icon)}</div><div><div class="v" data-count="${val}" ${dec ? 'data-dec="2"' : ''}>${val}</div><div class="l">${label}</div><div class="s">${sub}</div></div></div>`;
       const lowN = a.lowStock.length;
       const alertRow = (n, title, sub, c, href) => `<div class="alert-row" style="--c:${c}" ${go(href)}><b>${n}</b><span>${title}<small>${sub}</small></span></div>`;
@@ -58,6 +82,54 @@
         <div class="card glow" style="--c:#00c2ff"><h3><span class="pip"></span>Procurement pipeline</h3>
           <div class="flow" style="flex-wrap:wrap">${[['Open PR', pl.prOpen, '#2f6bff', '#/requests'], ['Draft PO', pl.poDraft, '#3b82f6', '#/orders'], ['Awaiting goods', pl.poApproved, '#ffb020', '#/orders'], ['Received', pl.poReceived, '#10d9a0', '#/orders'], ['Paid', pl.paid, '#00a8e8', '#/orders']].map((x) => `<div class="st" style="--c:${x[2]}" ${go(x[3])}><b>${x[1]}</b><span>${x[0]}</span></div>`).join('')}</div>
           <h3 style="margin-top:12px"><span class="pip" style="--c:#1d4ed8"></span>PO value by month<span class="tag">${d.company.currency}</span></h3>${UI.area(s.months, { div: 1000, suffix: 'k' })}</div>
+      </div>
+      <div class="grid g3 mt">
+        <div class="card glow" style="--c:#2f6bff"><h3><span class="pip"></span>ITIL practices �?" open work<span class="tag">live</span></h3>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            ${kp('alert', _openMI, 'Major incidents (open)', 'in progress', '#ff5c6c', 'linear-gradient(135deg,#ff5c6c,#ffb020)', '#/majorinc')}
+            ${kp('refresh', _openCHG, 'Changes (open)', 'in flight', '#2f6bff', 'linear-gradient(135deg,#2f6bff,#7aa5ff)', '#/changes')}
+            ${kp('wrench', _openPRB, 'Problems (open)', 'under investigation', '#ffb020', 'linear-gradient(135deg,#ffb020,#00a8e8)', '#/problems')}
+            ${kp('bell', _openINC, 'Incidents (open)', 'unresolved', '#ff5c6c', 'linear-gradient(135deg,#ff5c6c,#ff8a9b)', '#/incidents')}
+            ${kp('upload', _depFlight, 'Deployments in flight', 'plan/test/deploy/verify', '#3b82f6', 'linear-gradient(135deg,#3b82f6,#1d4ed8)', '#/deployment')}
+            ${kp('trend', _slaRisk, 'SLAs at risk / breached', 'needs attention', '#ffb020', 'linear-gradient(135deg,#ffb020,#ff5c6c)', '#/slm')}
+            ${kp('shield', _secOpen, 'Security risks (open)', 'treatment pending', '#6b5cff', 'linear-gradient(135deg,#6b5cff,#2f6bff)', '#/security')}
+            ${kp('spark', _impOpen, 'Improvements (open)', 'in progress', '#10d9a0', 'linear-gradient(135deg,#10d9a0,#00c2ff)', '#/improvement')}
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+            <button class="btn xs ghost" data-go="#/majorinc">${ic('alert')}Major incidents</button>
+            <button class="btn xs ghost" data-go="#/deployment">${ic('upload')}Deployment</button>
+            <button class="btn xs ghost" data-go="#/monitoring">${ic('cpu')}Monitoring</button>
+            <button class="btn xs ghost" data-go="#/slm">${ic('trend')}SLM</button>
+            <button class="btn xs ghost" data-go="#/availability">${ic('heart')}Availability</button>
+            <button class="btn xs ghost" data-go="#/continuity">${ic('shield')}Continuity</button>
+            <button class="btn xs ghost" data-go="#/security">${ic('lock')}Security</button>
+            <button class="btn xs ghost" data-go="#/supplier">${ic('truck')}Supplier</button>
+            <button class="btn xs ghost" data-go="#/improvement">${ic('spark')}Improvement</button>
+            <button class="btn xs ghost" data-go="#/cmdb">${ic('layers')}CMDB</button>
+            <button class="btn xs ghost" data-go="#/assetmgmt">${ic('laptop')}IT assets</button>
+          </div></div>
+        <div class="card glow" style="--c:#00a8e8"><h3><span class="pip"></span>Service desk snapshot<span class="tag">live</span></h3>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            ${kp('bell', _openReq, 'Open requests', 'awaiting action', '#2f6bff', 'linear-gradient(135deg,#2f6bff,#7aa5ff)', '#/tickets')}
+            ${kp('cart', _srCount, 'Service requests', 'total', '#00a8e8', 'linear-gradient(135deg,#00a8e8,#2f6bff)', '#/sr')}
+            ${kp('alert', _incCount, 'Incidents', 'total', '#ff5c6c', 'linear-gradient(135deg,#ff5c6c,#ff8a9b)', '#/incidents')}
+            ${kp('wrench', _probCount, 'Problems', 'total', '#ffb020', 'linear-gradient(135deg,#ffb020,#00a8e8)', '#/problems')}
+            ${kp('refresh', _chgCount, 'Changes', 'total', '#2f6bff', 'linear-gradient(135deg,#2f6bff,#7aa5ff)', '#/changes')}
+            ${kp('upload', _relCount, 'Releases', 'total', '#3b82f6', 'linear-gradient(135deg,#3b82f6,#1d4ed8)', '#/releases')}
+            ${kp('receipt', _kbCount, 'Knowledge articles', 'published', '#00a8e8', 'linear-gradient(135deg,#00a8e8,#2f6bff)', '#/knowledge')}
+            ${kp('grid', _catCount, 'Catalogue items', 'published', '#00c2ff', 'linear-gradient(135deg,#00c2ff,#2f6bff)', '#/catalog')}
+          </div></div>
+        <div class="card glow" style="--c:#6b5cff"><h3><span class="pip"></span>Service levels &amp; continuity<span class="tag">live</span></h3>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            ${kp('trend', _slaActive, 'SLAs active', 'on track', '#10d9a0', 'linear-gradient(135deg,#10d9a0,#00c2ff)', '#/slm')}
+            ${kp('alert', _slaBreached, 'SLAs breached', 'needs attention', '#ff5c6c', 'linear-gradient(135deg,#ff5c6c,#ffb020)', '#/slm')}
+            ${kp('heart', _avgAvail + '%', 'Avg availability', 'achieved', '#2f6bff', 'linear-gradient(135deg,#2f6bff,#7aa5ff)', '#/availability')}
+            ${kp('shield', _contCount, 'Continuity plans', 'registered', '#6b5cff', 'linear-gradient(135deg,#6b5cff,#2f6bff)', '#/continuity')}
+            ${kp('lock', _secOpen, 'Security risks (open)', 'treatment pending', '#ff5c6c', 'linear-gradient(135deg,#ff5c6c,#ffb020)', '#/security')}
+            ${kp('truck', _supCount, 'Supplier evals', 'recorded', '#00a8e8', 'linear-gradient(135deg,#00a8e8,#2f6bff)', '#/supplier')}
+            ${kp('spark', _impCount, 'Improvements', 'registered', '#10d9a0', 'linear-gradient(135deg,#10d9a0,#00c2ff)', '#/improvement')}
+            ${kp('alert', _openMI, 'Major incidents (open)', 'in progress', '#ff5c6c', 'linear-gradient(135deg,#ff5c6c,#ffb020)', '#/majorinc')}
+          </div></div>
       </div>
       <div class="grid g-main2 mt">
         <div class="card"><h3><span class="pip" style="--c:#2f6bff"></span>Hardware assets summary</h3>
