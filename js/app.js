@@ -193,6 +193,8 @@
   });
   document.addEventListener('change', (e) => {
     const id = e.target.dataset && e.target.dataset.tf; if (id) { const st = UI.tbl[id].st; st.f[e.target.dataset.k] = e.target.value; st.page = 1; UI.redrawTable(id); }
+    const df = e.target.dataset && e.target.dataset.tdf; if (df) { const st = UI.tbl[df].st; st.df = e.target.value; st.page = 1; UI.redrawTable(df); }
+    const dt = e.target.dataset && e.target.dataset.tdt; if (dt) { const st = UI.tbl[dt].st; st.dt = e.target.value; st.page = 1; UI.redrawTable(dt); }
   });
   // 3D tilt on cards
   document.addEventListener('mousemove', (e) => {

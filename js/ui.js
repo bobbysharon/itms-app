@@ -72,21 +72,26 @@
   UI.run = function (fn, okMsg) { try { const r = fn(); if (okMsg) UI.toast(okMsg); return r === undefined ? true : r; } catch (e) { UI.toast(e.message || String(e), 'err'); return false; } };
 
   /* ---------- generic table ---------- */
+  const _dateKeys = ['date', 'created', 'at', 'from', 'dueBy', 'dueDate', 'started', 'resolvedAt', 'closedAt', 'paidAt', 'issuedDate', 'purchaseDate', 'warranty', 'doj', 'delivery', 'windowStart', 'ended', 'outDate', 'dueDate'];
+  UI.dateKeyOf = function (def) { if (def.dateField) return def.dateField; for (const c of (def.cols || [])) { if (_dateKeys.indexOf(c.k) >= 0) return c.k; } return null; };
   UI.table = function (def) {
-    const prev = UI.tbl[def.id]; const st = prev ? prev.st : { q: '', sort: def.sort || null, dir: def.dir || 1, page: 1, f: {} };
+    const prev = UI.tbl[def.id]; const st = prev ? prev.st : { q: '', sort: def.sort || null, dir: def.dir || 1, page: 1, f: {}, df: '', dt: '' };
     UI.tbl[def.id] = { def, st };
     const filters = (def.filters || []).map((f) => `<select class="in" data-tf="${def.id}" data-k="${f.k}"><option value="">${esc(f.label)}: All</option>${(typeof f.options === 'function' ? f.options() : f.options).map((o) => `<option ${st.f[f.k] === String(o) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`).join('');
-    return `<div class="tbar"><div class="qs">${ic('search')}<input class="in" value="${esc(st.q)}" data-tq="${def.id}"></div>${filters}<span class="grow"></span>${def.toolbar || ''}<button class="btn ghost sm" data-act="csv" data-id="${def.id}">${ic('download')}CSV</button></div><div id="tb-${def.id}">${UI.tableBody(def.id)}</div>`;
+    const dk = UI.dateKeyOf(def);
+    const dateInputs = dk ? `<input type="date" class="in" data-tdf="${def.id}" value="${esc(st.df || '')}" title="From date"><span style="color:var(--muted);font-size:12px">to</span><input type="date" class="in" data-tdt="${def.id}" value="${esc(st.dt || '')}" title="To date">` : '';
+    return `<div class="tbar"><div class="qs">${ic('search')}<input class="in" value="${esc(st.q)}" data-tq="${def.id}"></div>${filters}${dateInputs ? `<span class="grow"></span>${dateInputs}` : ''}<span class="grow"></span>${def.toolbar || ''}<button class="btn ghost sm" data-act="csv" data-id="${def.id}">${ic('download')}CSV</button></div><div id="tb-${def.id}">${UI.tableBody(def.id)}</div>`;
   };
   function filtered(id) {
     const { def, st } = UI.tbl[id]; let rows = def.rows();
     (def.filters || []).forEach((f) => { const v = st.f[f.k]; if (v) rows = rows.filter((r) => String(f.get ? f.get(r) : r[f.k]) === v); });
     if (st.q) { const q = st.q.toLowerCase(); rows = rows.filter((r) => (def.text ? def.text(r) : JSON.stringify(r)).toLowerCase().includes(q)); }
+    const dk = UI.dateKeyOf(def); if (dk && (st.df || st.dt)) { rows = rows.filter((r) => { const v = def.dateVal ? def.dateVal(r) : r[dk]; if (v == null || v === '') return true; const d = String(v).slice(0, 10); if (st.df && d < st.df) return false; if (st.dt && d > st.dt) return false; return true; }); }
     if (st.sort) { const c = def.cols.find((x) => x.k === st.sort); if (c) { const g = c.val || ((r) => r[c.k]); rows = rows.slice().sort((a, b) => { let x = g(a), y = g(b); if (x == null) x = ''; if (y == null) y = ''; return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true })) * st.dir; }); } }
     return rows;
   }
   UI.tableBody = function (id) {
-    const { def, st } = UI.tbl[id]; const rows = filtered(id); const ps = def.pageSize || 15; const pages = Math.max(1, Math.ceil(rows.length / ps)); if (st.page > pages) st.page = pages;
+    const { def, st } = UI.tbl[id]; const rows = filtered(id); const ps = def.pageSize || 10; const pages = Math.max(1, Math.ceil(rows.length / ps)); if (st.page > pages) st.page = pages;
     const slice = rows.slice((st.page - 1) * ps, st.page * ps);
     const th = def.cols.map((c) => `<th class="${c.num ? 'num' : ''} ${c.nosort ? 'nosort' : ''}" ${c.nosort ? '' : `data-ts="${id}" data-k="${c.k}"`}>${esc(c.label)}${st.sort === c.k ? `<span class="ar">${st.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('') + (def.actions ? '<th class="nosort"></th>' : '');
     const body = slice.map((r) => `<tr>${def.cols.map((c) => `<td class="${c.num ? 'num' : ''} ${c.mono ? 'mono' : ''}">${c.render ? c.render(r) : esc(r[c.k] == null ? '' : r[c.k])}</td>`).join('')}${def.actions ? `<td class="act"><div class="row-actions">${def.actions(r)}</div></td>` : ''}</tr>`).join('');
