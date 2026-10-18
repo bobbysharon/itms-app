@@ -47,8 +47,8 @@
     const needAcc = s.roles.some((x) => !x.access);
     if (needAcc) {
       const ALL = Object.keys(ITMS.pages || {});
-      const TECH = ['dashboard', 'itsm', 'tickets', 'portal', 'itil', 'cmdb', 'kb', 'mailticket', 'pmtasks', 'templates', 'projects', 'scheduler', 'hardware', 'movements', 'software', 'consumables', 'loans', 'discovery', 'employees', 'lifecycle', 'workflow'];
-      const byName = { 'Group Lead': null, Technician: TECH, Requester: ['dashboard', 'portal', 'kb'], 'Vendor / External': ['dashboard', 'tickets', 'itil', 'kb', 'projects'] };
+      const TECH = ['dashboard', 'itsm', 'tickets', 'portal', 'incidents', 'sr', 'problems', 'changes', 'releases', 'monitoring', 'itil', 'cmdb', 'knowledge', 'catalog', 'mailticket', 'pmtasks', 'templates', 'projects', 'scheduler', 'hardware', 'movements', 'software', 'consumables', 'loans', 'discovery', 'employees', 'lifecycle', 'workflow'];
+      const byName = { 'Group Lead': null, Technician: TECH, Requester: ['dashboard', 'portal', 'knowledge', 'catalog'], 'Vendor / External': ['dashboard', 'tickets', 'incidents', 'knowledge', 'projects'] };
       s.roles.forEach((x) => {
         if (x.access) return;
         if (x.name === 'Group Lead') { x.access = ALL.filter((id) => id !== 'roles' && id !== 'settings'); return; }

@@ -14,7 +14,32 @@
   pages.dashboard = {
     title: 'Dashboard', crumb: 'Live command centre — every figure is computed from your modules', icon: 'grid', color: '#2f6bff', group: 'Overview',
     render() {
-      const s = L.stats(); const k = s.kpi; const d = db(); const a = s.alerts;
+      const d = db();
+      // ESS (requester) dashboard: permission-based, only self-service content
+      try {
+        if (!(ITMS.sdp.canPage('hardware') || ITMS.sdp.canPage('itsm'))) {
+          const e = L.emp(ITMS.sdp.curUser()) || {};
+          const h = (ITMS.store.db && ITMS.store.db.hd) || {};
+          const my = h && h.requests ? h.requests.filter((r) => r.requester === (e.no || ITMS.sdp.curUser())).slice(0, 8) : [];
+          const kb = h ? h.solutions.filter((s) => s.status === 'Published').slice(0, 6) : [];
+          const news = h ? h.news.filter((n) => n.active === 'Yes').slice(0, 3) : [];
+          const myLeave = (ITMS.sdp.D().hr && ITMS.sdp.D().hr.leaves ? ITMS.sdp.D().hr.leaves.filter((l) => l.empNo === (e.no || ITMS.sdp.curUser())) : []);
+          return `
+          <div class="hero"><div class="gem" style="width:64px;height:64px;border-radius:21px;background:rgba(255,255,255,.22)">${ic('users')}</div><div><h1>Self-Service Portal</h1><p>Welcome, ${esc(e.name || 'user')} �?" ${esc(e.dept || '')} �?" ${fmtDate(L.today())}</p></div>
+            <div class="hbtns"><button class="btn" data-go="#/portal">${ic('grid')}Open portal</button><button class="btn" data-act="portal.req">${ic('plus')}New request</button><button class="btn ghost" data-act="portal.leave">${ic('cal')}Apply leave</button></div></div>
+          <div class="grid g3 mt">
+            <div class="card glow" style="--c:#2f6bff"><h3><span class="pip"></span>My open tickets</h3><b style="font-size:32px">${my.filter((r) => ['Open', 'Assigned', 'In Progress', 'On Hold'].includes(r.status)).length}</b><small style="color:var(--muted)"> active requests</small></div>
+            <div class="card glow" style="--c:#00a8e8"><h3><span class="pip"></span>Service catalog</h3><b style="font-size:32px">${(h ? h.catalog.filter((c) => c.active !== 'No').length : 0)}</b><small style="color:var(--muted)"> services available</small><div style="margin-top:8px"><button class="btn xs" data-go="#/portal">Browse</button></div></div>
+            <div class="card glow" style="--c:#10d9a0"><h3><span class="pip"></span>My leave</h3><b style="font-size:32px">${myLeave.filter((l) => l.status === 'Pending').length}</b><small style="color:var(--muted)"> pending �?" ${myLeave.filter((l) => l.status === 'Approved').length} approved</small><div style="margin-top:8px"><button class="btn xs" data-act="portal.leave">Apply leave</button></div></div>
+          </div>
+          <div class="grid g2 mt">
+            <div class="card"><h3><span class="pip" style="--c:#00a8e8"></span>Solve it yourself</h3><p style="color:var(--muted)">${kb.length} published solutions.</p><button class="btn ghost" data-go="#/knowledge">Open knowledge base</button></div>
+            <div class="card"><h3><span class="pip" style="--c:#2f6bff"></span>My requests</h3><table class="t"><thead><tr><th>ID</th><th>Subject</th><th>Status</th></tr></thead><tbody>${my.map((r) => `<tr><td class="mono">${r.id}</td><td>${esc(r.subject)}</td><td>${P(r.status)}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty">No requests yet</div></td></tr>'}</tbody></table></div>
+          </div>
+          ${news.map((n) => `<div class="note-box" style="margin-top:10px"><b>${esc(n.title)}</b> �?" ${esc(n.desc)}</div>`).join('')}`;
+        }
+      } catch (e) { /* fall through to full dashboard */ }
+      const s = L.stats(); const k = s.kpi; const a = s.alerts;
       const _it = (ITMS.sdp && ITMS.sdp.D && ITMS.sdp.D().itil) || {};
       const _hd = d.hd || {};
       const _openMI = (_it.majorIncidents || []).filter((r) => r.status !== 'Closed').length;
