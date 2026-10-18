@@ -33,7 +33,7 @@
             <div class="card glow" style="--c:#10d9a0"><h3><span class="pip"></span>My leave</h3><b style="font-size:32px">${myLeave.filter((l) => l.status === 'Pending').length}</b><small style="color:var(--muted)"> pending �?" ${myLeave.filter((l) => l.status === 'Approved').length} approved</small><div style="margin-top:8px"><button class="btn xs" data-act="portal.leave">Apply leave</button></div></div>
           </div>
           <div class="grid g2 mt">
-            <div class="card"><h3><span class="pip" style="--c:#00a8e8"></span>Solve it yourself</h3><p style="color:var(--muted)">${kb.length} published solutions.</p><button class="btn ghost" data-go="#/knowledge">Open knowledge base</button></div>
+            <div class="card"><h3><span class="pip" style="--c:#00a8e8"></span>Solve it yourself</h3><p style="color:var(--muted)">${kb.length} published solutions.</p></div>
             <div class="card"><h3><span class="pip" style="--c:#2f6bff"></span>My requests</h3><table class="t"><thead><tr><th>ID</th><th>Subject</th><th>Status</th></tr></thead><tbody>${my.map((r) => `<tr><td class="mono">${r.id}</td><td>${esc(r.subject)}</td><td>${P(r.status)}</td></tr>`).join('') || '<tr><td colspan="3"><div class="empty">No requests yet</div></td></tr>'}</tbody></table></div>
           </div>
           ${news.map((n) => `<div class="note-box" style="margin-top:10px"><b>${esc(n.title)}</b> �?" ${esc(n.desc)}</div>`).join('')}`;

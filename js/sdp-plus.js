@@ -405,11 +405,22 @@
         <span style="margin-left:auto"></span><label style="font-size:12px">Acting as <select class="in" style="width:auto;display:inline-block" data-actx="emp">${empOpts().map((o) => `<option value="${o.v}" ${o.v === e.no ? 'selected' : ''}>${esc(o.l)}</option>`).join('')}</select></label></div>
       <div class="grid g3">
         <div class="card"><h3>Request a service</h3><p style="color:var(--muted)">Catalog items, approvals and SLA included.</p><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-act="portal.req">${ic('plus')}New request</button><button class="btn ghost" data-act="portal.ad">${ic('key')}Password / unlock</button><button class="btn ghost" data-act="portal.chat">${ic('users')}Live chat</button></div></div>
-        <div class="card"><h3>Solve it yourself</h3><p style="color:var(--muted)">${kb.length} published solutions · searchable in Solutions & Catalog.</p><button class="btn ghost" data-go="#/kb">Open knowledge base</button></div>
+        <div class="card"><h3>Solve it yourself</h3><p style="color:var(--muted)">${kb.length} published solutions · searchable in Solutions & Catalog.</p></div>
         <div class="card"><h3>My open tickets</h3><b style="font-size:26px">${my.filter((r) => ['Open', 'Assigned', 'In Progress', 'On Hold'].includes(r.status)).length}</b><small style="color:var(--muted)"> shown below</small></div>
       </div>
-      <div class="grid g2 mt"><div class="card"><h3>HR self-service</h3><p style="color:var(--muted)">Apply for leave and HR requests; routed to HR for review and approval.</p><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-act="portal.leave">${ic('cal')}Apply leave</button><button class="btn ghost" data-act="portal.hrreq">${ic('users')}HR request</button><button class="btn ghost" data-go="#/hr">${ic('users')}My HR record</button></div></div>
+      <div class="grid g2 mt"><div class="card"><h3>HR self-service</h3><p style="color:var(--muted)">Apply for leave and HR requests; routed to HR for review and approval.</p><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-act="portal.leave">${ic('cal')}Apply leave</button><button class="btn ghost" data-act="portal.hrreq">${ic('users')}HR request</button></div></div>
         <div class="card"><h3>My leave</h3><b style="font-size:26px">${myLeave.filter((l) => l.status === 'Pending').length}</b><small style="color:var(--muted)"> pending, ${myLeave.filter((l) => l.status === 'Approved').length} approved, ${myLeave.filter((l) => l.status === 'Rejected').length} rejected</small></div></div>
+      <div class="card mt"><h3><span class="pip" style="--c:#00c2ff"></span>My details</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 18px">
+          <div><small style="color:var(--muted)">Name</small><div><b>${esc(e.name || '-')}</b></div></div>
+          <div><small style="color:var(--muted)">Employee no.</small><div>${esc(e.no || '-')}</div></div>
+          <div><small style="color:var(--muted)">Designation</small><div>${esc(e.designation || '-')}</div></div>
+          <div><small style="color:var(--muted)">Department</small><div>${esc(e.dept || '-')}</div></div>
+          <div><small style="color:var(--muted)">Manager</small><div>${esc(e.manager || '-')}</div></div>
+          <div><small style="color:var(--muted)">Location</small><div>${esc(e.location || '-')}</div></div>
+          <div><small style="color:var(--muted)">Email</small><div>${esc(e.email || '-')}</div></div>
+          <div><small style="color:var(--muted)">Status</small><div>${esc(e.status || '-')}</div></div>
+        </div></div>
       ${news.map((n) => `<div class="note-box" style="margin-top:10px"><b>${esc(n.title)}</b> — ${esc(n.desc)}</div>`).join('')}
       <div class="grid g2 mt"><div class="card"><h3>Service catalog — one click</h3><div class="grid g2">${(h ? h.catalog.filter((c) => c.active !== 'No').slice(0, 8) : []).map((c) => `<div class="card"><b>${esc(c.title)}</b> ${c.desk && c.desk !== 'IT' ? `<span class="pill p-blue">${esc(c.desk)}</span>` : ''}<br><small style="color:var(--muted)">${esc(c.desc || '').slice(0, 80)}</small><div style="margin-top:8px"><button class="btn sm" data-act="portal.cat" data-id="${c.id}">Request</button></div></div>`).join('') || '<div class="empty">No catalog items — add them in Solutions & Catalog</div>'}</div></div>
       <div class="card"><h3>My requests</h3><table class="t"><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th></th></tr></thead><tbody>${my.map((r) => `<tr><td class="mono">${r.id}</td><td>${esc(r.subject)}</td><td>${P(r.status)}</td><td>${r.status === 'Resolved' ? `<button class="btn xs" data-act="portal.rate" data-id="${r.id}">Rate</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty">No requests yet</div></td></tr>'}</tbody></table></div></div>`;
