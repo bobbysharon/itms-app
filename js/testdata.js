@@ -1050,6 +1050,11 @@
       added += 9;
     }
 
+    /* ---------- STATUS COVERAGE TOP-UP (existing modules) ---------- */
+    if (!(s.maint || []).some((m) => m.status === 'Done')) { (s.maint = s.maint || []).push({ id: 'PMT-S03', title: 'Sample: Completed patching', freq: 'Monthly', next: L.addDays(T(), 30), group: (h.cfg.groups || [''])[0], desc: '', status: 'Done' }); added++; }
+    if (!(s.discovered || []).some((x) => x.status === 'Imported')) { (s.discovered = s.discovered || []).unshift({ id: 'DISC-S6', scan: 'SCAN-S1', host: 'IMP-SAMPLE', ip: '192.168.1.99', mac: 'AA:BB:CC:99:11:22', os: 'Windows 11 Pro', type: 'Desktop', status: 'Imported', vendor: 'Dell', model: 'Latitude 5440' }); added++; }
+    if (!(s.scans || []).some((x) => x.status !== 'Completed')) { (s.scans = s.scans || []).unshift({ id: 'SCAN-S2', method: 'Network scan', scope: '10.0.0.0/24', date: T(), found: 3, imported: 0, status: 'In progress' }); added++; }
+
     S.emit();
     return added;
   }
