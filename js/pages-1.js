@@ -70,7 +70,7 @@
       const hwRows = s.byType.filter((r) => r.total || true);
       const statusItems = s.status.map((x, i) => ({ label: x.label, value: x.value, color: ['#10d9a0', '#2f6bff', '#ffb020', '#ff5c6c'][i] }));
       const typeBars = s.byType.filter((r) => r.total).map((r, i) => ({ label: r.type, value: r.total, color: UI.PAL[i % 8], href: `#/hardware?type=${r.type}` }));
-      const stack = s.byType.filter((r) => r.total).map((r) => ({ label: r.type, total: r.total, vals: { 'In Use': r.inUse, 'In Stock': r.inStock, 'Under Repair': r.repair, Disposed: r.disposed }, href: `#/hardware?type=${r.type}` }));
+      const stack = s.byType.filter((r) => r.total).map((r) => ({ label: r.type, total: r.total, vals: { 'In Use': r.inUse, 'In Stock': r.inStock, 'Under Repair': r.repair, Disposed: r.disposed, Defective: r.defective }, href: `#/hardware?type=${r.type}` }));
       const swPct = k.licences ? (k.licUsed / k.licences) * 100 : 0;
       const pl = s.pipeline;
       const maxHeat = Math.max(1, ...s.dist.map((r) => Math.max(...Object.values(r.counts))));
@@ -91,8 +91,8 @@
         ${kp('dollar', fmtNum(k.spend), 'PO value (incl. VAT)', d.company.currency + ' · ' + pl.unpaid + ' unpaid', '#ff5c6c', 'linear-gradient(135deg,#ff5c6c,#ffb020)', '#/orders')}
       </div>
       <div class="grid g-main mt">
-        <div class="card glow" style="--c:#2f6bff"><h3><span class="pip"></span>Hardware assets by type &amp; status<span class="tag">click a bar to drill in</span></h3>${UI.stackBars(stack, ['In Use', 'In Stock', 'Under Repair', 'Disposed'], ['#2f6bff', '#10d9a0', '#ffb020', '#ff5c6c'])}
-          <div class="legend">${['In Use|#2f6bff', 'In Stock|#10d9a0', 'Under Repair|#ffb020', 'Disposed|#ff5c6c'].map((x) => `<span><i style="--c:${x.split('|')[1]}"></i>${x.split('|')[0]}</span>`).join('')}</div></div>
+        <div class="card glow" style="--c:#2f6bff"><h3><span class="pip"></span>Hardware assets by type &amp; status<span class="tag">click a bar to drill in</span></h3>${UI.stackBars(stack, ['In Use', 'In Stock', 'Under Repair', 'Disposed', 'Defective'], ['#2f6bff', '#10d9a0', '#ffb020', '#ff5c6c', '#6b5cff'])}
+          <div class="legend">${['In Use|#2f6bff', 'In Stock|#10d9a0', 'Under Repair|#ffb020', 'Disposed|#ff5c6c', 'Defective|#6b5cff'].map((x) => `<span><i style="--c:${x.split('|')[1]}"></i>${x.split('|')[0]}</span>`).join('')}</div></div>
         <div class="card glow" style="--c:#1d4ed8"><h3><span class="pip"></span>Attention centre<span class="tag">auto-generated</span></h3>
           ${alertRow(a.warranty30.length, 'Warranty expiring ≤ 30 days', 'hardware', '#ffb020', '#/hardware?warranty=expiring')}
           ${alertRow(a.sw30.length + a.swExpired.length, 'Licences expiring / expired', `${a.sw30.length} expiring · ${a.swExpired.length} expired`, '#1d4ed8', '#/software?exp=1')}
@@ -158,9 +158,9 @@
       </div>
       <div class="grid g-main2 mt">
         <div class="card"><h3><span class="pip" style="--c:#2f6bff"></span>Hardware assets summary</h3>
-          <div class="twrap" style="max-height:340px"><table class="t"><thead><tr><th>Asset type</th><th class="num">Total</th><th class="num">In use</th><th class="num">In stock</th><th class="num">Repair</th><th class="num">Disposed</th><th class="num">Warranty this month</th><th class="num">Warranty expired</th></tr></thead><tbody>
-          ${hwRows.map((r) => `<tr style="cursor:pointer" ${go('#/hardware?type=' + r.type)}><td><b>${esc(r.type.replace('_', ' '))}</b></td><td class="num">${r.total}</td><td class="num">${r.inUse}</td><td class="num">${r.inStock}</td><td class="num">${r.repair}</td><td class="num">${r.disposed}</td><td class="num">${r.warrantyMonth || '–'}</td><td class="num">${r.warrantyExpired || '–'}</td></tr>`).join('')}</tbody>
-          <tfoot><tr><td>Total</td><td class="num">${s.byType.reduce((x, r) => x + r.total, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.inUse, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.inStock, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.repair, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.disposed, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.warrantyMonth, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.warrantyExpired, 0)}</td></tr></tfoot></table></div></div>
+          <div class="twrap" style="max-height:340px"><table class="t"><thead><tr><th>Asset type</th><th class="num">Total</th><th class="num">In use</th><th class="num">In stock</th><th class="num">Repair</th><th class="num">Disposed</th><th class="num">Defective</th><th class="num">Warranty this month</th><th class="num">Warranty expired</th></tr></thead><tbody>
+          ${hwRows.map((r) => `<tr style="cursor:pointer" ${go('#/hardware?type=' + r.type)}><td><b>${esc(r.type.replace('_', ' '))}</b></td><td class="num">${r.total}</td><td class="num">${r.inUse}</td><td class="num">${r.inStock}</td><td class="num">${r.repair}</td><td class="num">${r.disposed}</td><td class="num">${r.defective || 0}</td><td class="num">${r.warrantyMonth || '–'}</td><td class="num">${r.warrantyExpired || '–'}</td></tr>`).join('')}</tbody>
+          <tfoot><tr><td>Total</td><td class="num">${s.byType.reduce((x, r) => x + r.total, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.inUse, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.inStock, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.repair, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.disposed, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + (r.defective || 0), 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.warrantyMonth, 0)}</td><td class="num">${s.byType.reduce((x, r) => x + r.warrantyExpired, 0)}</td></tr></tfoot></table></div></div>
         <div class="card"><h3><span class="pip" style="--c:#1d4ed8"></span>Software licences summary<div style="margin-left:auto">${UI.ring(swPct, '#1d4ed8')}</div></h3>
           <div class="twrap" style="max-height:340px"><table class="t"><thead><tr><th>Software type</th><th class="num">Total</th><th class="num">Used</th><th class="num">Available</th><th class="num">Exp. ≤30d</th><th class="num">Expired</th></tr></thead><tbody>
           ${s.swByType.map((r) => `<tr style="cursor:pointer" ${go('#/software?type=' + r.type)}><td><b>${esc(r.type)}</b></td><td class="num">${r.total}</td><td class="num">${r.used}</td><td class="num">${r.available}</td><td class="num">${r.exp30 || '–'}</td><td class="num">${r.expired || '–'}</td></tr>`).join('')}</tbody></table></div></div>

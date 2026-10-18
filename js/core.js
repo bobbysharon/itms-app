@@ -40,7 +40,7 @@
   };
 
   /* ---------- constants ---------- */
-  const HW_STATUS = ['In Stock', 'In Use', 'Under Repair', 'Disposed'];
+  const HW_STATUS = ['In Stock', 'In Use', 'Under Repair', 'Disposed', 'Defective'];
   const CONDITIONS = ['New', 'Good', 'Fair', 'Average', 'Poor'];
   const ITEM_TYPES = ['Hardware', 'Software', 'Consumable'];
 
@@ -463,7 +463,7 @@
       const c = (s) => rows.filter((a) => a.status === s).length;
       const wExp = rows.filter((a) => a.warranty && a.warranty.slice(0, 7) === T.slice(0, 7) && daysTo(a.warranty) >= 0).length;
       const wExpired = rows.filter((a) => a.warranty && daysTo(a.warranty) < 0).length;
-      return { type: t, total: rows.length, inUse: c('In Use'), inStock: c('In Stock'), repair: c('Under Repair'), disposed: c('Disposed'), warrantyMonth: wExp, warrantyExpired: wExpired };
+      return { type: t, total: rows.length, inUse: c('In Use'), inStock: c('In Stock'), repair: c('Under Repair'), disposed: c('Disposed'), defective: c('Defective'), warrantyMonth: wExp, warrantyExpired: wExpired };
     });
     const status = HW_STATUS.map((s) => ({ label: s, value: db.hw.filter((a) => a.status === s).length }));
     const cond = CONDITIONS.map((s) => ({ label: s, value: db.hw.filter((a) => a.condition === s && a.status !== 'Disposed').length }));
