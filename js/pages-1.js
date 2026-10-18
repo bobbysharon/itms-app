@@ -136,7 +136,7 @@
   UI.fullAddr = fullAddr;
   const vSpend = (v) => db().pos.filter((p) => p.vendor === v.name && p.approval !== 'Cancelled').reduce((s, p) => s + L.poTotals(p).incl, 0);
   pages.vendors = {
-    title: 'Vendors', crumb: 'Vendor master with payment terms and security-compliance posture', icon: 'truck', color: '#00a8e8', group: 'Masters',
+    title: 'Supplier Register', crumb: 'Vendor master with payment terms and security-compliance posture', icon: 'truck', color: '#00a8e8', group: 'Masters',
     render() {
       const d = db();
       return `<div class="card">${UI.table({

@@ -188,12 +188,13 @@ Other: General Query, Feedback`;
       },
     });
   });
-  pages.tickets = {
-    title: 'Tickets', crumb: 'Incidents & service requests — assign, track SLA, resolve, close', icon: 'bell', color: '#2f6bff', group: 'Helpdesk',
+  const ticketsView = (key, type) => {
+    const inScope = (r) => !type || r.type === type;
+    return {
     render() {
-      const all = H().requests.map(dec); const F = { open: (r) => isOpen(r), unassigned: (r) => isOpen(r) && !r.tech, overdue: (r) => r.sla === 'Overdue', hold: (r) => r.status === 'On Hold', done: (r) => !isOpen(r), all: () => true };
-      const tab = UI.curTab('tickets', 'open'); const n = (k) => all.filter(F[k]).length;
-      const tabs = UI.tabs('tickets', [['open', 'Open'], ['unassigned', 'Unassigned'], ['overdue', 'Overdue'], ['hold', 'On hold'], ['done', 'Resolved / closed'], ['all', 'All'], ['board', 'Kanban']].map(([id, label]) => ({ id, label, count: id === 'board' ? all.filter((r) => isOpen(r)).length : n(id) })));
+      const all = H().requests.filter(inScope).map(dec); const F = { open: (r) => isOpen(r), unassigned: (r) => isOpen(r) && !r.tech, overdue: (r) => r.sla === 'Overdue', hold: (r) => r.status === 'On Hold', done: (r) => !isOpen(r), all: () => true };
+      const tab = UI.curTab(key, 'open'); const n = (k) => all.filter(F[k]).length;
+      const tabs = UI.tabs(key, [['open', 'Open'], ['unassigned', 'Unassigned'], ['overdue', 'Overdue'], ['hold', 'On hold'], ['done', 'Resolved / closed'], ['all', 'All'], ['board', 'Kanban']].map(([id, label]) => ({ id, label, count: id === 'board' ? all.filter((r) => isOpen(r)).length : n(id) })));
       if (tab === 'board') return `<div class="card">${tabs}${kbBoard()}</div>`;
       const delBtn = (r) => (typeof ITMS !== 'undefined' && ITMS.canDelete && ITMS.canDelete()) ? '<button class="ibtn" style="--c:#ff5c6c" data-act="rq.del" data-id="' + r.id + '" title="Delete (Admin only)">' + ic('trash') + '</button>' : '';
       const cols = [
@@ -211,14 +212,19 @@ Other: General Query, Feedback`;
         { k: 'sla', label: 'SLA', render: (r) => P(r.sla) }
       ];
       return `<div class="card">${tabs}${UI.table({
-        id: 'rq' + tab, rows: () => H().requests.map(dec).filter(F[tab]), sort: 'created', dir: -1, text: (r) => [r.id, r.subject, r.reqName, r.category, r.tech, r.group].join(' '),
+        id: 'rq' + key + tab, rows: () => H().requests.filter(inScope).map(dec).filter(F[tab]), sort: 'created', dir: -1, text: (r) => [r.id, r.subject, r.reqName, r.category, r.tech, r.group].join(' '),
         filters: [{ k: 'status', label: 'Status', options: ['Open', 'Assigned', 'In Progress', 'On Hold', 'Resolved', 'Closed', 'Cancelled'] }, { k: 'desk', label: 'Desk', options: deskOpts, get: (r) => r.desk || 'IT' }, { k: 'priority', label: 'Priority', options: PRI }, { k: 'category', label: 'Category', options: cats }, { k: 'group', label: 'Group', options: () => H().cfg.groups }, { k: 'tech', label: 'Assigned to', options: () => assignees() }, { k: 'type', label: 'Type', options: () => H().cfg.reqTypes }],
         cols,
         actions: (r) => '<button class="ibtn" title="Open" data-act="rq.view" data-id="' + r.id + '">' + ic('eye') + '</button>' + delBtn(r),
         toolbar: '<button class="btn" data-act="rq.new">' + ic('plus') + 'New request</button><button class="btn ghost" data-act="mon.alert">' + ic('bell') + 'Monitoring alert</button><button class="btn ghost" data-act="rq.csv">' + ic('download') + 'Export CSV</button>'
       })}</div>`;
     },
+    };
   };
+  const TPG = { icon: 'bell', color: '#2f6bff', group: 'ITIL Practices' };
+  pages.tickets = Object.assign({ title: 'Service Desk Console', crumb: 'All incidents and service requests in one queue — assign, track SLA, resolve and close' }, TPG, ticketsView('tickets', null));
+  pages.incidents = Object.assign({ title: 'Incident Management', crumb: 'Log → categorize → prioritize → diagnose → resolve → close', icon: 'alert', color: '#ff5c6c', group: 'ITIL Practices' }, ticketsView('incidents', 'Incident'));
+  pages.sr = Object.assign({ title: 'Service Request Management', crumb: 'Submit → approve → fulfil → close', icon: 'cart', color: '#2f6bff', group: 'ITIL Practices' }, ticketsView('sr', 'Service Request'));
 
   /* request detail */
   let cur = null;
@@ -301,16 +307,21 @@ Other: General Query, Feedback`;
   const tb = (key, l) => `<button class="btn" data-act="${key}.new">${ic('plus')}${l}</button>`;
   const dt = (k, l) => ({ k, label: l, render: (r) => fmt(r[k]) });
   UI.on('itil.go', (el) => { const t = el.dataset.id.startsWith('PRB') ? 'problems' : 'changes'; openE(t, H()[t].find((x) => x.id === el.dataset.id)); });
-  pages.itil = {
-    title: 'Problems · Changes · Releases', crumb: 'ITIL records linked to requests and assets', icon: 'refresh', color: '#2f6bff', group: 'Helpdesk',
-    render() {
-      const h = H(); const tab = UI.curTab('itil', 'problems'); const tabs = UI.tabs('itil', [{ id: 'problems', label: 'Problems', count: h.problems.length }, { id: 'changes', label: 'Changes', count: h.changes.length }, { id: 'releases', label: 'Releases', count: h.releases.length }]); let body;
+  const itilBody = (tab) => {
+    const h = H();
+    let body;
       if (tab === 'problems') body = UI.table({ id: 'prb', rows: () => h.problems.map((r) => Object.assign({ pr: prio(r.impact, r.urgency), n: (r.requests || []).length }, r)), sort: 'created', dir: -1, text: (r) => [r.id, r.title, r.owner].join(' '), filters: [{ k: 'status', label: 'Status', options: PRS }, { k: 'owner', label: 'Owner', options: () => techNames() }], cols: [idc('problems'), { k: 'title', label: 'Problem', render: (r) => `<b>${esc(r.title)}</b>` }, { k: 'category', label: 'Category' }, { k: 'pr', label: 'Priority', render: (r) => P(r.pr) }, { k: 'status', label: 'Status', render: (r) => P(r.status) }, { k: 'owner', label: 'Owner' }, { k: 'n', label: 'Requests', num: true }, dt('due', 'Due'), { k: 'rootCause', label: 'Root cause', render: (r) => clip(r.rootCause) }], actions: (r) => ea('problems', r.id), toolbar: tb('problems', 'New problem') });
       else if (tab === 'changes') body = UI.table({ id: 'chg', rows: () => h.changes.map((r) => Object.assign({ ap: (r.approvals || []).filter((a) => a.status === 'Pending').length }, r)), sort: 'created', dir: -1, text: (r) => [r.id, r.title, r.owner].join(' '), filters: [{ k: 'status', label: 'Status', options: CHS }, { k: 'changeType', label: 'Type', options: ['Minor', 'Standard', 'Major', 'Emergency'] }, { k: 'risk', label: 'Risk', options: ['Low', 'Medium', 'High'] }], cols: [idc('changes'), { k: 'title', label: 'Change', render: (r) => `<b>${esc(r.title)}</b>` }, { k: 'changeType', label: 'Type' }, { k: 'risk', label: 'Risk', render: (r) => P(r.risk === 'High' ? 'Critical' : r.risk === 'Medium' ? 'Medium' : 'Low') }, { k: 'status', label: 'Status', render: (r) => P(r.status) }, { k: 'owner', label: 'Owner' }, dt('start', 'Start'), dt('end', 'End'), { k: 'ap', label: 'Pending approvals', num: true }], actions: (r) => `<button class="ibtn" style="--c:#10d9a0" title="Request CAB approval" data-act="apr.new" data-k="changes" data-id="${r.id}">${ic('check')}</button>${ea('changes', r.id)}`, toolbar: tb('changes', 'New change') });
       else body = UI.table({ id: 'rel', rows: () => h.releases, sort: 'created', dir: -1, text: (r) => [r.id, r.title].join(' '), filters: [{ k: 'status', label: 'Status', options: RLS }], cols: [idc('releases'), { k: 'title', label: 'Release', render: (r) => `<b>${esc(r.title)}</b>` }, { k: 'relType', label: 'Type' }, { k: 'status', label: 'Status', render: (r) => P(r.status) }, { k: 'owner', label: 'Owner' }, dt('start', 'Start'), dt('end', 'End'), { k: 'changes', label: 'Changes', render: (r) => esc((r.changes || []).join(', ')) }], actions: (r) => ea('releases', r.id), toolbar: tb('releases', 'New release') });
-      return `<div class="card">${tabs}${body}</div>`;
-    },
+    return body;
   };
+  pages.itil = {
+    title: 'Problems · Changes · Releases', crumb: 'ITIL records linked to requests and assets', icon: 'refresh', color: '#2f6bff', group: 'ITIL Practices',
+    render() { const h = H(); const tab = UI.curTab('itil', 'problems'); const tabs = UI.tabs('itil', [{ id: 'problems', label: 'Problems', count: h.problems.length }, { id: 'changes', label: 'Changes', count: h.changes.length }, { id: 'releases', label: 'Releases', count: h.releases.length }]); return `<div class="card">${tabs}${itilBody(tab)}</div>`; },
+  };
+  pages.problems = { title: 'Problem Management', crumb: 'Identify recurring incidents → investigate root cause → document workaround → resolve problem', icon: 'wrench', color: '#ffb020', group: 'ITIL Practices', render() { return `<div class="card">${itilBody('problems')}</div>`; } };
+  pages.changes = { title: 'Change Enablement', crumb: 'Submit change → assess risk & impact → authorize → implement → validate → review → close', icon: 'refresh', color: '#2f6bff', group: 'ITIL Practices', render() { return `<div class="card">${itilBody('changes')}</div>`; } };
+  pages.releases = { title: 'Release Management', crumb: 'Plan release → approve → schedule → coordinate deployment → review', icon: 'upload', color: '#3b82f6', group: 'ITIL Practices', render() { return `<div class="card">${itilBody('releases')}</div>`; } };
 
   /* ---------- projects & follow-ups ---------- */
   const tl = (it) => { if (it.status === 'Completed') return 'Completed'; if (it.status === 'Cancelled') return 'Cancelled'; if (it.status === 'On Hold') return 'On Hold'; if (!it.target) return 'No date'; const d = L.diffDays(it.target, today()); return d < 0 ? 'Overdue' : d <= 3 ? 'Due Soon' : 'On Track'; };
@@ -335,7 +346,7 @@ Other: General Query, Feedback`;
       if (!cfg.projects.includes(it.project)) cfg.projects.push(it.project); if (it.category && !cfg.trackerCats.includes(it.category)) cfg.trackerCats.push(it.category); [it.owner, it.pendingWith].forEach((p) => { if (p && !people().includes(p)) cfg.parties.push(p); }); H().items.push(it); n++; });
     S.emit(); UI.toast(n + ' item(s) imported'); } }));
   pages.projects = {
-    title: 'Projects & Follow-ups', crumb: 'Open · ongoing · pending items — owner, pending-with, timeline and next action', icon: 'trend', color: '#00c2ff', group: 'Helpdesk',
+    title: 'Improvement Projects & Actions', crumb: 'Open · ongoing · pending items — owner, pending-with, timeline and next action', icon: 'trend', color: '#00c2ff', group: 'Helpdesk',
     render() {
       const h = H(); const rows = h.items.map((i) => Object.assign({}, i, { tlS: tl(i) })); const tab = UI.curTab('projects', 'items'); const cnt = (s) => rows.filter((i) => i.status === s).length; const od = rows.filter((i) => i.tlS === 'Overdue').length;
       const top = `<div class="grid g3">${kpi(cnt('Open'), 'Open', C.blue)}${kpi(cnt('Ongoing'), 'Ongoing', C.mint)}${kpi(cnt('Pending'), 'Pending', C.amber)}</div><div class="grid g3 mt">${kpi(cnt('On Hold'), 'On hold', C.violet)}${kpi(od, 'Overdue vs target date', od ? C.coral : C.mint)}${kpi(cnt('Completed'), 'Completed', C.violet)}</div>`;
@@ -354,16 +365,19 @@ Other: General Query, Feedback`;
   /* ---------- solutions, catalog, announcements ---------- */
   UI.on('kb.view', (el) => { const s = H().solutions.find((x) => x.id === el.dataset.id); if (!s) return; s.views = (s.views || 0) + 1; UI.modal(`<header><span class="gem" style="width:40px;height:40px">${ic('receipt')}</span><div><h3>${esc(s.title)}</h3><small>${esc(s.id)} · ${esc([s.category, s.sub].filter(Boolean).join(' › '))} · ${esc(s.status)}</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><div style="white-space:pre-wrap">${esc(s.content) || 'No content yet'}</div><p style="color:var(--muted)">Keywords: ${esc(s.keywords || '—')} · Author: ${esc(s.author || '—')} · Views: ${s.views}</p></div><footer><button class="btn ghost" data-act="solutions.edit" data-id="${s.id}" data-x>Edit</button></footer>`, {}); });
   UI.on('sc.use', (el) => { const c = H().catalog.find((x) => x.id === el.dataset.id); newReq({ type: 'Service Request', subject: c.title, desc: c.desc, category: c.category, sub: c.sub, group: c.group, impact: c.impact || 'Medium', urgency: c.urgency || 'Normal' }, (r) => { r.desk = c.desk || 'IT'; if (c.approver) { r.approvals.push({ approver: c.approver, status: 'Pending', at: now(), comment: 'Required by service catalog' }); hist(r, 'Approval requested from ' + c.approver + ' (catalog rule)'); } }); });
-  pages.kb = {
-    title: 'Solutions & Catalog', crumb: 'Knowledge base, service catalog and announcements', icon: 'receipt', color: '#00a8e8', group: 'Helpdesk',
-    render() {
-      const h = H(); const tab = UI.curTab('kb', 'kb'); const tabs = UI.tabs('kb', [{ id: 'kb', label: 'Solutions', count: h.solutions.length }, { id: 'cat', label: 'Service catalog', count: h.catalog.length }, { id: 'news', label: 'Announcements', count: h.news.length }]); let body;
+  const kbBody = (tab) => {
+    const h = H(); let body;
       if (tab === 'kb') body = UI.table({ id: 'kbt', rows: () => h.solutions, sort: 'created', dir: -1, text: (r) => [r.id, r.title, r.keywords, r.content].join(' '), filters: [{ k: 'status', label: 'Status', options: KBS }, { k: 'category', label: 'Category', options: cats }], cols: [{ k: 'id', label: 'ID', mono: true, render: (r) => `<a class="link" data-act="kb.view" data-id="${r.id}">${r.id}</a>` }, { k: 'title', label: 'Topic', render: (r) => `<a class="link" data-act="kb.view" data-id="${r.id}"><b>${esc(r.title)}</b></a>` }, { k: 'category', label: 'Category', render: (r) => esc([r.category, r.sub].filter(Boolean).join(' › ')) }, { k: 'status', label: 'Status', render: (r) => P(r.status) }, { k: 'author', label: 'Author' }, { k: 'views', label: 'Views', num: true }], actions: (r) => ea('solutions', r.id), toolbar: tb('solutions', 'New solution') });
       else if (tab === 'cat') body = `<div style="margin-bottom:12px">${tb('catalog', 'Add catalog item')}</div><div class="grid g3">${h.catalog.map((c) => `<div class="card"><h3>${esc(c.title)}</h3><small style="color:var(--muted)">${esc([c.category, c.sub].filter(Boolean).join(' › '))}</small><p style="min-height:3em">${esc(c.desc)}</p><div>${c.approver ? pill('Approval: ' + c.approver, 'amber') : pill('No approval', 'mint')} ${c.active === 'No' ? pill('Inactive', 'coral') : ''}</div><div style="display:flex;gap:6px;margin-top:10px"><button class="btn sm" data-act="sc.use" data-id="${c.id}">Request this</button>${ea('catalog', c.id)}</div></div>`).join('') || '<div class="empty">No catalog items yet</div>'}</div>`;
       else body = UI.table({ id: 'newt', rows: () => h.news, sort: 'created', dir: -1, text: (r) => r.title + r.desc, cols: [idc('news'), { k: 'title', label: 'Title', render: (r) => `<b>${esc(r.title)}</b>` }, { k: 'desc', label: 'Message', render: (r) => clip(r.desc) }, dt('from', 'From'), dt('to', 'Until'), { k: 'active', label: 'Active', render: (r) => P(r.active === 'Yes' ? 'Published' : 'Draft') }], actions: (r) => ea('news', r.id), toolbar: tb('news', 'New announcement') });
-      return `<div class="card">${tabs}${body}</div>`;
-    },
+    return body;
   };
+  pages.kb = {
+    title: 'Knowledge & Service Catalogue', crumb: 'Knowledge base, service catalog and announcements', icon: 'receipt', color: '#00a8e8', group: 'ITIL Practices',
+    render() { const h = H(); const tab = UI.curTab('kb', 'kb'); const tabs = UI.tabs('kb', [{ id: 'kb', label: 'Solutions', count: h.solutions.length }, { id: 'cat', label: 'Service catalog', count: h.catalog.length }, { id: 'news', label: 'Announcements', count: h.news.length }]); return `<div class="card">${tabs}${kbBody(tab)}</div>`; },
+  };
+  pages.knowledge = { title: 'Knowledge Management', crumb: 'Create knowledge article → review → approve → publish → update / archive', icon: 'receipt', color: '#00a8e8', group: 'ITIL Practices', render() { return `<div class="card">${kbBody('kb')}</div>`; } };
+  pages.catalog = { title: 'Service Catalogue Management', crumb: 'Define services → assign owners → publish catalogue', icon: 'grid', color: '#00c2ff', group: 'ITIL Practices', render() { return `<div class="card">${kbBody('cat')}</div><div class="card mt"><h3>Announcements</h3>${kbBody('news')}</div>`; } };
 
   /* ---------- admin ---------- */
   const LISTS = [['groups', 'Support groups'], ['reqTypes', 'Request types'], ['modes', 'Request modes'], ['levels', 'Levels'], ['closureCodes', 'Closure codes'], ['parties', 'Other owners / pending-with parties'], ['projects', 'Projects'], ['trackerCats', 'Follow-up categories']];
@@ -373,7 +387,7 @@ Other: General Query, Feedback`;
   UI.on('sla.edit', () => { const s = H().cfg.sla; const f = []; const val = { autoAssign: H().cfg.autoAssign }; PRI.slice().reverse().forEach((p) => { f.push({ section: p + ' priority' }, { k: p + 'r', label: 'Respond within (hours)', type: 'number' }, { k: p + 'x', label: 'Resolve within (hours)', type: 'number' }); val[p + 'r'] = s[p].respond; val[p + 'x'] = s[p].resolve; }); f.push({ section: 'Business rules' }, { k: 'autoAssign', label: 'Auto-assign to the least-loaded person of the routed group', type: 'select', options: ['Yes', 'No'], blank: false, full: true }, { k: 'assignRoles', label: 'Roles that can be assigned tickets', type: 'multi', options: ['Technician', 'Group Lead', 'Administrator', 'Vendor / External'], full: true }); val.assignRoles = H().cfg.assignRoles; UI.form({ title: 'SLA & assignment rules', icon: 'clock', fields: f, values: val, onSubmit: (v) => { PRI.forEach((p) => { s[p] = { respond: Number(v[p + 'r']) || 1, resolve: Number(v[p + 'x']) || 4 }; }); H().cfg.autoAssign = v.autoAssign; H().cfg.assignRoles = (v.assignRoles && v.assignRoles.length) ? v.assignRoles : ['Technician']; S.emit(); UI.toast('Saved — applies to new requests'); } }); });
   UI.on('route.edit', () => UI.form({ title: 'Category → group routing', sub: 'One per line: Category = Group', icon: 'link', fields: [{ k: 't', label: 'Rules', type: 'textarea', full: true }], values: { t: cats().map((c) => c + ' = ' + (H().cfg.routes[c] || '')).join('\n') }, onSubmit: (v) => { const r = {}; v.t.split('\n').forEach((l) => { const [c, g] = l.split('=').map((x) => x.trim()); if (c && g) { if (!H().cfg.groups.includes(g)) throw new Error('Unknown group: ' + g); r[c] = g; } }); H().cfg.routes = r; S.emit(); UI.toast('Routing saved'); } }));
   pages.itsmadmin = {
-    title: 'ITSM Admin', crumb: 'Technicians, groups, categories, SLA, routing and masters', icon: 'cog', color: '#5b8def', group: 'Helpdesk',
+    title: 'ITIL Practices Administration', crumb: 'Technicians, groups, categories, SLA, routing and masters', icon: 'cog', color: '#5b8def', group: 'Helpdesk',
     render() {
       const h = H(); const tab = UI.curTab('itsmadmin', 'tech'); const tabs = UI.tabs('itsmadmin', [{ id: 'tech', label: 'Technicians', count: h.techs.length }, { id: 'cat', label: 'Categories' }, { id: 'sla', label: 'SLA & routing' }, { id: 'lists', label: 'Masters' }]); let body;
       if (tab === 'tech') body = UI.table({ id: 'tc', rows: () => h.techs.map((t) => Object.assign({ open: h.requests.filter((r) => r.tech === t.name && isOpen(r)).length }, t)), sort: 'id', text: (r) => [r.name, r.group, r.email].join(' '), filters: [{ k: 'group', label: 'Group', options: () => h.cfg.groups }, { k: 'role', label: 'Role', options: ['Technician', 'Group Lead', 'Administrator', 'Vendor / External'] }], cols: [idc('techs'), { k: 'name', label: 'Name', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'email', label: 'Email' }, { k: 'group', label: 'Group' }, { k: 'role', label: 'Role' }, { k: 'level', label: 'Level' }, { k: 'open', label: 'Open requests', num: true }, { k: 'active', label: 'Active', render: (r) => P(r.active === 'Yes' ? 'Published' : 'Expired') }], actions: (r) => ea('techs', r.id), toolbar: tb('techs', 'Add technician') });
@@ -422,7 +436,7 @@ Other: General Query, Feedback`;
     <div class="grid g2 mt"><div class="card"><h3>Hours logged by technician</h3>${bars(techNames().map((n) => [n, +R.reduce((s, r) => s + r.work.filter((w) => w.by === n).reduce((a, w) => a + Number(w.hours || 0), 0), 0).toFixed(1), C.violet]).filter((x) => x[1]))}</div><div class="card"><h3>SLA breaches by priority</h3>${bars(PRI.map((p) => [p, R.filter((r) => r.priority === p && ['Breached', 'Overdue'].includes(slaState(r))).length, C.coral]))}</div></div>`;
   }
   pages.itsm = {
-    title: 'Helpdesk Home', crumb: 'ITSM dashboard — requests, SLA, workload, approvals and follow-ups', icon: 'spark', color: '#2f6bff', group: 'Helpdesk',
+    title: 'Service Desk Dashboard', crumb: 'ITSM dashboard — requests, SLA, workload, approvals and follow-ups', icon: 'spark', color: '#2f6bff', group: 'Helpdesk',
     render() {
       const tab = UI.curTab('itsm', 'dash'); const ap = pendingApprovals(); const tabs = UI.tabs('itsm', [{ id: 'dash', label: 'Dashboard' }, { id: 'apr', label: 'My approvals', count: ap.length }, { id: 'rep', label: 'Reports' }]);
       const top = `<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn" data-act="rq.new">${ic('plus')}New request</button><button class="btn ghost" data-act="pi.new">${ic('plus')}New follow-up item</button></div>`;

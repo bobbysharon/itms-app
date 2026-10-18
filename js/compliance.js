@@ -98,7 +98,7 @@
 
   /* ==================== END-TO-END WORKFLOW PAGE ==================== */
   pages.workflow = {
-    title: 'IT Workflow', crumb: 'End-to-end operating model — from plan to dispose, every stage linked live', icon: 'spark', color: '#2f6bff', group: 'Governance',
+    title: 'IT Operating Model', crumb: 'End-to-end operating model — from plan to dispose, every stage linked live', icon: 'spark', color: '#2f6bff', group: 'Governance',
     render() {
       const d = db(); const s = L.stats();
       const openPR = d.prs.filter((p) => ['Open', 'Partially Ordered'].includes(L.prStatus(p))).length;
@@ -129,7 +129,7 @@
 
   /* ==================== COMPLIANCE PAGE ==================== */
   pages.compliance = {
-    title: 'Policy Compliance', crumb: 'Pick a framework, confirm, then assess each control one-by-one with owner, actions and evidence', icon: 'shield', color: '#2f6bff', group: 'Governance',
+    title: 'Policy & Control Assessment', crumb: 'Pick a framework, confirm, then assess each control one-by-one with owner, actions and evidence', icon: 'shield', color: '#2f6bff', group: 'Governance',
     render() {
       const c = comp(); const d = db();
       // Step 1: choose framework

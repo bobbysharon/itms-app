@@ -636,7 +636,7 @@
   });
   UI.on('esc.close', (el) => { const e = D().escalations.find((x) => x.id === el.dataset.id); e.status = 'Closed'; S.emit(); });
   pages.automation = {
-    title: 'Automation & SLA', crumb: 'Business rules · auto-assign · smart notifications · escalations', icon: 'spark', color: '#1d4ed8',
+    title: 'Automation & Escalations', crumb: 'Business rules · auto-assign · smart notifications · escalations', icon: 'spark', color: '#1d4ed8',
     render() {
       const d = D(); const tab = UI.curTab('automation', 'rules');
       let body = '';
@@ -657,7 +657,7 @@
   UI.on('lc.del', (el) => { if (!ITMS.canDelete()) return UI.toast('Only Administrator can delete records', 'err'); const [kind, i] = el.dataset.id.split('|'); D().lifecycles[kind].splice(+i, 1); S.emit(); });
   UI.on('lc.mv', (el) => { const [kind, i, dir] = el.dataset.id.split('|'); const a = D().lifecycles[kind]; const j = +i + (+dir); if (j < 0 || j >= a.length) return; [a[+i], a[j]] = [a[j], a[+i]]; S.emit(); });
   pages.lifecycles = {
-    title: 'Lifecycle Designer', crumb: 'Request · problem · change lifecycles (drag-free ordering)', icon: 'refresh', color: '#2f6bff',
+    title: 'Workflow State Design', crumb: 'Request · problem · change lifecycles (drag-free ordering)', icon: 'refresh', color: '#2f6bff',
     render() {
       const lc = D().lifecycles;
       const col = (kind, title) => `<div class="card"><h3>${title}</h3>${lc[kind].map((s, i) => `<div style="display:flex;align-items:center;gap:6px;margin:5px 0"><span class="pill p-violet">${i + 1}</span><b>${esc(s)}</b><span style="margin-left:auto"></span><button class="ibtn" data-act="lc.mv" data-id="${kind}|${i}|-1">▲</button><button class="ibtn" data-act="lc.mv" data-id="${kind}|${i}|1">▼</button>${(typeof ITMS!=='undefined'&&ITMS.canDelete&&ITMS.canDelete())?'<button class="ibtn" style="--c:#ff5c6c" data-act="lc.del" data-id="'+kind+'|'+i+'" title="Delete (Admin only)">'+ic('trash')+'</button>':''}</div>`).join('')}<button class="btn sm ghost" data-act="lc.add" data-k="${kind}">${ic('plus')}Add status</button></div>`;
@@ -690,7 +690,7 @@
     UI.form({ title: `New record — ${a.name}`, icon: 'plus', fields: fs.map((f) => ({ k: f, label: f })), onSubmit: (v) => { a.records.push({ ...v, _at: now() }); S.emit(); } });
   });
   pages.templates = {
-    title: 'Templates & Apps', crumb: 'Custom request templates · custom actions · low-code apps', icon: 'filePlus', color: '#00a8e8',
+    title: 'Request Templates & Apps', crumb: 'Custom request templates · custom actions · low-code apps', icon: 'filePlus', color: '#00a8e8',
     render() {
       const d = D(); const tab = UI.curTab('templates', 'tpl');
       let body = '';
@@ -800,7 +800,7 @@
     UI.form({ title: tool, icon: 'wrench', fields: [{ k: 'asset', label: 'Workstation', type: 'select', options: () => db().hw.filter((a) => a.status === 'In Use').map((a) => ({ v: a.id, l: `${a.id} · ${a.desc}` })), req: true }], onSubmit: (v) => { D().toollog.unshift({ id: nid('tl', 'TOOL-', 3), tool, asset: v.asset, by: curRole(), at: now(), result: 'Completed (simulated session recorded for audit)' }); S.emit(); UI.toast(`${tool} session recorded`); } });
   });
   pages.discovery = {
-    title: 'Discovery & Catalog', crumb: 'Asset discovery · tracking · inventory catalog · remote tools', icon: 'search', color: '#2f6bff',
+    title: 'Discovery & Inventory', crumb: 'Asset discovery · tracking · inventory catalog · remote tools', icon: 'search', color: '#2f6bff',
     render() {
       const d = D(); const tab = UI.curTab('discovery', 'map');
       let body = '';
@@ -931,7 +931,7 @@
   };
   UI.on('instances.edit', (el) => { const r = D().instances.find((x) => x.id === el.dataset.id); if (!r) return; UI.form({ title: 'Edit ' + r.id, icon: 'spark', fields: [{ k: 'name', label: 'Desk name', req: true }, { k: 'dept', label: 'Department' }, { k: 'status', label: 'Status', type: 'select', options: ['Draft', 'Live'], blank: false }], values: r, onSubmit: (v) => { Object.assign(r, v); r.portal = r.status === 'Live' ? 'Yes' : 'No'; S.emit(); } }); });
   pages.surveys = {
-    title: 'Surveys', crumb: 'General + request-linked surveys with reports', icon: 'trend', color: '#00a8e8',
+    title: 'Experience Surveys', crumb: 'General + request-linked surveys with reports', icon: 'trend', color: '#00a8e8',
     render() {
       const d = D();
       const rep = d.surveys.map((s) => { const rs = d.responses.filter((r) => r.surveyId === s.id); const avg = rs.length ? (rs.reduce((a, r) => a + (+r.score || 0), 0) / rs.length) : 0; return { s, n: rs.length, avg }; });
@@ -977,7 +977,7 @@
   UI.on('dev.new', () => { UI.form({ title: 'Register mobile device', icon: 'plus', fields: [{ k: 'user', label: 'User', type: 'select', options: () => techs(), req: true }, { k: 'platform', label: 'Platform', type: 'select', options: ['iOS', 'Android', 'Windows'], blank: false }], onSubmit: (v) => { v.id = nid('dv2', 'MOB-', 3); v.lastSeen = now(); D().devices.unshift(v); S.emit(); } }); });
   UI.on('dev.del', async (el) => { if (!ITMS.canDelete()) return UI.toast('Only Administrator can delete records', 'err'); if (await UI.confirm('Delete this device registration?', 'Delete', true)) { D().devices = D().devices.filter((x) => x.id !== el.dataset.id); S.emit(); UI.toast('Device deleted'); } });
   pages.esm = {
-    title: 'Enterprise (ESM)', crumb: 'Unified platform · rapid-start desks · single portal · mobile', icon: 'spark', color: '#00c2ff',
+    title: 'Multi-Department Service Desks', crumb: 'Unified platform · rapid-start desks · single portal · mobile', icon: 'spark', color: '#00c2ff',
     render() {
       const d = D(); const tab = UI.curTab('esm', 'desk');
       let body = '';

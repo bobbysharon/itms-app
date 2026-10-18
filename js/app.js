@@ -2,18 +2,19 @@
 (function () {
   const ITMS = window.ITMS; const L = ITMS.logic; const UI = ITMS.ui; const S = ITMS.store;
   const { esc, icon: ic } = UI;
-  ITMS.BUILD = '2026-10-17 · Item Master + AMC/Contract finance';
+  ITMS.BUILD = '2026-10-18 · ITIL 4 practices structure';
   try { console.info('%cITMS build ' + ITMS.BUILD, 'color:#2f6bff;font-weight:bold'); } catch (e) { /* ignore */ }
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
     { id: 'dashboard', single: true },
     {
-      id: 'helpdesk', title: 'Service Desk', icon: 'bell', color: '#2f6bff', sections: [
-        { title: 'Operate', items: ['itsm', 'tickets', 'portal'] },
-        { title: 'ITIL workflows', items: ['itil', 'cmdb', 'lifecycles', 'automation'] },
-        { title: 'Intake & fulfilment', items: ['mailticket', 'pmtasks', 'templates', 'kb'] },
-        { title: 'Plan & measure', items: ['projects', 'scheduler', 'surveys', 'reportsplus'] },
-        { title: 'Admin', items: ['itsmadmin', 'esm'] },
+      id: 'itil', title: 'ITIL Practices', icon: 'spark', color: '#2f6bff', sections: [
+        { title: 'Service design & catalogue', items: ['catalog', 'cmdb', 'assetmgmt', 'knowledge'] },
+        { title: 'Service operations', items: ['sr', 'incidents', 'majorinc', 'problems', 'monitoring'] },
+        { title: 'Change & deployment', items: ['changes', 'releases', 'deployment'] },
+        { title: 'Service assurance', items: ['slm', 'availability', 'continuity', 'security'] },
+        { title: 'Governance & improvement', items: ['supplier', 'improvement', 'projects'] },
+        { title: 'Service desk operations', items: ['itsm', 'tickets', 'portal', 'mailticket', 'templates', 'pmtasks', 'scheduler', 'surveys', 'chat', 'lifecycles', 'reportsplus', 'itsmadmin', 'esm'] },
       ],
     },
     {
@@ -113,7 +114,7 @@
     } catch (e) { return ''; }
   }
   async function runDiag() {
-    const files = ['js/seed.js', 'js/core.js', 'js/ui.js', 'js/pages-1.js', 'js/pages-2.js', 'js/pages-3.js', 'js/pages-4.js', 'js/connectors.js', 'js/workflow.js', 'js/budget.js', 'js/compliance.js', 'js/itsm.js', 'js/sdp-plus.js', 'js/cmdb.js', 'js/reports.js', 'js/auth.js', 'js/testdata.js', 'js/app.js'];
+    const files = ['js/seed.js', 'js/core.js', 'js/ui.js', 'js/pages-1.js', 'js/pages-2.js', 'js/pages-3.js', 'js/pages-4.js', 'js/connectors.js', 'js/workflow.js', 'js/budget.js', 'js/compliance.js', 'js/itsm.js', 'js/sdp-plus.js', 'js/cmdb.js', 'js/itil-practices.js', 'js/reports.js', 'js/auth.js', 'js/testdata.js', 'js/app.js'];
     const rows = [];
     for (const f of files) {
       try {
