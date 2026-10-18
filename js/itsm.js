@@ -299,6 +299,7 @@ General: General Query, Feedback, Complaint, Suggestion`;
     if (st === 'Resolved') foot += b('close', 'Close', '');
     if (!isOpen(r)) foot += b('reopen', 'Reopen');
     if (isOpen(r)) foot += b('cancel', 'Cancel');
+    if (r.asset) foot += b('defect', 'Mark asset defective') + b('replace', 'Issue replacement') + b('raisepr', 'Raise PR for replacement');
     foot += b('assist', 'Assist') + b('edit', 'Edit') + b('prb', 'Raise problem') + b('chg', 'Raise change') + (r.resolution ? b('kb', 'Save as solution') : '');
     box.innerHTML = `<header><span class="gem" style="width:44px;height:44px;background:${C[pc[r.priority]] || C.blue}">${ic('bell')}</span><div><h3>${esc(r.id)} · ${esc(r.subject)}</h3><small>${esc(e.name || '')} · ${esc(r.category)} · created ${fdt(r.created)}</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${P(r.status)} ${P(r.priority)} ${P(sla)} <span class="pill p-violet">${esc(r.level)}</span> <span class="pill p-blue">${esc(r.type)}</span></div><div class="tabs">${T.map((t) => `<a class="${tab === t ? 'on' : ''}" data-t="${t}">${lab[t]}</a>`).join('')}</div>${p}</div><footer style="flex-wrap:wrap;gap:6px">${foot}</footer>`;
   }
@@ -317,6 +318,9 @@ General: General Query, Feedback, Complaint, Suggestion`;
     else if (k === 'close') { r.status = 'Closed'; r.closedAt = now(); hist(r, 'Closed'); done('Closed'); }
     else if (k === 'reopen') { r.status = 'In Progress'; r.resolvedAt = ''; r.closedAt = ''; r.reopened = (r.reopened || 0) + 1; hist(r, 'Reopened'); done('Reopened'); }
     else if (k === 'cancel') UI.confirm('Cancel this request?', 'Cancel request', true).then((y) => { if (y) { r.status = 'Cancelled'; hist(r, 'Cancelled'); done(); } });
+    else if (k === 'defect') { if (r.asset) { try { L.setAssetState(r.asset, 'Defective', 'Reported defective via ' + r.id); hist(r, 'Asset ' + r.asset + ' marked defective'); done('Asset marked defective'); } catch (e) { UI.toast(e.message, 'err'); } } }
+    else if (k === 'replace') { if (r.asset) { UI.close(cur.ov); setTimeout(() => { try { UI.acts['mv.new']({ dataset: { type: 'Issue', emp: r.requester, asset: '' } }); } catch (e) { UI.toast(e.message, 'err'); } }, 60); } }
+    else if (k === 'raisepr') { UI.close(cur.ov); setTimeout(() => { try { UI.acts['pr.new'](); } catch (e) { UI.toast(e.message, 'err'); } }, 60); }
     else if (k === 'edit') UI.form({ title: 'Edit ' + r.id, icon: 'edit', fields: reqFields(), deps: reqDeps, values: r, onSubmit: (v) => { Object.assign(r, v); r.priority = prio(r.impact, r.urgency); r.dept = (L.emp(r.requester) || {}).dept || ''; calcDue(r); hist(r, 'Request edited'); done('Saved'); } });
     else if (k === 'assist') openAssist(r);
     else if (k === 'note') UI.form({ title: 'Add to conversation', icon: 'edit', fields: [{ k: 'type', label: 'Type', type: 'select', options: ['Public reply', 'Private note'], blank: false }, { k: 'by', label: 'By', type: 'select', options: () => techNames(), blank: false }, { k: 'text', label: 'Message', type: 'textarea', full: true, req: true }], values: { type: 'Public reply', by: me }, onSubmit: (v) => { r.notes.unshift({ at: now(), type: v.type, by: v.by, text: v.text }); if (v.type === 'Public reply') setFirst(r); hist(r, v.type + ' added by ' + v.by); done(); } });
