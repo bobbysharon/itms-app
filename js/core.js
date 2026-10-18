@@ -30,7 +30,7 @@
     },
     emit() { store.save(); subs.forEach((f) => f()); },
     init() {
-      try { const raw = localStorage.getItem(KEY); if (raw) { db = JSON.parse(raw); if (db && db.company && (db.company.name === 'TAFASEEL GROUP HOLDING' || db.company.name === 'ABC COMPANY')) { db.company.name = 'BOBBY SHARON'; store.save(); } return; } } catch (e) { /* ignore */ }
+      try { const raw = localStorage.getItem(KEY); if (raw) { db = JSON.parse(raw); if (db && db.company && db.company.name !== 'BOBBY SHARON') { db.company.name = 'BOBBY SHARON'; store.save(); } return; } } catch (e) { /* ignore */ }
       db = logic.build('sample');
       store.save();
     },

@@ -183,8 +183,8 @@
       file: 'employees-sample.csv',
       cols: ['no', 'name', 'designation', 'manager', 'doj', 'dol', 'dept', 'location', 'email', 'mobile', 'status', 'role'],
       sample: [
-        ['', 'Ahmed Khan', 'IT Support', 'Bobby Sharon', '2024-01-15', '', 'IT', 'Dubai, UAE', 'ahmed.khan@tafaseel.ae', '971501234567', 'Active', 'Technician'],
-        ['', 'Sara Ali', 'HR Officer', '', '2023-06-01', '', 'Human Resources', 'Abu Dhabi, UAE', 'sara.ali@tafaseel.ae', '971501234568', 'Active', 'Requester'],
+        ['', 'Ahmed Khan', 'IT Support', 'Bobby Sharon', '2024-01-15', '', 'IT', 'Dubai, UAE', 'ahmed.khan@bobbysharon.ae', '971501234567', 'Active', 'Technician'],
+        ['', 'Sara Ali', 'HR Officer', '', '2023-06-01', '', 'Human Resources', 'Abu Dhabi, UAE', 'sara.ali@bobbysharon.ae', '971501234568', 'Active', 'Requester'],
       ],
       run(rows) {
         let created = 0, updated = 0; const errors = [];

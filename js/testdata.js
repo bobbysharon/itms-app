@@ -32,22 +32,22 @@
     const ceo = emps.find((e) => /john smith/i.test(e.name || '')) || emps.find((e) => e.status === 'Active' && e.email) || { name: 'CEO' };
     const ceoName = ceo.name || 'CEO';
     const ROSTER = [
-      ['Layla Haddad', 'Executive Assistant', 'Executive', 'layla.haddad@tafaseel.ae', '2022-03-01', ceoName],
-      ['Tariq Aziz', 'Operations Director', 'Executive', 'tariq.aziz@tafaseel.ae', '2021-06-15', ceoName],
-      ['Priya Nair', 'Accountant', 'Finance', 'priya.nair@tafaseel.ae', '2023-01-10', ceoName],
-      ['Khalid Mansoor', 'Finance Manager', 'Finance', 'khalid.mansoor@tafaseel.ae', '2020-11-01', 'Priya Nair'],
-      ['Ayesha Rahman', 'HR Officer', 'Human Resources', 'ayesha.rahman@tafaseel.ae', '2023-04-12', ceoName],
-      ['Omar Farouk', 'Recruiter', 'Human Resources', 'omar.farouk@tafaseel.ae', '2024-02-01', 'Ayesha Rahman'],
-      ['Vikram Rao', 'System Administrator', 'IT', 'vikram.rao@tafaseel.ae', '2021-09-20', ceoName],
-      ['Nora Salem', 'IT Support Engineer', 'IT', 'nora.salem@tafaseel.ae', '2023-08-14', 'Vikram Rao'],
-      ['Huda Karim', 'Marketing Executive', 'Marketing', 'huda.karim@tafaseel.ae', '2022-07-05', ceoName],
-      ['Chris Dsouza', 'Content Specialist', 'Marketing', 'chris.dsouza@tafaseel.ae', '2024-05-20', 'Huda Karim'],
-      ['Adel Mahmoud', 'Operations Supervisor', 'Operations', 'adel.mahmoud@tafaseel.ae', '2021-12-01', ceoName],
-      ['Rita George', 'Logistics Coordinator', 'Operations', 'rita.george@tafaseel.ae', '2023-10-03', 'Adel Mahmoud'],
-      ['Mona Fawaz', 'Admin Assistant', 'Administration', 'mona.fawaz@tafaseel.ae', '2022-09-11', ceoName],
-      ['Samir Iqbal', 'Facilities Coordinator', 'Administration', 'samir.iqbal@tafaseel.ae', '2023-03-22', 'Mona Fawaz'],
-      ['Faisal Noor', 'Security Officer', 'Security', 'faisal.noor@tafaseel.ae', '2021-05-30', ceoName],
-      ['Dana Khalil', 'CCTV Operator', 'Security', 'dana.khalil@tafaseel.ae', '2024-01-08', 'Faisal Noor'],
+      ['Layla Haddad', 'Executive Assistant', 'Executive', 'layla.haddad@bobbysharon.ae', '2022-03-01', ceoName],
+      ['Tariq Aziz', 'Operations Director', 'Executive', 'tariq.aziz@bobbysharon.ae', '2021-06-15', ceoName],
+      ['Priya Nair', 'Accountant', 'Finance', 'priya.nair@bobbysharon.ae', '2023-01-10', ceoName],
+      ['Khalid Mansoor', 'Finance Manager', 'Finance', 'khalid.mansoor@bobbysharon.ae', '2020-11-01', 'Priya Nair'],
+      ['Ayesha Rahman', 'HR Officer', 'Human Resources', 'ayesha.rahman@bobbysharon.ae', '2023-04-12', ceoName],
+      ['Omar Farouk', 'Recruiter', 'Human Resources', 'omar.farouk@bobbysharon.ae', '2024-02-01', 'Ayesha Rahman'],
+      ['Vikram Rao', 'System Administrator', 'IT', 'vikram.rao@bobbysharon.ae', '2021-09-20', ceoName],
+      ['Nora Salem', 'IT Support Engineer', 'IT', 'nora.salem@bobbysharon.ae', '2023-08-14', 'Vikram Rao'],
+      ['Huda Karim', 'Marketing Executive', 'Marketing', 'huda.karim@bobbysharon.ae', '2022-07-05', ceoName],
+      ['Chris Dsouza', 'Content Specialist', 'Marketing', 'chris.dsouza@bobbysharon.ae', '2024-05-20', 'Huda Karim'],
+      ['Adel Mahmoud', 'Operations Supervisor', 'Operations', 'adel.mahmoud@bobbysharon.ae', '2021-12-01', ceoName],
+      ['Rita George', 'Logistics Coordinator', 'Operations', 'rita.george@bobbysharon.ae', '2023-10-03', 'Adel Mahmoud'],
+      ['Mona Fawaz', 'Admin Assistant', 'Administration', 'mona.fawaz@bobbysharon.ae', '2022-09-11', ceoName],
+      ['Samir Iqbal', 'Facilities Coordinator', 'Administration', 'samir.iqbal@bobbysharon.ae', '2023-03-22', 'Mona Fawaz'],
+      ['Faisal Noor', 'Security Officer', 'Security', 'faisal.noor@bobbysharon.ae', '2021-05-30', ceoName],
+      ['Dana Khalil', 'CCTV Operator', 'Security', 'dana.khalil@bobbysharon.ae', '2024-01-08', 'Faisal Noor'],
     ];
     ROSTER.forEach((x, i) => {
       if (d.employees.some((e) => (e.email || '').toLowerCase() === x[3])) return;
@@ -56,15 +56,15 @@
     const newEmps = ROSTER.map((x) => d.employees.find((e) => (e.email || '').toLowerCase() === x[3])).filter(Boolean);
     /* ---------- employee states for behavior testing (resigned / terminated / inactive) ---------- */
     const STATES = [
-      ['Test Resigned', 'Driver (Resigned)', 'Operations', 'test.resigned@tafaseel.ae', '2021-02-01', 'Left', agoD(30)],
-      ['Test Terminated', 'Guard (Terminated)', 'Security', 'test.terminated@tafaseel.ae', '2022-05-15', 'Left', agoD(60)],
-      ['Test Inactive', 'Coordinator (Inactive)', 'Administration', 'test.inactive@tafaseel.ae', '2023-09-01', 'Inactive', ''],
+      ['Test Resigned', 'Driver (Resigned)', 'Operations', 'test.resigned@bobbysharon.ae', '2021-02-01', 'Left', agoD(30)],
+      ['Test Terminated', 'Guard (Terminated)', 'Security', 'test.terminated@bobbysharon.ae', '2022-05-15', 'Left', agoD(60)],
+      ['Test Inactive', 'Coordinator (Inactive)', 'Administration', 'test.inactive@bobbysharon.ae', '2023-09-01', 'Inactive', ''],
     ];
     STATES.forEach((x) => {
       if (d.employees.some((e) => (e.email || '').toLowerCase() === x[3])) return;
       L.saveEmployee({ name: x[0], designation: x[1], manager: ceo.name || '', doj: x[4], dol: x[6], dept: x[2], location: 'Dubai, UAE', email: x[3], mobile: '', tel: '', ext: '', status: x[5] });
     });
-    const resigned = d.employees.find((e) => e.email === 'test.resigned@tafaseel.ae');
+    const resigned = d.employees.find((e) => e.email === 'test.resigned@bobbysharon.ae');
     if (resigned && !db().hw.some((a) => a.holder === resigned.no)) {
       const ra = L.saveHW({ type: 'Monitor', desc: 'TEST: Monitor still held by resigned staff', purchaseDate: agoD(300), price: 700, condition: 'Fair' });
       L.issueAssets(resigned.no, [ra.id], agoD(200), 'Issued before resignation — tests return/delete guards');
@@ -83,7 +83,7 @@
     const tnames = ['Service Desk Analyst', 'Desktop Engineer', 'Network Engineer', 'System Administrator'];
     h.techs = techSrc.map((e, i) => ({ id: 'TECH-0' + (i + 1), name: e.name, email: e.email || '', group: groups[i % groups.length], role: i === 0 ? 'Administrator' : 'Technician', level: ['Tier 1', 'Tier 2', 'Tier 2', 'Tier 3'][i], empNo: e.no, active: 'Yes' }));
     const TN = (i) => h.techs[i % h.techs.length].name;
-    L.log('System', 'TAFASEEL test data: technicians created');
+    L.log('System', 'BOBBY SHARON test data: technicians created');
 
     /* ---------- vendors (all compliance states) ---------- */
     const V = {};
@@ -283,8 +283,8 @@
       { id: 'PMT-103', title: 'TEST: Paused UPS test', freq: 'Half-Yearly', next: fwdD(90), group: groups[0], desc: '', status: 'Paused' }
     );
     s.inbox.push(
-      { id: 'MAIL-101', from: 'staff@tafaseel.ae', subject: 'TEST: wifi not working on floor 3', body: 'Hi team, wifi keeps dropping since morning.', at: agoH(6), status: 'Unprocessed' },
-      { id: 'MAIL-102', from: 'hr@tafaseel.ae', subject: 'TEST: Password reset please', body: 'Locked out of email.', at: agoH(30), status: 'Converted → ' + t3.id }
+      { id: 'MAIL-101', from: 'staff@bobbysharon.ae', subject: 'TEST: wifi not working on floor 3', body: 'Hi team, wifi keeps dropping since morning.', at: agoH(6), status: 'Unprocessed' },
+      { id: 'MAIL-102', from: 'hr@bobbysharon.ae', subject: 'TEST: Password reset please', body: 'Locked out of email.', at: agoH(30), status: 'Converted → ' + t3.id }
     );
     s.schedules.push(
       { id: 'SCH-101', title: 'TEST: Follow up network outage ticket', kind: 'Request follow-up', date: T(), time: '15:00', owner: TN(2), link: t1.id },
@@ -355,9 +355,9 @@
     s.loans.find((x) => x.id === 'LOAN-102').assetId = loanSpare2.id;
     L.issueAssets(pick(2).no, [loanSpare.id], agoD(5), 'TEST loan 101');
     L.issueAssets(pick(3).no, [loanSpare2.id], agoD(30), 'TEST loan 102');
-    const adLive = { id: 'ADC-901', name: 'TEST DC (SSL)', host: 'dc01.tafaseel.ae', port: '636', enc: 'SSL', baseDN: 'DC=tafaseel,DC=ae', bindUser: 'svc_itms@tafaseel.ae', cert: 'THUMBPRINT-TEST', status: 'Live', lastTest: agoH(5) };
+    const adLive = { id: 'ADC-901', name: 'TEST DC (SSL)', host: 'dc01.bobbysharon.ae', port: '636', enc: 'SSL', baseDN: 'DC=bobbysharon,DC=ae', bindUser: 'svc_itms@bobbysharon.ae', cert: 'THUMBPRINT-TEST', status: 'Live', lastTest: agoH(5) };
     s.adconns.unshift(adLive);
-    const au = (emp, sam, st, groups) => s.adusers.unshift({ id: 'ADU-9' + s.adusers.length, sam, upn: sam + '@tafaseel.ae', empNo: emp.no, ou: 'OU=Users,DC=tafaseel,DC=ae', groups: groups || ['IT Support'], status: st, mustChange: 'No', lastSync: agoD(1) });
+    const au = (emp, sam, st, groups) => s.adusers.unshift({ id: 'ADU-9' + s.adusers.length, sam, upn: sam + '@bobbysharon.ae', empNo: emp.no, ou: 'OU=Users,DC=bobbysharon,DC=ae', groups: groups || ['IT Support'], status: st, mustChange: 'No', lastSync: agoD(1) });
     au(pick(0), 'test.admin', 'Enabled', ['Domain Admins']);
     au(pick(1), 'test.user1', 'Locked', ['IT Support']);
     au(pick(2), 'test.user2', 'Disabled', []);
@@ -368,8 +368,8 @@
     if (hrNew) au(hrNew, hrNew.name.toLowerCase().split(/\s+/).join('.'), 'Enabled', []);
     s.adgroups.push({ id: 'ADG-91', name: 'TEST Distribution', scope: 'Universal', category: 'Distribution', desc: 'Test DL', members: ['test.user1', 'test.user3'] });
     s.gpos.push(
-      { id: 'GPO-91', name: 'TEST Baseline', desc: 'Test hardened baseline', ous: 'OU=Workstations,DC=tafaseel,DC=ae', settings: 'Password length = 12\nScreen lock = 5 min', status: 'Linked', version: 2 },
-      { id: 'GPO-92', name: 'TEST USB Block (enforced)', desc: 'Test removable media', ous: 'OU=Workstations,DC=tafaseel,DC=ae\nOU=Servers,DC=tafaseel,DC=ae', settings: 'Removable storage = Deny', status: 'Enforced', version: 1 }
+      { id: 'GPO-91', name: 'TEST Baseline', desc: 'Test hardened baseline', ous: 'OU=Workstations,DC=bobbysharon,DC=ae', settings: 'Password length = 12\nScreen lock = 5 min', status: 'Linked', version: 2 },
+      { id: 'GPO-92', name: 'TEST USB Block (enforced)', desc: 'Test removable media', ous: 'OU=Workstations,DC=bobbysharon,DC=ae\nOU=Servers,DC=bobbysharon,DC=ae', settings: 'Removable storage = Deny', status: 'Enforced', version: 1 }
     );
     s.devices.push({ id: 'MOB-91', user: TN(0), platform: 'Android', lastSeen: agoH(3) }, { id: 'MOB-92', user: TN(1), platform: 'iOS', lastSeen: agoH(26) });
     s.spaces.push(
@@ -378,10 +378,10 @@
     );
     s.instances.push({ id: 'ESM-TST', name: 'TEST Facilities Desk', dept: 'Facilities', status: 'Draft', catalog: 0, portal: 'No', created: T() });
     s.apps.push({ id: 'APP-91', name: 'TEST Gate Pass', purpose: 'Test visitor passes', fields: 'Visitor, Company, Host', records: [{ Visitor: 'Ahmed', Company: 'ABC', Host: TN(0), _at: agoH(8) }, { Visitor: 'Sara', Company: 'XYZ', Host: TN(1), _at: agoH(30) }], active: 'Yes' });
-    s.mail.smtp.unshift({ id: 'SMTP-91', name: 'TEST SMTP', host: 'smtp.tafaseel.ae', port: '587', enc: 'STARTTLS', user: 'servicedesk@tafaseel.ae', pass: '', fromAddr: 'servicedesk@tafaseel.ae', fromName: 'TAFASEEL Service Desk', status: 'Live', lastTest: agoH(2) });
-    s.mail.inbound.unshift({ id: 'INBOX-91', name: 'TEST support mailbox', type: 'IMAP', host: 'mail.tafaseel.ae', port: '993', ssl: 'Yes', user: 'support@tafaseel.ae', pass: '', box: 'INBOX', status: 'Live' });
-    s.mail.desk = 'support@tafaseel.ae';
-    s.mail.outbox.unshift({ id: 'EM-901', at: agoH(25), to: [pick(1).email || 'user@tafaseel.ae'], ticketId: t3.id, kind: 'resolved', subject: `[${t3.id}] ${t3.subject} — resolved`, body: 'TEST: resolution email already dispatched.', status: 'Sent', sentAt: agoH(24) });
+    s.mail.smtp.unshift({ id: 'SMTP-91', name: 'TEST SMTP', host: 'smtp.bobbysharon.ae', port: '587', enc: 'STARTTLS', user: 'servicedesk@bobbysharon.ae', pass: '', fromAddr: 'servicedesk@bobbysharon.ae', fromName: 'BOBBY SHARON Service Desk', status: 'Live', lastTest: agoH(2) });
+    s.mail.inbound.unshift({ id: 'INBOX-91', name: 'TEST support mailbox', type: 'IMAP', host: 'mail.bobbysharon.ae', port: '993', ssl: 'Yes', user: 'support@bobbysharon.ae', pass: '', box: 'INBOX', status: 'Live' });
+    s.mail.desk = 'support@bobbysharon.ae';
+    s.mail.outbox.unshift({ id: 'EM-901', at: agoH(25), to: [pick(1).email || 'user@bobbysharon.ae'], ticketId: t3.id, kind: 'resolved', subject: `[${t3.id}] ${t3.subject} — resolved`, body: 'TEST: resolution email already dispatched.', status: 'Sent', sentAt: agoH(24) });
 
     /* ---------- budgets reseed + compliance demo ---------- */
     d.budgets = []; d.budgetSeeded = false;
@@ -397,7 +397,7 @@
     h.seq.releases = h.releases.length; h.seq.solutions = h.solutions.length; h.seq.catalog = h.catalog.length; h.seq.news = h.news.length;
     /* ---------- financial integration: GL, vouchers, invoices, payments ---------- */
     buildFinancials();
-    L.log('System', 'TAFASEEL full test data loaded (employees kept)');
+    L.log('System', 'BOBBY SHARON full test data loaded (employees kept)');
     L.log('Finance', 'Financial data loaded: ' + s.fin.jv.length + ' JVs, ' + s.fin.invoices.length + ' invoices, ' + s.fin.payments.length + ' payments', 'FIN');
     S.emit();
     UI.toast('Test data ready — every module, status and type covered with financials');
