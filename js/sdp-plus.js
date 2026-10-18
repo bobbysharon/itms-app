@@ -189,6 +189,7 @@
   const techs = () => (H() && H().techs ? H().techs.filter((t) => t.active === 'Yes').map((t) => t.name) : []);
   const groups = () => (H() && H().cfg ? H().cfg.groups : ['Service Desk (L1)']);
   const cats = () => { try { const t = H().cfg.catText.split('\n').map((l) => l.trim().split(':')[0].split('>')[0].trim()).filter(Boolean); return [...new Set(t)]; } catch (e) { return ['General']; } };
+  const IMP = ['Low', 'Medium', 'High'], URG = ['Low', 'Normal', 'High', 'Urgent'];
   const empOpts = () => db().employees.filter((e) => e.status === 'Active' && !e.sys).map((e) => ({ v: e.no, l: `${e.name} (${e.no})` }));
   const prioOf = (i, u) => { const I = ['Low', 'Medium', 'High'].indexOf(i), U = ['Low', 'Normal', 'High', 'Urgent'].indexOf(u); const s = I + U; return s >= 5 ? 'Critical' : s === 4 ? 'High' : s >= 2 ? 'Medium' : 'Low'; };
 
