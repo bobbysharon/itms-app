@@ -11,11 +11,10 @@
     {
       id: 'itil', title: 'ITIL Practices', icon: 'spark', color: '#2f6bff', sections: [
         { title: 'Service design & catalogue', items: ['catalog', 'cmdb', 'assetmgmt', 'knowledge'] },
-        { title: 'Service operations', items: ['sr', 'incidents', 'majorinc', 'problems', 'monitoring'] },
-        { title: 'Change & deployment', items: ['changes', 'releases', 'deployment'] },
-        { title: 'Service assurance', items: ['slm', 'availability', 'continuity', 'security'] },
+        { title: 'Service operations', items: ['sr', 'incidents', 'majorinc', 'problems', 'monitoring', 'portal', 'chat', 'mailticket', 'templates', 'itsm'] },
+        { title: 'Change & deployment', items: ['changes', 'releases', 'deployment', 'lifecycles', 'pmtasks'] },
+        { title: 'Service assurance', items: ['slm', 'availability', 'continuity', 'security', 'surveys', 'automation'] },
         { title: 'Governance & improvement', items: ['supplier', 'improvement', 'projects'] },
-        { title: 'Service desk operations', items: ['itsm', 'tickets', 'portal', 'mailticket', 'templates', 'pmtasks', 'scheduler', 'surveys', 'chat', 'lifecycles', 'reportsplus', 'itsmadmin', 'esm'] },
       ],
     },
     {
@@ -43,12 +42,12 @@
     },
     {
       id: 'govern', title: 'Govern & Compliance', icon: 'shield', color: '#3b82f6', sections: [
-        { title: 'Govern', items: ['workflow', 'budget', 'compliance', 'archiving'] },
+        { title: 'Govern', items: ['workflow', 'budget', 'compliance', 'archiving', 'reportsplus', 'scheduler', 'esm'] },
       ],
     },
     {
       id: 'admin', title: 'Administration', icon: 'cog', color: '#5b8def', sections: [
-        { title: 'Configure', items: ['masters', 'sites', 'integrations', 'settings'] },
+        { title: 'Configure', items: ['masters', 'sites', 'integrations', 'settings', 'itsmadmin'] },
       ],
     },
   ];
