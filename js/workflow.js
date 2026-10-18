@@ -319,7 +319,7 @@
     render() {
       const d = db(); const tab = UI.curTab('integrations', 'sys');
       const tabs = UI.tabs('integrations', [{ id: 'sys', label: 'Systems', count: d.systems.length }, { id: 'acc', label: 'Accounts', count: d.accounts.length }, { id: 'log', label: 'Activity log', count: d.provLog.length }]); let body;
-      if (tab === 'sys') body = `${UI.table({ id: 'sys', rows: () => d.systems, sort: 'id', text: (r) => [r.name, r.kind].join(' '), cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'name', label: 'System', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'kind', label: 'Type' }, { k: 'idRule', label: 'ID format', render: (r) => esc((ID_RULES.find((x) => x.v === r.idRule) || {}).l || r.idRule) }, { k: 'tpl', label: 'Connector', val: (r) => (CONN().get(r.tpl) || {}).name, render: (r) => esc((CONN().get(r.tpl) || {}).name || r.tpl) }, { k: 'mode', label: 'Method', render: (r) => pill(r.mode, ['Webhook', 'REST API', 'SCIM 2.0'].includes(r.mode) ? 'blue' : OFFLINE.includes(r.mode) ? 'amber' : 'violet') }, { k: 'url', label: 'Endpoint', val: (r) => epOf(r), render: (r) => `<small class="mono">${esc(epOf(r))}</small>` }, { k: 'enabled', label: 'In one-click', render: (r) => pill(r.enabled, r.enabled === 'Yes' ? 'mint' : 'amber') }, { k: 'n', label: 'Active IDs', num: true, val: (r) => d.accounts.filter((a) => a.sysId === r.id && a.status === 'Active').length }, { k: 'pn', label: 'Pending', num: true, val: (r) => pendingOf(r.id).length }], actions: (r) => `${(CONN().get(r.tpl) || {}).test ? `<button class="ibtn" style="--c:#10d9a0" title="Test connection" data-act="sys.test" data-id="${r.id}">${ic('refresh')}</button>` : ''}${['File / script export', 'Email request'].includes(r.mode) ? `<button class="ibtn" style="--c:#00c2ff" title="Export pending requests" data-act="sys.export" data-id="${r.id}">${ic('download')}</button>` : ''}<button class="ibtn" data-act="sys.edit" data-id="${r.id}">${ic('edit')}</button><button class="ibtn" style="--c:#ff5c6c" data-act="sys.del" data-id="${r.id}">${ic('trash')}</button>`, toolbar: `<button class="btn" data-act="sys.new">${ic('plus')}Add system</button><button class="btn ghost" data-act="acc.bulk">${ic('key')}Register all active employees</button>` })}`;
+      if (tab === 'sys') body = `${UI.table({ id: 'sys', rows: () => d.systems, sort: 'id', text: (r) => [r.name, r.kind].join(' '), cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'name', label: 'System', render: (r) => `<b>${esc(r.name)}</b>` }, { k: 'kind', label: 'Type' }, { k: 'idRule', label: 'ID format', render: (r) => esc((ID_RULES.find((x) => x.v === r.idRule) || {}).l || r.idRule) }, { k: 'tpl', label: 'Connector', val: (r) => (CONN().get(r.tpl) || {}).name, render: (r) => esc((CONN().get(r.tpl) || {}).name || r.tpl) }, { k: 'mode', label: 'Method', render: (r) => pill(r.mode, ['Webhook', 'REST API', 'SCIM 2.0'].includes(r.mode) ? 'blue' : OFFLINE.includes(r.mode) ? 'amber' : 'violet') }, { k: 'url', label: 'Endpoint', val: (r) => epOf(r), render: (r) => `<small class="mono">${esc(epOf(r))}</small>` }, { k: 'enabled', label: 'In one-click', render: (r) => pill(r.enabled, r.enabled === 'Yes' ? 'mint' : 'amber') }, { k: 'n', label: 'Active IDs', num: true, val: (r) => d.accounts.filter((a) => a.sysId === r.id && a.status === 'Active').length }, { k: 'pn', label: 'Pending', num: true, val: (r) => pendingOf(r.id).length }], actions: (r) => `${(CONN().get(r.tpl) || {}).test ? `<button class="ibtn" style="--c:#10d9a0" title="Test connection" data-act="sys.test" data-id="${r.id}">${ic('refresh')}</button>` : ''}${['File / script export', 'Email request'].includes(r.mode) ? `<button class="ibtn" style="--c:#00c2ff" title="Export pending requests" data-act="sys.export" data-id="${r.id}">${ic('download')}</button>` : ''}<button class="ibtn" data-act="sys.edit" data-id="${r.id}">${ic('edit')}</button>${(typeof ITMS!=='undefined'&&ITMS.canDelete&&ITMS.canDelete())?'<button class="ibtn" style="--c:#ff5c6c" data-act="sys.del" data-id="'+r.id+'" title="Delete (Admin only)">'+ic('trash')+'</button>':''}`, toolbar: `<button class="btn" data-act="sys.new">${ic('plus')}Add system</button><button class="btn ghost" data-act="acc.bulk">${ic('key')}Register all active employees</button>` })}`;
       else if (tab === 'acc') body = UI.table({ id: 'acc', rows: () => d.accounts, sort: 'id', dir: -1, text: (r) => [r.accountId, L.empName(r.empNo), (sysOf(r.sysId) || {}).name].join(' '), filters: [{ k: 'status', label: 'Status', options: ['Active', 'Pending', 'Disable pending', 'Failed', 'Disabled'] }, { k: 'sysId', label: 'System', options: () => d.systems.map((s) => ({ v: s.id, l: s.name })) }], cols: [{ k: 'id', label: 'ID', mono: true }, { k: 'emp', label: 'Employee', val: (r) => L.empName(r.empNo), render: (r) => `<a class="link" data-act="emp.view" data-id="${r.empNo}">${esc(L.empName(r.empNo))}</a>` }, { k: 'sys', label: 'System', val: (r) => (sysOf(r.sysId) || {}).name }, { k: 'accountId', label: 'Account ID', mono: true }, { k: 'status', label: 'Status', render: (r) => pill(r.status, r.status === 'Active' ? 'mint' : r.status === 'Failed' ? 'coral' : r.status === 'Disabled' ? 'violet' : 'amber') }, { k: 'created', label: 'Created', render: (r) => fmt(r.created) }, { k: 'disabled', label: 'Disabled', render: (r) => fmt(r.disabled) }, { k: 'msg', label: 'Result' }], actions: (r) => (r.status === 'Failed' ? `<button class="btn xs ghost" data-act="acc.retry" data-id="${r.id}">Retry</button>` : /pending/i.test(r.status) ? `<button class="btn xs" data-act="acc.done" data-id="${r.id}">Mark done</button>` : r.status === 'Active' ? `<button class="btn xs ghost" data-act="acc.dis" data-id="${r.id}">Disable</button>` : '') });
       else body = UI.table({ id: 'plog', rows: () => d.provLog.map((x, i) => Object.assign({ n: i }, x)), sort: 'n', text: (r) => [r.accountId, L.empName(r.empNo), r.action].join(' '), cols: [{ k: 'at', label: 'When', render: (r) => esc(r.at.replace('T', ' ').slice(0, 16)) }, { k: 'emp', label: 'Employee', val: (r) => L.empName(r.empNo) }, { k: 'sys', label: 'System', val: (r) => (sysOf(r.sysId) || {}).name }, { k: 'action', label: 'Action' }, { k: 'accountId', label: 'Account ID', mono: true }, { k: 'ok', label: 'Result', val: (r) => (r.ok ? 'OK' : 'Failed'), render: (r) => pill(r.ok ? 'OK' : 'Failed', r.ok ? 'mint' : 'coral') }, { k: 'msg', label: 'Detail' }] });
       return `<div class="card">${tabs}${body}</div>`;
@@ -356,22 +356,105 @@
     if (def.type === 'email' && c.to) location.href = 'mailto:' + c.to + '?' + (c.cc ? 'cc=' + encodeURIComponent(c.cc) + '&' : '') + 'subject=' + encodeURIComponent((c.prefix || '[ITMS]') + ' ' + sys.name + ' — ' + list.length + ' request(s)') + '&body=' + encodeURIComponent(text.slice(0, 1500) + (text.length > 1500 ? '\n…(full list in the downloaded file)' : ''));
     if (await UI.confirm(`<b>${list.length}</b> request(s) exported to <span class="mono">${esc(fname)}</span>. Mark them as done now? (You can also do it later per account.)`, 'Mark all done')) list.forEach((a) => UI.acts['acc.done']({ dataset: { id: a.id } }));
   });
-  UI.on('sys.del', async (el) => { const s = sysOf(el.dataset.id); if (db().accounts.some((a) => a.sysId === s.id && a.status !== 'Disabled')) return UI.toast('Disable its active accounts first', 'err'); if (await UI.confirm(`Delete <b>${esc(s.name)}</b>?`, 'Delete', true)) { db().systems = db().systems.filter((x) => x.id !== s.id); S.emit(); } });
+  UI.on('sys.del', async (el) => { if (!ITMS.canDelete()) return UI.toast('Only Administrator can delete records', 'err'); const s = sysOf(el.dataset.id); if (db().accounts.some((a) => a.sysId === s.id && a.status !== 'Disabled')) return UI.toast('Disable its active accounts first', 'err'); if (await UI.confirm(`Delete <b>${esc(s.name)}</b>?`, 'Delete', true)) { db().systems = db().systems.filter((x) => x.id !== s.id); S.emit(); } });
 
   pages.masters = {
     title: 'Masters', crumb: 'Single source for every dropdown — edit here and all forms follow', icon: 'tag', color: '#5b8def', group: 'Masters',
     render() {
-      const d = db(); const card = (m) => { const vals = d.lists[m.key] || []; return `<div class="card"><h3><span class="pip" style="--c:#ffb020"></span>${m.title}<button class="btn xs" style="margin-left:auto" data-act="ms.edit" data-key="${m.key}">${ic('edit')}Edit</button></h3><small style="color:var(--muted)">Feeds: ${m.note}</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${vals.map((v) => `<span class="pill p-blue">${esc(v)} <small>${m.used(v)}</small></span>`).join('') || '<span style="color:var(--muted)">Empty</span>'}</div></div>`; };
-      return `<div class="grid g2 mt">${MASTERS.map(card).join('')}</div>`;
+      const d = db(); const tab = UI.curTab('masters', 'lists');
+      const card = (m) => { const vals = d.lists[m.key] || []; return `<div class="card"><h3><span class="pip" style="--c:#ffb020"></span>${m.title}<button class="btn xs" style="margin-left:auto" data-act="ms.edit" data-key="${m.key}">${ic('edit')}Edit</button></h3><small style="color:var(--muted)">Feeds: ${m.note}</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${vals.map((v) => `<span class="pill p-blue">${esc(v)} <small>${m.used(v)}</small></span>`).join('') || '<span style="color:var(--muted)">Empty</span>'}</div></div>`; };
+      const listMasters = `<div class="grid g2">${MASTERS.map(card).join('')}</div>`;
+      const uomMaster = `<div class="card"><h3><span class="pip" style="--c:#10d9a0"></span>Unit of Measurement (UOM)<button class="btn xs" style="margin-left:auto" data-act="ms.uom">${ic('edit')}Edit</button></h3><small style="color:var(--muted)">Feeds: Consumables → UOM · Purchase Orders → Unit</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${(d.lists.uom || []).map((u) => `<span class="pill p-mint">${esc(u.name || u)} <small>${esc(u.code || '')}</small></span>`).join('') || '<span style="color:var(--muted)">Empty</span>'}</div></div>`;
+      const vendorMaster = `<div class="card"><h3><span class="pip" style="--c:#2f6bff"></span>Vendors<button class="btn xs" style="margin-left:auto" data-go="#/vendors">${ic('edit')}Manage</button></h3><small style="color:var(--muted)">Feeds: PR/PO vendor dropdown · AMC vendor · Payment terms</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${d.vendors.map((v) => `<span class="pill p-blue">${esc(v.name)} <small>${esc(v.currency || '')} · ${esc((d.terms.find((t) => t.id === v.termsId) || {}).name || '')}</small></span>`).join('') || '<span style="color:var(--muted)">No vendors</span>'}</div></div>`;
+      const assetTypes = `<div class="card"><h3><span class="pip" style="--c:#1d4ed8"></span>Hardware Asset Types<button class="btn xs" style="margin-left:auto" data-act="ms.hwtypes">${ic('edit')}Edit</button></h3><small style="color:var(--muted)">Feeds: Hardware asset type · Subtype · Retention · Prefix</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${(d.lists.hwTypes || []).map((t) => `<span class="pill p-violet">${esc(t.type)} <small>${esc((t.subtypes || []).join(', '))} · ${t.retention}y · ${t.prefix}</small></span>`).join('') || '<span style="color:var(--muted)">Empty</span>'}</div></div>`;
+      const swTypes = `<div class="card"><h3><span class="pip" style="--c:#00a8e8"></span>Software Types<button class="btn xs" style="margin-left:auto" data-act="ms.swtypes">${ic('edit')}Edit</button></h3><small style="color:color:var(--muted)">Feeds: Software asset type · Subtype · Prefix</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${(d.lists.swTypes || []).map((t) => `<span class="pill p-cyan">${esc(t.type)} <small>${esc((t.subtypes || []).join(', '))} · ${t.prefix}</small></span>`).join('') || '<span style="color:var(--muted)">Empty</span>'}</div></div>`;
+      const consTypes = `<div class="card"><h3><span class="pip" style="--c:#00c2ff"></span>Consumable Types<button class="btn xs" style="margin-left:auto" data-act="ms.constypes">${ic('edit')}Edit</button></h3><small style="color:var(--muted)">Feeds: Consumable type · Subtype</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${(d.lists.consTypes || []).map((t) => `<span class="pill p-mint">${esc(t.type)} <small>${esc((t.subtypes || []).join(', '))}</small></span>`).join('') || '<span style="color:var(--muted)">Empty</span>'}</div></div>`;
+      const glMaster = `<div class="card"><h3><span class="pip" style="--c:#ff5c6c"></span>Chart of Accounts (GL)<button class="btn xs" style="margin-left:auto" data-go="#/finance">${ic('edit')}Manage</button></h3><small style="color:var(--muted)">Feeds: Journal vouchers · Budget · Invoices · Payments</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${((d.sdp || {}).fin || {}).coa ? ((d.sdp || {}).fin || {}).coa.map((g) => `<span class="pill p-${g.type === 'Asset' ? 'blue' : g.type === 'Liability' ? 'amber' : g.type === 'Equity' ? 'violet' : g.type === 'Income' ? 'mint' : 'coral'}">${esc(g.code)} ${esc(g.name)}</span>`).join('') : '<span style="color:var(--muted)">No COA — load test data</span>'}</div></div>`;
+      const paymentTerms = `<div class="card"><h3><span class="pip" style="--c:#ffb020"></span>Payment Terms<button class="btn xs" style="margin-left:auto" data-act="pt.edit">${ic('edit')}Edit</button></h3><small style="color:color:var(--muted)">Feeds: Vendor payment terms · PO terms</small><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${(d.terms || []).map((t) => `<span class="pill p-amber">${esc(t.id)} <small>${esc(t.name || '')}</small></span>`).join('') || '<span style="color:color:var(--muted)">Empty</span>'}</div></div>`;
+      return `<div class="card">${UI.tabs('masters', [{ id: 'lists', label: 'List Masters' }, { id: 'uom', label: 'UOM' }, { id: 'vendor', label: 'Vendors' }, { id: 'asset', label: 'Asset Types' }, { id: 'gl', label: 'GL Accounts' }, { id: 'terms', label: 'Payment Terms' }])}<div id="masters-body">${tab === 'lists' ? listMasters : tab === 'uom' ? uomMaster : tab === 'vendor' ? vendorMaster : tab === 'asset' ? assetTypes + swTypes + consTypes : tab === 'gl' ? glMaster : paymentTerms}</div></div>`;
+    },
+    after() {
+      const t = document.getElementById('masters-body');
+      if (t) t.addEventListener('click', (e) => { const go = e.target.closest('[data-go]'); if (go) location.hash = go.dataset.go; });
     },
   };
   UI.on('ms.edit', (el) => {
     const m = MASTERS.find((x) => x.key === el.dataset.key);
+    if (!m) return;
     UI.form({ title: m.title, sub: 'One value per line', icon: 'tag', fields: [{ k: 't', label: 'Values', type: 'textarea', full: true }], values: { t: (db().lists[m.key] || []).join('\n') }, onSubmit: (v) => {
       const nu = L.uniq(v.t.split('\n').map((x) => x.trim()).filter(Boolean)).sort(); const gone = (db().lists[m.key] || []).filter((x) => !nu.includes(x)); const busy = gone.filter((x) => m.used(x));
       if (busy.length) throw new Error(`In use, cannot remove: ${busy.map((x) => `${x} (${m.used(x)})`).join(', ')}`);
       db().lists[m.key] = nu; S.emit(); UI.toast(m.title + ' updated');
     } });
+  });
+  UI.on('ms.uom', () => {
+    UI.form({ title: 'Unit of Measurement', sub: 'One per line: Code — Name', icon: 'tag', fields: [{ k: 't', label: 'UOM values', type: 'textarea', full: true }], values: { t: (db().lists.uom || []).map((u) => `${u.code} — ${u.name}`).join('\n') }, onSubmit: (v) => {
+      const nu = v.t.split('\n').map((x) => x.trim()).filter(Boolean).map((x) => { const [code, name] = x.split('—').map((s) => s.trim()); return { code, name: name || code }; });
+      db().lists.uom = nu; S.emit(); UI.toast('UOM updated');
+    } });
+  });
+  UI.on('ms.hwtypes', () => {
+    UI.form({ title: 'Hardware Asset Types', sub: 'One per line: Type | Prefix | Retention (years) | Subtype1, Subtype2', icon: 'tag', fields: [{ k: 't', label: 'Asset types', type: 'textarea', full: true }], values: { t: (db().lists.hwTypes || []).map((t) => `${t.type} | ${t.prefix} | ${t.retention} | ${(t.subtypes || []).join(', ')}`).join('\n') }, onSubmit: (v) => {
+      const nu = v.t.split('\n').map((x) => x.trim()).filter(Boolean).map((x) => { const [type, prefix, retention, subs] = x.split('|').map((s) => s.trim()); return { type, prefix: prefix || 'IT-HW-OTH', retention: +retention || 5, subtypes: subs ? subs.split(',').map((s) => s.trim()).filter(Boolean) : [] }; });
+      db().lists.hwTypes = nu; S.emit(); UI.toast('Hardware types updated');
+    } });
+  });
+  UI.on('ms.swtypes', () => {
+    UI.form({ title: 'Software Types', sub: 'One per line: Type | Prefix | Subtype1, Subtype2', icon: 'tag', fields: [{ k: 't', label: 'Software types', type: 'textarea', full: true }], values: { t: (db().lists.swTypes || []).map((t) => `${t.type} | ${t.prefix} | ${(t.subtypes || []).join(', ')}`).join('\n') }, onSubmit: (v) => {
+      const nu = v.t.split('\n').map((x) => x.trim()).filter(Boolean).map((x) => { const [type, prefix, subs] = x.split('|').map((s) => s.trim()); return { type, prefix: prefix || 'IT-SW-APP', subtypes: subs ? subs.split(',').map((s) => s.trim()).filter(Boolean) : [] }; });
+      db().lists.swTypes = nu; S.emit(); UI.toast('Software types updated');
+    } });
+  });
+  UI.on('ms.constypes', () => {
+    UI.form({ title: 'Consumable Types', sub: 'One per line: Type | Subtype1, Subtype2', icon: 'tag', fields: [{ k: 't', label: 'Consumable types', type: 'textarea', full: true }], values: { t: (db().lists.consTypes || []).map((t) => `${t.type} | ${(t.subtypes || []).join(', ')}`).join('\n') }, onSubmit: (v) => {
+      const nu = v.t.split('\n').map((x) => x.trim()).filter(Boolean).map((x) => { const [type, subs] = x.split('|').map((s) => s.trim()); return { type, subtypes: subs ? subs.split(',').map((s) => s.trim()).filter(Boolean) : [] }; });
+      db().lists.consTypes = nu; S.emit(); UI.toast('Consumable types updated');
+    } });
+  });
+  /* ---- End-user quick-add for masters: append-only. Deleting master data is Administrator-only. ---- */
+  function masterList(key) { const d = db(); d.lists = d.lists || {}; if (!d.lists[key]) d.lists[key] = []; return d.lists[key]; }
+  const noDup = (arr, val, label) => { if (arr.some((x) => String(x).toLowerCase() === String(val).toLowerCase())) throw new Error(`${label} "${val}" already exists`); };
+  UI.on('ms.add', (el) => {
+    const m = MASTERS.find((x) => x.key === el.dataset.key); if (!m) return;
+    UI.form({ title: `Add — ${m.title}`, sub: 'Available to all users · only an Administrator can remove entries', icon: 'plus',
+      fields: [{ k: 'v', label: m.title, req: true }],
+      onSubmit: (v) => { const val = String(v.v).trim(); if (!val) throw new Error('Enter a value'); const arr = masterList(m.key); noDup(arr, val, m.title); arr.push(val); arr.sort((a, b) => String(a).localeCompare(String(b))); S.emit(); UI.toast(`${m.title}: "${val}" added`); } });
+  });
+  UI.on('ms.adduom', () => {
+    UI.form({ title: 'Add — Unit of Measurement', icon: 'plus', fields: [{ k: 'code', label: 'Code (e.g. PCS)', req: true }, { k: 'name', label: 'Name (e.g. Pieces)', req: true }],
+      onSubmit: (v) => { const arr = masterList('uom'); const code = String(v.code).trim(), name = String(v.name).trim(); noDup(arr.map((u) => u.code), code, 'UOM'); arr.push({ code, name }); S.emit(); UI.toast(`UOM ${code} added`); } });
+  });
+  UI.on('ms.addhwtype', () => {
+    UI.form({ title: 'Add — Hardware asset type', icon: 'plus', values: { prefix: 'IT-HW-', retention: 5 }, fields: [{ k: 'type', label: 'Type', req: true }, { k: 'prefix', label: 'ID prefix', req: true }, { k: 'retention', label: 'Retention (years)', type: 'number' }, { k: 'subs', label: 'Subtypes (comma separated)' }],
+      onSubmit: (v) => { const arr = masterList('hwTypes'); const type = String(v.type).trim(); noDup(arr.map((t) => t.type), type, 'Type'); arr.push({ type, prefix: String(v.prefix).trim() || 'IT-HW-OTH', retention: +v.retention || 5, subtypes: String(v.subs || '').split(',').map((s) => s.trim()).filter(Boolean) }); S.emit(); UI.toast(`Asset type ${type} added`); } });
+  });
+  UI.on('ms.addswtype', () => {
+    UI.form({ title: 'Add — Software type', icon: 'plus', values: { prefix: 'IT-SW-' }, fields: [{ k: 'type', label: 'Type', req: true }, { k: 'prefix', label: 'ID prefix', req: true }, { k: 'subs', label: 'Subtypes (comma separated)' }],
+      onSubmit: (v) => { const arr = masterList('swTypes'); const type = String(v.type).trim(); noDup(arr.map((t) => t.type), type, 'Type'); arr.push({ type, prefix: String(v.prefix).trim() || 'IT-SW-APP', subtypes: String(v.subs || '').split(',').map((s) => s.trim()).filter(Boolean) }); S.emit(); UI.toast(`Software type ${type} added`); } });
+  });
+  UI.on('ms.addconstype', () => {
+    UI.form({ title: 'Add — Consumable type', icon: 'plus', fields: [{ k: 'type', label: 'Type', req: true }, { k: 'subs', label: 'Subtypes (comma separated)' }],
+      onSubmit: (v) => { const arr = masterList('consTypes'); const type = String(v.type).trim(); noDup(arr.map((t) => t.type), type, 'Type'); arr.push({ type, subtypes: String(v.subs || '').split(',').map((s) => s.trim()).filter(Boolean) }); S.emit(); UI.toast(`Consumable type ${type} added`); } });
+  });
+  /* Master picker: opens an add form for any master (list or structured) relevant to the module */
+  UI.on('ms.pick', (el) => {
+    const entries = [
+      ...MASTERS.map((m) => ({ v: m.key, l: m.title })),
+      { v: 'uom', l: 'Unit of Measurement' }, { v: 'hwTypes', l: 'Hardware asset types' }, { v: 'swTypes', l: 'Software types' }, { v: 'consTypes', l: 'Consumable types' },
+    ];
+    const only = (el.dataset.keys || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const list = only.length ? entries.filter((e) => only.includes(e.v)) : entries;
+    UI.form({ title: 'Add a master value', sub: 'Append a new value to any master — removing master data is Administrator-only', icon: 'plus',
+      fields: [{ k: 'key', label: 'Master', type: 'select', options: list, req: true }],
+      onSubmit: (v) => {
+        const k = v.key;
+        const fire = (name, ds) => { if (UI.acts[name]) UI.acts[name]({ dataset: ds || {} }); };
+        if (k === 'uom') fire('ms.adduom');
+        else if (k === 'hwTypes') fire('ms.addhwtype');
+        else if (k === 'swTypes') fire('ms.addswtype');
+        else if (k === 'consTypes') fire('ms.addconstype');
+        else fire('ms.add', { key: k });
+      } });
   });
   ITMS.wf = { custody, genId, provision, deprovision, ensure, MASTERS };
 })();

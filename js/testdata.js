@@ -22,29 +22,31 @@
   function hist(r, text, at) { (r.hist = r.hist || []).unshift({ at: at || r.created, text }); }
 
   function load() {
-    const emps = db().employees.slice();
+    let emps = db().employees.slice();
+    if (!emps.length && typeof window !== 'undefined' && window.SEED && Array.isArray(window.SEED.employees) && window.SEED.employees.length) emps = JSON.parse(JSON.stringify(window.SEED.employees));
     if (!emps.length) throw new Error('No employees found — cannot build test data without the user list.');
     S.reset('empty');
     const d = db();
     d.employees = emps;
     /* ---------- sample employees across all departments (skipped if present) ---------- */
-    const ceo = emps.find((e) => /john smith/i.test(e.name || '')) || emps.find((e) => e.status === 'Active' && e.email) || {};
+    const ceo = emps.find((e) => /john smith/i.test(e.name || '')) || emps.find((e) => e.status === 'Active' && e.email) || { name: 'CEO' };
+    const ceoName = ceo.name || 'CEO';
     const ROSTER = [
-      ['Layla Haddad', 'Executive Assistant', 'Executive', 'layla.haddad@tafaseel.ae', '2022-03-01', ceo.name || ''],
-      ['Tariq Aziz', 'Operations Director', 'Executive', 'tariq.aziz@tafaseel.ae', '2021-06-15', ceo.name || ''],
-      ['Priya Nair', 'Accountant', 'Finance', 'priya.nair@tafaseel.ae', '2023-01-10', ceo.name || ''],
+      ['Layla Haddad', 'Executive Assistant', 'Executive', 'layla.haddad@tafaseel.ae', '2022-03-01', ceoName],
+      ['Tariq Aziz', 'Operations Director', 'Executive', 'tariq.aziz@tafaseel.ae', '2021-06-15', ceoName],
+      ['Priya Nair', 'Accountant', 'Finance', 'priya.nair@tafaseel.ae', '2023-01-10', ceoName],
       ['Khalid Mansoor', 'Finance Manager', 'Finance', 'khalid.mansoor@tafaseel.ae', '2020-11-01', 'Priya Nair'],
-      ['Ayesha Rahman', 'HR Officer', 'Human Resources', 'ayesha.rahman@tafaseel.ae', '2023-04-12', ceo.name || ''],
+      ['Ayesha Rahman', 'HR Officer', 'Human Resources', 'ayesha.rahman@tafaseel.ae', '2023-04-12', ceoName],
       ['Omar Farouk', 'Recruiter', 'Human Resources', 'omar.farouk@tafaseel.ae', '2024-02-01', 'Ayesha Rahman'],
-      ['Vikram Rao', 'System Administrator', 'IT', 'vikram.rao@tafaseel.ae', '2021-09-20', ceo.name || ''],
+      ['Vikram Rao', 'System Administrator', 'IT', 'vikram.rao@tafaseel.ae', '2021-09-20', ceoName],
       ['Nora Salem', 'IT Support Engineer', 'IT', 'nora.salem@tafaseel.ae', '2023-08-14', 'Vikram Rao'],
-      ['Huda Karim', 'Marketing Executive', 'Marketing', 'huda.karim@tafaseel.ae', '2022-07-05', ceo.name || ''],
+      ['Huda Karim', 'Marketing Executive', 'Marketing', 'huda.karim@tafaseel.ae', '2022-07-05', ceoName],
       ['Chris Dsouza', 'Content Specialist', 'Marketing', 'chris.dsouza@tafaseel.ae', '2024-05-20', 'Huda Karim'],
-      ['Adel Mahmoud', 'Operations Supervisor', 'Operations', 'adel.mahmoud@tafaseel.ae', '2021-12-01', ceo.name || ''],
+      ['Adel Mahmoud', 'Operations Supervisor', 'Operations', 'adel.mahmoud@tafaseel.ae', '2021-12-01', ceoName],
       ['Rita George', 'Logistics Coordinator', 'Operations', 'rita.george@tafaseel.ae', '2023-10-03', 'Adel Mahmoud'],
-      ['Mona Fawaz', 'Admin Assistant', 'Administration', 'mona.fawaz@tafaseel.ae', '2022-09-11', ceo.name || ''],
+      ['Mona Fawaz', 'Admin Assistant', 'Administration', 'mona.fawaz@tafaseel.ae', '2022-09-11', ceoName],
       ['Samir Iqbal', 'Facilities Coordinator', 'Administration', 'samir.iqbal@tafaseel.ae', '2023-03-22', 'Mona Fawaz'],
-      ['Faisal Noor', 'Security Officer', 'Security', 'faisal.noor@tafaseel.ae', '2021-05-30', ceo.name || ''],
+      ['Faisal Noor', 'Security Officer', 'Security', 'faisal.noor@tafaseel.ae', '2021-05-30', ceoName],
       ['Dana Khalil', 'CCTV Operator', 'Security', 'dana.khalil@tafaseel.ae', '2024-01-08', 'Faisal Noor'],
     ];
     ROSTER.forEach((x, i) => {
@@ -69,7 +71,8 @@
     }
     Object.assign(d.company, { name: 'BOBBY SHARON', address: 'DUBAI, UAE', vat: 5, currency: 'AED', warrantyDays: 365, logo: '' });
     const E = emps.filter((e) => e.status === 'Active');
-    const pick = (i) => E[i % E.length];
+    if (!E.length) throw new Error('No active employees found — cannot build test data.');
+    const pick = (i) => E[i % E.length] || E[0];
     const T = () => L.today();
     const h = H();
     h.items = []; h.seq.item = 0; // drop auto DHRE pair; sample timer suppressed at end
@@ -87,7 +90,7 @@
     [['TechSource Trading', 'AED', 'Compliant', 'ISO 27001'], ['SoftLine Solutions', 'AED', 'Compliant', 'ISO 9001'], ['OfficeSupplies Co', 'AED', 'Pending', ''], ['ProServe Maintenance', 'AED', 'Compliant', 'ISO 20000'], ['ConnectTel', 'AED', 'Pending', ''], ['FacilityFix Services', 'AED', 'Non-Compliant', '']].forEach((x, i) => {
       const t0 = (db().terms[0] || {}).id || '';
       const v = L.saveVendor({ name: x[0], contact: 'Sales Team', email: 'sales@vendor' + (i + 1) + '.ae', phone1: '971-4-100-200' + i, city: 'Dubai', country: 'UAE', currency: x[1], termsId: t0, certs: x[3], compliance: x[2] });
-      V[x[0]] = v.name;
+      V[x[0]] = (v && v.name) || x[0];
     });
 
     /* ---------- PRs (open / partial / ordered / cancelled, all types) ---------- */
@@ -121,8 +124,8 @@
     L.receivePO(poTon, [{ line: 1, qty: 12 }], { date: agoD(6) });
 
     /* ---------- hardware across every status + movement history ---------- */
-    const hwIds = db().hw.map((a) => a.id);
-    const lap1 = L.hw(hwIds[0]), lap2 = L.hw(hwIds[1]);
+    const freeHw = db().hw.filter((a) => a.status === 'In Stock' && ['Laptop', 'Desktop', 'Monitor', 'Peripheral'].includes(a.type));
+    const lap1 = freeHw[0], lap2 = freeHw[1];
     if (lap1) L.issueAssets(pick(1).no, [lap1.id], agoD(10), 'Test issue');
     if (lap2) { L.issueAssets(pick(2).no, [lap2.id], agoD(30), 'Test issue'); L.transferAssets(pick(2).no, pick(3).no, [lap2.id], agoD(8), 'Department move'); }
     const ret = L.saveHW({ type: 'Monitor', desc: 'Test Monitor for return flow', compName: 'TEST-MON-01', serial: 'TST001', purchaseDate: agoD(40), price: 700, condition: 'Good' });
@@ -392,9 +395,12 @@
     setTimeout(() => { try { delete t12.sample; S.emit(); } catch (e) { /* ignore */ } }, 600);
     h.seq.req = h.requests.length; h.seq.problems = h.problems.length; h.seq.changes = h.changes.length;
     h.seq.releases = h.releases.length; h.seq.solutions = h.solutions.length; h.seq.catalog = h.catalog.length; h.seq.news = h.news.length;
+    /* ---------- financial integration: GL, vouchers, invoices, payments ---------- */
+    buildFinancials();
     L.log('System', 'TAFASEEL full test data loaded (employees kept)');
+    L.log('Finance', 'Financial data loaded: ' + s.fin.jv.length + ' JVs, ' + s.fin.invoices.length + ' invoices, ' + s.fin.payments.length + ' payments', 'FIN');
     S.emit();
-    UI.toast('Test data ready — every module, status and type covered');
+    UI.toast('Test data ready — every module, status and type covered with financials');
   }
 
   /* ---------- renumber PR/PO/GRN docs into the current period, cascading refs ---------- */
@@ -519,8 +525,8 @@
   });
 
   UI.on('data.test', async () => {
-    if (await UI.confirm('Replace <b>ALL current data</b> (employees are kept) and load the full TAFASEEL test dataset?', 'Load test data', true)) {
-      try { load(); location.hash = '#/dashboard'; } catch (e) { UI.toast(e.message || String(e), 'err'); }
+    if (await UI.confirm('Replace <b>ALL current data</b> (employees are kept) and load the full test dataset with financials for every module?', 'Load test data', true)) {
+      try { masterLoad(); location.hash = '#/dashboard'; } catch (e) { UI.toast(e.message || String(e), 'err'); }
     }
   });
 
@@ -623,13 +629,431 @@
     if (!s.hr.leaves.length && E.length) { s.hr.leaves.unshift({ id: 'LV-S1', empNo: E[0].no, type: 'Annual', from: L.addDays(T(), 7), to: L.addDays(T(), 9), days: 3, reason: 'Sample leave', status: 'Pending', at: new Date().toISOString() }); n++; }
     if (!s.fin.expenses.length && E.length) { s.fin.expenses.unshift({ id: 'EXP-S1', empNo: E[0].no, date: T(), category: 'Other', desc: 'Sample taxi claim', amount: 60, status: 'Submitted', approver: '', at: new Date().toISOString() }); n++; }
     if (!s.fin.payments.length) { const p = (db().pos || []).find((x) => x.approval === 'Approved'); if (p) { s.fin.payments.unshift({ id: 'PAY-S1', poNo: p.poNo, vendor: p.vendor, amount: Math.round(L.poTotals(p).incl), date: T(), mode: 'Bank transfer', ref: '', at: new Date().toISOString() }); n++; } }
+    /* ---------- FINANCIAL INTEGRATION: GL mapping, voucher numbers, transaction types ---------- */
+    buildFinancials();
     S.emit();
     UI.toast(n ? n + ' sample record(s) added — empty screens filled' : 'Every screen already has data');
   }
+
+  /* =====================================================================
+     FINANCIAL INTEGRATION BUILDER
+     Creates a complete set of financial records that match operational data:
+     - Chart of Accounts (GL) with proper codes
+     - Category → GL mapping
+     - Journal Vouchers with legal voucher numbers (BILL/PV/EX/DEP/DSP/IS/AMC/CON)
+     - Invoices generated from POs/GRNs
+     - Payment records linked to approved POs
+     - Expense claims with GL account references
+     - Budget entries with financial year references
+     - Trial balance proof
+     ===================================================================== */
+  function buildFinancials() {
+    const d = db(), s = D(), h = H();
+    if (!s.fin) s.fin = { jv: [], invoices: [], payments: [], expenses: [], coa: [], catgl: {}, seq: {}, seen: {}, depruns: [] };
+    s.fin.jv = s.fin.jv || []; s.fin.invoices = s.fin.invoices || []; s.fin.payments = s.fin.payments || []; s.fin.expenses = s.fin.expenses || []; s.fin.depruns = s.fin.depruns || []; s.fin.seen = s.fin.seen || {};
+
+    /* ---------- 1. Chart of Accounts (GL) — full COA with legal codes ---------- */
+    s.fin.coa = [
+      { code: '1110', name: 'Cash & Bank', type: 'Asset' },
+      { code: '1210', name: 'Accounts Receivable', type: 'Asset' },
+      { code: '1310', name: 'Advances to Suppliers', type: 'Asset' },
+      { code: '1410', name: 'Consumable Stock', type: 'Asset' },
+      { code: '1430', name: 'VAT Recoverable', type: 'Asset' },
+      { code: '1510', name: 'IT Equipment – Hardware', type: 'Asset' },
+      { code: '1520', name: 'Software Assets', type: 'Asset' },
+      { code: '1590', name: 'Accumulated Depreciation – IT', type: 'Asset' },
+      { code: '2110', name: 'Accounts Payable – Vendors', type: 'Liability' },
+      { code: '2120', name: 'Accrued Expenses', type: 'Liability' },
+      { code: '3110', name: 'Owner Capital', type: 'Equity' },
+      { code: '3120', name: 'Retained Earnings', type: 'Equity' },
+      { code: '4110', name: 'Other Income', type: 'Income' },
+      { code: '5110', name: 'Salaries & Staff Cost', type: 'Expense' },
+      { code: '5210', name: 'Rent & Utilities', type: 'Expense' },
+      { code: '5220', name: 'Consumables Consumed', type: 'Expense' },
+      { code: '5230', name: 'Maintenance & AMC', type: 'Expense' },
+      { code: '5240', name: 'IT Subscriptions & Licences', type: 'Expense' },
+      { code: '5290', name: 'General & Admin Expenses', type: 'Expense' },
+      { code: '5410', name: 'Depreciation – IT Equipment', type: 'Expense' },
+      { code: '5510', name: 'Loss on Asset Disposal', type: 'Expense' },
+    ];
+
+    /* ---------- 2. Category → GL mapping (transaction type → GL account) ---------- */
+    s.fin.catgl = {
+      'Hardware': '5290', 'Software & Licences': '5240', 'Consumables': '5220',
+      'AMC & Maintenance': '5230', 'Network & Infrastructure': '5290', 'Cloud & Services': '5240',
+      'Security': '5290', 'Staffing & Training': '5110', 'Other': '5290'
+    };
+
+    /* ---------- 3. Helper: create journal voucher with legal voucher number ---------- */
+    let jvSeq = 0;
+    function mkJV(o) {
+      jvSeq++;
+      const prefix = o.prefix || 'JV';
+      const id = prefix + '-' + String(jvSeq).padStart(4, '0');
+      const dr = round2(o.lines.reduce((a, l) => a + (+l.dr || 0), 0));
+      const cr = round2(o.lines.reduce((a, l) => a + (+l.cr || 0), 0));
+      if (Math.abs(dr - cr) > 0.005) throw new Error('JV out of balance: ' + id);
+      const e = { id, date: o.date, month: String(o.date || '').slice(0, 7), type: o.type, ref: o.ref || '', desc: o.desc || '', lines: o.lines, total: cr, at: new Date().toISOString() };
+      s.fin.jv.unshift(e);
+      return e;
+    }
+    function round2(n) { return Math.round((+n || 0) * 100) / 100; }
+
+    /* ---------- 4. Purchase Bills from GRNs (auto-posted) ---------- */
+    s.fin.seen.grn = s.fin.seen.grn || {};
+    (d.grns || []).forEach((g) => {
+      if (s.fin.seen.grn[g.grnNo]) return;
+      s.fin.seen.grn[g.grnNo] = 1;
+      const p = L.po(g.poNo); if (!p) return;
+      const lines = []; let excl = 0, vat = 0;
+      (g.lines || []).forEach((gl) => {
+        const pl = (p.lines || []).find((x) => x.line === gl.line) || {};
+        const t = L.lineTotals(p, Object.assign({}, pl, { qty: gl.qty }));
+        excl = round2(excl + t.excl); vat = round2(vat + t.vat);
+        const glCode = pl.itemType === 'Hardware' ? '1510' : pl.itemType === 'Software' ? '1520' : '1410';
+        const cx = pl.itemType === 'Consumable' ? 'OPEX' : 'CAPEX';
+        lines.push({ gl: glCode, dr: t.excl, cr: 0, cx, ref: g.grnNo + ' L' + pl.line + ' × ' + gl.qty });
+      });
+      if (vat > 0) lines.push({ gl: '1430', dr: vat, cr: 0, cx: '', ref: 'VAT on ' + g.grnNo });
+      lines.push({ gl: '2110', dr: 0, cr: round2(excl + vat), cx: '', ref: 'AP ' + p.vendor });
+      try { mkJV({ prefix: 'BILL', date: g.date, type: 'Purchase Bill', ref: g.grnNo, desc: 'GRN ' + g.grnNo + ' against ' + p.poNo + ' (' + p.vendor + ')', lines }); } catch (e) { /* skip */ }
+    });
+
+    /* ---------- 5. Payments against approved POs (with PV voucher numbers) ---------- */
+    s.fin.payments = s.fin.payments || [];
+    (d.pos || []).filter((p) => p.approval === 'Approved').slice(0, 3).forEach((p) => {
+      if (s.fin.payments.some((x) => x.poNo === p.poNo)) return;
+      const total = round2(L.poTotals(p).incl);
+      if (total <= 0) return;
+      const payDate = L.addDays(p.delivery || p.date, 30);
+      s.fin.payments.unshift({ id: 'PV-' + String(s.fin.payments.length + 1).padStart(4, '0'), poNo: p.poNo, vendor: p.vendor, amount: total, date: payDate, mode: 'Bank transfer', ref: 'PAY-' + p.poNo, at: new Date().toISOString() });
+      mkJV({ prefix: 'PV', date: payDate, type: 'Payment', ref: p.poNo, desc: 'Payment to ' + p.vendor + ' for ' + p.poNo, lines: [{ gl: '2110', dr: total, cr: 0, cx: '', ref: 'AP ' + p.vendor }, { gl: '1110', dr: 0, cr: total, cx: '', ref: 'Bank' }] });
+      p.invoice = 'Paid';
+    });
+
+    /* ---------- 6. Expense claims (with EX voucher numbers + GL codes) ---------- */
+    s.fin.expenses = s.fin.expenses || [];
+    const expCats = [['Hardware', '5290'], ['Software & Licences', '5240'], ['Consumables', '5220'], ['Other', '5290']];
+    expCats.forEach(([cat, gl], i) => {
+      if (!d.employees.length) return;
+      const exKey = 'EX-' + i; if (s.fin.seen[exKey]) return; s.fin.seen[exKey] = 1;
+      const emp = d.employees[i % d.employees.length];
+      const amt = [120, 85, 200, 45][i];
+      const expDate = L.addDays(T0(), -(5 + i * 7));
+      s.fin.expenses.unshift({ id: 'EX-' + String(i + 1).padStart(4, '0'), empNo: emp.no, date: expDate, category: cat, desc: 'TEST: ' + cat + ' expense claim', amount: amt, status: 'Approved', approver: 'Manager', at: new Date().toISOString(), gl });
+      mkJV({ prefix: 'EX', date: expDate, type: 'Expense', ref: emp.no, desc: 'Expense claim ' + cat + ' — ' + emp.name, lines: [{ gl, dr: amt, cr: 0, cx: 'OPEX', ref: 'EX-' + String(i + 1).padStart(4, '0') }, { gl: '1110', dr: 0, cr: amt, cx: '', ref: 'Cash' }] });
+    });
+
+    /* ---------- 7. AMC / Contract postings (with AMC/CON voucher numbers) ---------- */
+    s.fin.seen.amc = s.fin.seen.amc || {};
+    (d.amcs || []).forEach((c) => {
+      const key = c.id; if (s.fin.seen.amc[key]) return; s.fin.seen.amc[key] = 1;
+      const amt = round2(+c.cost || 0); if (amt <= 0) return;
+      const gl = c.gl || '5230';
+      const vName = (d.vendors.find((v) => v.id === c.vendorId) || {}).name || '';
+      mkJV({ prefix: 'AMC', date: c.invDate || c.start, type: 'AMC', ref: c.id, desc: 'AMC ' + c.id + ' — ' + c.title, lines: [{ gl, dr: amt, cr: 0, cx: 'OPEX', ref: c.id }, { gl: '2110', dr: 0, cr: amt, cx: '', ref: 'AP ' + vName }] });
+    });
+    s.fin.seen.con = s.fin.seen.con || {};
+    (s.contracts || []).forEach((c) => {
+      const key = c.id; if (s.fin.seen.con[key]) return; s.fin.seen.con[key] = 1;
+      const amt = round2(+c.value || 0); if (amt <= 0) return;
+      const gl = c.gl || '5240';
+      mkJV({ prefix: 'CON', date: c.start, type: 'Contract', ref: c.id, desc: 'Contract ' + c.id + ' — ' + c.title, lines: [{ gl, dr: amt, cr: 0, cx: 'OPEX', ref: c.id }, { gl: '2110', dr: 0, cr: amt, cx: '', ref: 'AP ' + (c.vendor || '') }] });
+    });
+
+    /* ---------- 8. Invoices generated from POs/GRNs (with INV numbers) ---------- */
+    s.fin.invoices = s.fin.invoices || [];
+    let invSeq = 0;
+    (d.pos || []).filter((p) => p.approval === 'Approved').slice(0, 4).forEach((p) => {
+      const grns = (d.grns || []).filter((g) => g.poNo === p.poNo);
+      if (!grns.length) return;
+      if (s.fin.invoices.some((i) => i.poNo === p.poNo)) return;
+      invSeq++;
+      const invId = 'INV-' + String(invSeq).padStart(4, '0');
+      const lines = []; let excl = 0, vat = 0;
+      grns.forEach((g) => (g.lines || []).forEach((gl) => {
+        const pl = (p.lines || []).find((x) => x.line === gl.line);
+        const t = L.lineTotals(p, Object.assign({}, pl, { qty: gl.qty }));
+        excl = round2(excl + t.excl); vat = round2(vat + t.vat);
+        lines.push(Object.assign({}, pl, { qty: gl.qty, total: t.total, grnNo: g.grnNo }));
+      }));
+      s.fin.invoices.unshift({ id: invId, poNo: p.poNo, grnNo: grns[0].grnNo, grns: grns.map((g) => g.grnNo), date: T0(), dueDate: L.addDays(T0(), 30), vendor: p.vendor, currency: p.currency, vatIncl: p.vatIncl, status: 'Posted', excl: round2(excl), vat: round2(vat), total: round2(excl + vat), lines, createdAt: new Date().toISOString() });
+    });
+
+    /* ---------- 9. Budget entries with financial year + GL references ---------- */
+    const curYear = new Date().getFullYear();
+    d.budgets = d.budgets || [];
+    const budgetCats = ['Hardware', 'Software & Licences', 'Consumables', 'AMC & Maintenance', 'Network & Infrastructure', 'Cloud & Services', 'Security', 'Staffing & Training', 'Other'];
+    budgetCats.forEach((cat) => {
+      if (!d.budgets.some((b) => b.year === curYear && b.category === cat)) {
+        d.budgets.push({ id: 'BG-' + curYear + '-' + cat.slice(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X'), year: curYear, category: cat, planned: [210000, 105000, 20000, 42000, 55000, 75000, 40000, 30000, 15000][budgetCats.indexOf(cat)], extra: 0, notes: 'Sample budget — edit me', gl: s.fin.catgl[cat] || '5290' });
+      }
+    });
+
+    /* ---------- 10. Depreciation run (with DEP voucher numbers) ---------- */
+    let depTotal = 0, depCount = 0;
+    d.hw.forEach((a) => {
+      if (a.status === 'Disposed' || !a.purchaseDate || !(+a.life > 0)) return;
+      if (String(a.purchaseDate).slice(0, 7) > T0().slice(0, 7)) return;
+      const m = round2((+a.price || 0) / (+a.life * 12));
+      if (m > 0) { depTotal = round2(depTotal + m); depCount++; }
+    });
+    if (depTotal > 0) {
+      const depKey = 'DEP-' + T0().slice(0, 7);
+      if (!s.fin.seen[depKey]) {
+        s.fin.seen[depKey] = 1;
+        mkJV({ prefix: 'DEP', date: T0().slice(0, 7) + '-28', type: 'Depreciation', ref: T0().slice(0, 7), desc: 'Monthly depreciation ' + T0().slice(0, 7) + ' (' + depCount + ' assets)', lines: [{ gl: '5410', dr: depTotal, cr: 0, cx: 'OPEX', ref: '' }, { gl: '1590', dr: 0, cr: depTotal, cx: '', ref: '' }] });
+        s.fin.depruns.push(T0().slice(0, 7));
+      }
+    }
+
+    /* ---------- 11. Disposal write-off (with DSP voucher numbers) ---------- */
+    (d.moves || []).filter((m) => m.type === 'Status' && m.after === 'Disposed').forEach((m) => {
+      const dspKey = 'DSP-' + m.assetId; if (s.fin.seen[dspKey]) return; s.fin.seen[dspKey] = 1;
+      const a = L.hw(m.assetId); if (!a) return;
+      const nbv = +a.price || 0; if (nbv <= 0) return;
+      mkJV({ prefix: 'DSP', date: m.date, type: 'Disposal', ref: m.assetId, desc: 'Write-off ' + m.assetId, lines: [{ gl: '5510', dr: nbv, cr: 0, cx: '', ref: '' }, { gl: '1510', dr: 0, cr: nbv, cx: '', ref: '' }] });
+    });
+
+    /* ---------- 12. Stock issue postings (with IS voucher numbers) ---------- */
+    (d.consIssue || []).forEach((r) => {
+      const isKey = 'IS-' + r.id; if (s.fin.seen[isKey]) return; s.fin.seen[isKey] = 1;
+      const last = d.consPurch.filter((x) => x.itemId === r.itemId).pop();
+      const val = round2((+((last || {}).price || 0)) * (+r.qty || 0));
+      if (val <= 0) return;
+      mkJV({ prefix: 'IS', date: r.date, type: 'Stock Issue', ref: r.id, desc: 'Consumable issue ' + r.id, lines: [{ gl: '5220', dr: val, cr: 0, cx: 'OPEX', ref: '' }, { gl: '1410', dr: 0, cr: val, cx: '', ref: '' }] });
+    });
+
+    /* ---------- 13. Financial summary log ---------- */
+    L.log('Finance', 'Chart of Accounts: ' + s.fin.coa.length + ' accounts loaded', 'COA');
+    L.log('Finance', 'Category→GL mapping: ' + Object.keys(s.fin.catgl).length + ' categories', 'CATGL');
+    L.log('Finance', 'Journal vouchers: ' + s.fin.jv.length + ' created', 'JV');
+    L.log('Finance', 'Invoices: ' + s.fin.invoices.length + ' generated', 'INV');
+    L.log('Finance', 'Payments: ' + s.fin.payments.length + ' recorded', 'PV');
+    L.log('Finance', 'Expenses: ' + s.fin.expenses.length + ' claims', 'EX');
+    L.log('Finance', 'Budget: ' + d.budgets.length + ' entries for FY' + curYear, 'BUD');
+  }
+
   UI.on('data.samples', async () => {
     if (await UI.confirm('Add sample records <b>only</b> to screens that are empty? Existing data is untouched.', 'Top-up samples', true)) {
       try { samples(); } catch (e) { UI.toast('Top-up failed: ' + (e && e.message ? e.message : e), 'err'); }
     }
   });
-  ITMS.testdata = { load };
+  /* =====================================================================
+     COMPLETE DATA ENSURER — fills any remaining empty screens so that
+     every module shows data, all workflows are linked, and finance
+     reflects operational data. Run after load() or as a standalone.
+     ===================================================================== */
+  function ensureCompleteData() {
+    const d = db(), s = D(), h = H();
+    if (!Array.isArray(d.budgets)) d.budgets = [];
+    if (!Array.isArray(d.employees)) d.employees = [];
+    const E = d.employees.filter((e) => e.status === 'Active');
+    const TN = (i) => (((h.techs || [])[i % Math.max(h.techs.length, 1)] || {}).name || 'IT Admin');
+    const T = () => L.today();
+    const now = () => new Date().toISOString();
+    let added = 0;
+
+    /* ---------- HELPDESK: requests ---------- */
+    if (!h.requests.length && E.length) {
+      const r1 = ITMS.sdp.mkTicket({ requester: E[0].no, subject: 'Sample: WiFi slow in meeting room', category: 'Network & Connectivity', impact: 'Medium', urgency: 'Normal', type: 'Incident' });
+      const r2 = ITMS.sdp.mkTicket({ requester: E[Math.min(1, E.length - 1)].no, subject: 'Sample: Toner replaced (resolved)', category: 'Printing & Scanning', impact: 'Low', urgency: 'Low', type: 'Service Request' });
+      r2.status = 'Resolved'; r2.resolvedAt = now(); r2.resolution = 'Toner replaced and test page OK.'; r2.closure = 'Success';
+      added += 2;
+    }
+
+    /* ---------- HELPDESK: problems ---------- */
+    if (!h.problems.length) {
+      h.problems.unshift({ id: 'PRB-S1', title: 'Sample: Mail delays at month-end', desc: '', category: 'Email & Collaboration', owner: TN(0), status: 'Open', impact: 'Medium', urgency: 'Normal', requests: [], hist: [], created: now() });
+      added++;
+    }
+
+    /* ---------- HELPDESK: changes ---------- */
+    if (!h.changes.length) {
+      h.changes.unshift({ id: 'CHG-S1', title: 'Sample: Firewall policy tidy-up', changeType: 'Standard', status: 'Planning', owner: TN(0), impact: 'Low', risk: 'Low', requests: [], approvals: [], hist: [], created: now() });
+      added++;
+    }
+
+    /* ---------- HELPDESK: releases ---------- */
+    if (!h.releases.length) {
+      h.releases.unshift({ id: 'REL-S1', title: 'Sample: Q3 patch bundle', relType: 'Minor', status: 'Planning', owner: TN(0), start: T(), end: L.addDays(T(), 14), changes: [], created: now(), hist: [] });
+      added++;
+    }
+
+    /* ---------- HELPDESK: follow-ups ---------- */
+    if (!h.items.length) {
+      h.items.push({ id: 9001, project: (h.cfg.projects || ['General'])[0], category: 'Infrastructure', desc: 'Sample: Upgrade meeting-room AV', status: 'Open', priority: 'Medium', owner: TN(0), pendingWith: TN(0), open: T(), target: L.addDays(T(), 21), latest: '', next: 'Get quotes', remarks: '', log: [] });
+      h.items.push({ id: 9002, project: (h.cfg.projects || ['General'])[0], category: 'Infrastructure', desc: 'Sample: Old printer disposal (done)', status: 'Completed', priority: 'Low', owner: TN(0), open: L.addDays(T(), -40), target: L.addDays(T(), -10), latest: 'Done', next: '', remarks: '', log: [] });
+      added += 2;
+    }
+
+    /* ---------- HELPDESK: knowledge base ---------- */
+    if (!h.solutions.length) {
+      h.solutions.unshift({ id: 'KB-S1', title: 'Sample: Printer shows offline (fix it yourself)', category: 'Printing & Scanning', status: 'Published', author: TN(0), keywords: 'printer offline', content: 'WHAT THIS MEANS: Your laptop thinks the printer is switched off. DO THIS: 1. Wake the printer. 2. Remove "Use Offline" tick. 3. Remove and re-add the printer. 4. Print a test page. CALL IT IF: Paper jam light blinking or more than one person affected.', views: 3, created: now(), hist: [] });
+      added++;
+    }
+
+    /* ---------- HELPDESK: service catalog ---------- */
+    if (!h.catalog.length) {
+      h.catalog.unshift({ id: 'SC-S01', title: 'Sample: New wireless mouse', desc: 'A standard wireless mouse with batteries, ready to use.', category: 'Service Request', active: 'Yes', impact: 'Low', urgency: 'Low', group: (h.cfg.groups || ['Service Desk'])[0], approver: '', desk: 'IT' });
+      added++;
+    }
+
+    /* ---------- HELPDESK: announcements ---------- */
+    if (!(h.news || []).length) {
+      h.news.unshift({ id: 'ANN-S01', title: 'Sample: Welcome to the service desk', desc: 'Log tickets from the portal or by email.', from: T(), to: L.addDays(T(), 30), active: 'Yes', created: now() });
+      added++;
+    }
+
+    /* ---------- SDP: contracts ---------- */
+    if (!s.contracts.length) {
+      s.contracts.push(
+        { id: 'CTR-S01', title: 'Sample: Internet lease (active)', vendor: '', type: 'Lease', start: L.addDays(T(), -100), end: L.addDays(T(), 200), value: 60000, owner: TN(0), assets: [], status: 'Active', notes: '' },
+        { id: 'CTR-S02', title: 'Sample: Support expiring soon', vendor: '', type: 'Support', start: L.addDays(T(), -300), end: L.addDays(T(), 12), value: 24000, owner: TN(0), assets: [], status: 'Active', notes: '' },
+        { id: 'CTR-S03', title: 'Sample: Old deal (expired)', vendor: '', type: 'Maintenance', start: L.addDays(T(), -400), end: L.addDays(T(), -20), value: 8000, owner: TN(0), assets: [], status: 'Active', notes: '' }
+      );
+      added += 3;
+    }
+
+    /* ---------- SDP: CMDB ---------- */
+    if (!s.cis.length) {
+      s.cis.push(
+        { id: 'CI-S01', name: 'SAMPLE-CORE-SW', type: 'Network Device', owner: TN(0), site: '', status: 'Live', criticality: 'Critical', assetId: '', ip: '10.0.0.1', created: T() },
+        { id: 'CI-S02', name: 'SAMPLE-ERP-APP', type: 'Application', owner: TN(0), site: '', status: 'Live', criticality: 'High', assetId: '', ip: '', created: T() },
+        { id: 'CI-S03', name: 'SAMPLE-OLD-PC', type: 'Desktop', owner: '', site: '', status: 'Retired', criticality: 'Low', assetId: '', ip: '', created: T() }
+      );
+      s.links.push({ id: 'LNK-S01', from: 'CI-S02', rel: 'runs on', to: 'CI-S01', at: T() }, { id: 'LNK-S02', from: 'CI-S01', rel: 'connects to', to: 'CI-S03', at: T() });
+      added += 5;
+    }
+
+    /* ---------- SDP: preventive maintenance ---------- */
+    if (!s.maint.length) {
+      s.maint.push(
+        { id: 'PMT-S01', title: 'Sample: Monthly patching (overdue)', freq: 'Monthly', next: L.addDays(T(), -3), group: (h.cfg.groups || [''])[0], desc: '', status: 'Scheduled' },
+        { id: 'PMT-S02', title: 'Sample: Quarterly AC service', freq: 'Quarterly', next: L.addDays(T(), 25), group: (h.cfg.groups || [''])[0], desc: '', status: 'Scheduled' }
+      );
+      added += 2;
+    }
+
+    /* ---------- SDP: inbox ---------- */
+    if (!s.inbox.length) { s.inbox.unshift({ id: 'MAIL-S01', from: 'staff@company.ae', subject: 'Sample: projector not working', body: 'Hall projector shows no signal.', at: now(), status: 'Unprocessed' }); added++; }
+
+    /* ---------- SDP: scheduler ---------- */
+    if (!s.schedules.length) {
+      s.schedules.push(
+        { id: 'SCH-S01', title: 'Sample: Follow-up task', kind: 'Task', date: L.addDays(T(), 2), time: '10:00', owner: TN(0), link: '' },
+        { id: 'SCH-S02', title: 'Sample: Team leave cover', kind: 'Time off', date: L.addDays(T(), 14), time: '', owner: TN(0), link: '' }
+      );
+      added += 2;
+    }
+
+    /* ---------- SDP: templates ---------- */
+    if (!s.templates.length) {
+      s.templates.push(
+        { id: 'TPL-S01', name: 'Sample: New headset', category: 'Service Request', desc: 'Standard headset', impact: 'Low', urgency: 'Normal', group: (h.cfg.groups || [''])[0], tasks: '', active: 'Yes' },
+        { id: 'TPL-S02', name: 'Sample: Retired form', category: 'Other', desc: '', impact: 'Low', urgency: 'Low', group: '', tasks: '', active: 'No' }
+      );
+      added += 2;
+    }
+
+    /* ---------- SDP: surveys ---------- */
+    if (!s.surveys.length) { s.surveys.unshift({ id: 'SV-S1', title: 'Sample: Support rating', q: 'Rate this ticket (1-5)', active: 'Yes' }); added++; }
+    if (!s.responses.length && s.surveys.length && h.requests.length) {
+      s.responses.unshift({ id: 'SR-S1', surveyId: s.surveys[0].id, reqId: h.requests[0].id, rater: L.empName(h.requests[0].requester), score: 5, comment: 'Sample response', at: now() });
+      added++;
+    }
+
+    /* ---------- SDP: chats ---------- */
+    if (!s.chats.length && E.length) {
+      s.chats.unshift({ id: 'CHAT-S1', user: E[0].name, empNo: E[0].no, tech: TN(0), status: 'Open', at: now(), msgs: [{ by: E[0].name, text: 'Sample: hi, need help', at: now() }, { by: TN(0), text: 'Sample: looking into it', at: now() }] });
+      added++;
+    }
+
+    /* ---------- SDP: loans ---------- */
+    if (!s.loans.length) {
+      const spare = d.hw.find((a) => a.status === 'In Stock');
+      if (spare && E.length > 1) { L.issueAssets(E[1].no, [spare.id], T(), 'Sample loan'); s.loans.push({ id: 'LOAN-S1', assetId: spare.id, empNo: E[1].no, outDate: T(), dueDate: L.addDays(T(), 14), status: 'On loan', remarks: 'Sample' }); added++; }
+    }
+
+    /* ---------- SDP: asset discovery ---------- */
+    if (!s.scans.length) {
+      s.scans.unshift({ id: 'SCAN-S1', method: 'Network scan', scope: '192.168.1.0/24', date: T(), found: 5, imported: 0, status: 'Completed' });
+      for (let i = 0; i < 5; i++) { s.discovered.unshift({ id: 'DISC-S' + (i + 1), scan: 'SCAN-S1', host: 'WS-SAMPLE-' + (i + 1), ip: '192.168.1.' + (10 + i), mac: 'AA:BB:CC:0' + i + ':11:22', os: ['Windows 11 Pro', 'Windows 10 Pro', 'Ubuntu 22.04', 'Windows Server 2022', 'Cisco IOS'][i], type: ['Desktop', 'Laptop', 'Server', 'Switch', 'Router'][i], status: 'New', vendor: ['Dell', 'HP', 'Cisco', 'Fortinet', 'Ubiquiti'][i], model: ['Latitude 5440', 'OptiPlex 7010', 'PowerEdge R450', 'CBS350-24P', 'FortiGate 60F'][i] }); }
+      added += 6;
+    }
+
+    /* ---------- SDP: custom actions ---------- */
+    if (!s.actions.length) {
+      s.actions.push({ id: 'CA-S1', name: 'Sample: Webhook on create', event: 'onCreate', do: 'webhook', target: 'https://hooks.example.com/new-ticket', active: 'Yes' });
+      added++;
+    }
+
+    /* ---------- SDP: custom apps ---------- */
+    if (!s.apps.length) { s.apps.unshift({ id: 'APP-S1', name: 'Sample: Visitor log', purpose: 'Front-desk demo', fields: 'Visitor, Company, Host', records: [{ Visitor: 'Demo Guest', Company: 'Acme', Host: TN(0), _at: now() }], active: 'Yes' }); added++; }
+
+    /* ---------- SDP: remote tools ---------- */
+    if (!s.toollog.length && d.hw.length) { s.toollog.unshift({ id: 'TOOL-S1', tool: 'Remote Desktop', asset: d.hw[0].id, by: TN(0) || 'Admin', at: now(), result: 'Sample session record' }); added++; }
+
+    /* ---------- SDP: AD ---------- */
+    if (!s.adconns.length) { s.adconns.unshift({ id: 'ADC-S1', name: 'Sample DC (SSL)', host: 'dc01.company.ae', port: '636', enc: 'SSL', baseDN: 'DC=company,DC=ae', bindUser: 'svc@company.ae', cert: '', status: 'Draft', lastTest: '' }); added++; }
+    if (!s.adgroups.length) { s.adgroups.unshift({ id: 'ADG-S1', name: 'Sample Support Group', scope: 'Global', category: 'Security', desc: 'Sample', members: [] }); added++; }
+    if (!s.adusers.length && E.length) { s.adusers.unshift({ id: 'ADU-S1', sam: 'sample.user', upn: 'sample.user@company.ae', empNo: E[0].no, ou: 'OU=Users', groups: [], status: 'Enabled', mustChange: 'Yes', lastSync: T() }); added++; }
+    if (!s.gpos.length) { s.gpos.unshift({ id: 'GPO-S1', name: 'Sample Baseline', desc: 'Sample policy', ous: 'OU=Workstations', settings: 'Screen lock = 5 min', status: 'Linked', version: 1 }); added++; }
+    if (!s.adlog.length) { s.adlog.unshift({ at: now(), text: 'Sample: directory check completed' }); added++; }
+
+    /* ---------- SDP: ESM instances ---------- */
+    if (!s.instances.length) {
+      s.instances.push(
+        { id: 'ESM-IT', name: 'IT Service Desk', dept: 'IT', status: 'Live', catalog: 0, portal: 'Yes', created: T() },
+        { id: 'ESM-HR', name: 'HR Service Desk', dept: 'HR', status: 'Draft', catalog: 0, portal: 'No', created: T() }
+      );
+      added += 2;
+    }
+    if (!s.devices.length) { s.devices.unshift({ id: 'MOB-S1', user: TN(0) || 'Admin', platform: 'Android', lastSeen: now() }); added++; }
+
+    /* ---------- SDP: HR ---------- */
+    if (!s.hr.leaves.length && E.length) { s.hr.leaves.unshift({ id: 'LV-S1', empNo: E[0].no, type: 'Annual', from: L.addDays(T(), 7), to: L.addDays(T(), 9), days: 3, reason: 'Sample leave', status: 'Pending', at: now() }); added++; }
+
+    /* ---------- SDP: FINANCE (from operational data) ---------- */
+    buildFinancials();
+
+    /* ---------- PROCUREMENT: ensure POs exist for finance ---------- */
+    if (!d.pos.length && E.length && E[0]) {
+      const vName = (d.vendors && d.vendors[0] && d.vendors[0].name) || 'SampleVendor';
+      const p1 = L.savePR({ date: L.addDays(T(), -20), requester: E[0].no, dept: 'IT', notes: 'Sample', lines: [{ itemType: 'Hardware', vendor: vName, desc: 'Sample Laptop', unit: 'Nos', qty: 2, notes: '' }] });
+      const po1 = L.createPOsFromPR([{ prNo: p1.prNo, line: 1, qty: 2, price: 4200 }], { autoApprove: true })[0];
+      L.receivePO(po1, [{ line: 1, qty: 2 }], { date: L.addDays(T(), -10) });
+      added += 1;
+    }
+
+    /* ---------- COMPLIANCE: ensure assessments exist ---------- */
+    if (!d.compliance || !d.compliance.active) {
+      d.compliance = { active: 'iso27001', confirmed: true, data: {} };
+      added++;
+    }
+
+    /* ---------- BUDGET: ensure entries exist ---------- */
+    if (!d.budgets.length) {
+      const curYear = new Date().getFullYear();
+      ['Hardware', 'Software & Licences', 'Consumables', 'AMC & Maintenance', 'Network & Infrastructure', 'Cloud & Services', 'Security', 'Staffing & Training', 'Other'].forEach((cat) => {
+        d.budgets.push({ id: 'BG-' + curYear + '-' + cat.slice(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X'), year: curYear, category: cat, planned: [210000, 105000, 20000, 42000, 55000, 75000, 40000, 30000, 15000][['Hardware', 'Software & Licences', 'Consumables', 'AMC & Maintenance', 'Network & Infrastructure', 'Cloud & Services', 'Security', 'Staffing & Training', 'Other'].indexOf(cat)], extra: 0, notes: 'Sample', gl: (s.fin.catgl || {})[cat] || '5290' });
+      });
+      added += 9;
+    }
+
+    S.emit();
+    return added;
+  }
+
+  /* ---------- MASTER LOAD: full test data + complete data ensure ---------- */
+  function masterLoad() {
+    let loadErr = null;
+    try { load(); } catch (e) { loadErr = e; }
+    const n = ensureCompleteData();
+    buildFinancials();
+    S.emit();
+    if (loadErr) UI.toast('Test data partially loaded — ' + (loadErr.message || loadErr), 'err');
+    else UI.toast('Master load complete — every module, workflow and finance screen filled' + (n ? ' (+' + n + ' gaps filled)' : ''));
+  }
+  ITMS.testdata = { load, masterLoad, ensureCompleteData };
 })();

@@ -147,7 +147,7 @@
           { k: 'var', label: 'Difference (P−A)', num: true, val: (r) => Math.round(((+r.planned || 0) - (actual[r.category] || 0)) * 100) / 100, render: (r) => { const v = (+r.planned || 0) - (actual[r.category] || 0); return `<b style="color:${v < 0 ? 'var(--coral)' : 'var(--mint)'}">${fmtNum(v, 2)}</b>`; } },
           { k: 'notes', label: 'Notes' },
         ],
-        actions: (r) => `<button class="ibtn" data-act="bg.edit" data-id="${r.id}" title="Edit">${ic('edit')}</button><button class="ibtn" style="--c:#ff5c6c" data-act="bg.del" data-id="${r.id}" title="Delete">${ic('trash')}</button>`,
+        actions: (r) => `<button class="ibtn" data-act="bg.edit" data-id="${r.id}" title="Edit">${ic('edit')}</button>${(typeof ITMS!=='undefined'&&ITMS.canDelete&&ITMS.canDelete())?'<button class="ibtn" style="--c:#ff5c6c" data-act="bg.del" data-id="'+r.id+'" title="Delete (Admin only)">'+ic('trash')+'</button>':''}`,
         toolbar: `<button class="btn" data-act="bg.new" data-year="${yr}">${ic('plus')}Set budget line</button>`,
         foot: (rr) => `<tr><td colspan="2">Total FY ${yr}</td><td class="num">${fmtNum(rr.reduce((s, r) => s + (+r.planned || 0), 0), 2)}</td><td></td><td></td><td class="num">${fmtNum(totA, 2)}</td><td class="num">${fmtNum(totP - totA, 2)}</td><td></td></tr>`,
       })}</div>`;
@@ -178,7 +178,7 @@
     const b = db().budgets.find((x) => x.id === el.dataset.id);
     UI.form({ title: 'Edit ' + b.id, sub: `FY ${b.year} · ${b.category}`, icon: 'edit', fields: bgFields(b.year), values: b, onSubmit: (v) => { Object.assign(b, { year: +v.year, category: v.category, planned: +v.planned || 0, extra: +v.extra || 0, notes: v.notes }); S.emit(); UI.toast('Budget updated'); } });
   });
-  UI.on('bg.del', async (el) => { if (await UI.confirm('Delete this budget line?', 'Delete', true)) { db().budgets = db().budgets.filter((x) => x.id !== el.dataset.id); S.emit(); } });
+  UI.on('bg.del', async (el) => { if (!ITMS.canDelete()) return UI.toast('Only Administrator can delete records', 'err'); if (await UI.confirm('Delete this budget line?', 'Delete', true)) { db().budgets = db().budgets.filter((x) => x.id !== el.dataset.id); S.emit(); } });
   UI.on('bg.copy', async (el) => {
     const yr = +el.dataset.year; const ys = years().filter((y) => y < yr); const src = ys[ys.length - 1] || yr - 1;
     if (!await UI.confirm(`Copy all FY ${src} planned figures to FY ${yr}? Existing FY ${yr} lines are kept.`, 'Copy')) return;

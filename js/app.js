@@ -76,6 +76,7 @@
     const item = (id) => { const p = ITMS.pages[id] || { title: id, icon: 'grid', color: '#2f6bff' }; return `<a data-nav="${id}" title="${esc(p.title)}" class="${cur === id ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${p.title}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`; };
     MENU.forEach((g) => {
       if (g.single) { h += item(g.id); return; }
+      if (g.id === 'admin') { try { if (ITMS.sdp.effRole() !== 'Administrator') return; } catch (e) { /* show on error */ } }
       const canP = (id) => { try { return ITMS.sdp.canPage(id); } catch (e) { return true; } };
       const gItems = (g.sections ? g.sections.flatMap((s) => s.items) : (g.items || [])).filter(canP);
       if (!gItems.length) return;
@@ -112,7 +113,7 @@
     } catch (e) { return ''; }
   }
   async function runDiag() {
-    const files = ['js/seed.js', 'js/core.js', 'js/ui.js', 'js/pages-1.js', 'js/pages-2.js', 'js/pages-3.js', 'js/pages-4.js', 'js/connectors.js', 'js/workflow.js', 'js/budget.js', 'js/compliance.js', 'js/itsm.js', 'js/sdp-plus.js', 'js/reports.js', 'js/auth.js', 'js/testdata.js', 'js/app.js'];
+    const files = ['js/seed.js', 'js/core.js', 'js/ui.js', 'js/pages-1.js', 'js/pages-2.js', 'js/pages-3.js', 'js/pages-4.js', 'js/connectors.js', 'js/workflow.js', 'js/budget.js', 'js/compliance.js', 'js/itsm.js', 'js/sdp-plus.js', 'js/cmdb.js', 'js/reports.js', 'js/auth.js', 'js/testdata.js', 'js/app.js'];
     const rows = [];
     for (const f of files) {
       try {
@@ -156,6 +157,9 @@
       saveNav();
     } catch (e) { /* nav stays as-is */ }
     if (ITMS.nav.page !== 'dashboard' && ITMS.sdp) { try { if (!ITMS.sdp.canPage(ITMS.nav.page)) { UI.toast('Your role has no access to this module', 'err'); ITMS.nav.page = 'dashboard'; } } catch (e) { /* open on error */ } }
+    /* Administration module: only Administrator role */
+    const adminPages = ['masters', 'sites', 'integrations', 'settings'];
+    if (adminPages.indexOf(ITMS.nav.page) >= 0) { try { if (ITMS.sdp.effRole() !== 'Administrator') { UI.toast('Administration module is restricted to Administrator role', 'err'); ITMS.nav.page = 'dashboard'; } } catch (e) { /* open on error */ } }
     ITMS.nav.params = {}; if (q) q.split('&').forEach((kv) => { const [k, v] = kv.split('='); ITMS.nav.params[k] = decodeURIComponent(v || ''); });
     ITMS.nav.fresh = true; document.querySelector('.side').classList.remove('open'); render();
   }
