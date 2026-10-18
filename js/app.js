@@ -7,6 +7,7 @@
   ITMS.nav = { page: 'dashboard', params: {}, fresh: true };
   const MENU = [
     { id: 'dashboard', single: true },
+    { id: 'portal', single: true },
     {
       id: 'itil', title: 'ITIL Practices', icon: 'spark', color: '#2f6bff', sections: [
         { title: 'Service design & catalogue', items: ['catalog', 'cmdb', 'assetmgmt', 'knowledge'] },
