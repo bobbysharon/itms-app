@@ -1561,6 +1561,8 @@
     return inv;
   }
   ITMS.ap = Object.assign(ITMS.ap || {}, { makeInvoice, postContract });
+  ITMS.sendEmail = sendEmail;
+  ITMS.emailCfg = emailCfg;
   function pickInvoice(kind) {
     const f = D().fin; f.invoices = f.invoices || [];
     const rows = [];
@@ -1685,4 +1687,100 @@
       };
     }
   } catch (e) { /* ignore */ }
+
+  /* ================= EMAIL CONFIGURATION & NOTIFICATIONS ================= */
+  function emailCfg() { const s = D(); s.emailcfg = s.emailcfg || { service: 'emailjs', publicKey: '', serviceId: '', templateId: '', smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '', fromEmail: 'noreply@company.com', fromName: 'SMART ITMS', notifyOnRequest: 'Yes', notifyOnResolve: 'Yes', notifyOnMajorIncident: 'Yes', notifyManager: 'Yes' }; return s.emailcfg; }
+  function sendEmail(to, subject, body) {
+    const cfg = emailCfg();
+    const s = D();
+    (s.emaillog = s.emaillog || []).unshift({ id: 'EM-' + Date.now().toString().slice(-6), at: now(), to: Array.isArray(to) ? to.join(', ') : to, subject, body: body || '', status: 'Queued' });
+    if (s.emaillog.length > 300) s.emaillog.length = 300;
+    if (cfg.service === 'emailjs' && cfg.publicKey && cfg.serviceId && cfg.templateId) {
+      try {
+        if (window.emailjs) {
+          window.emailjs.send(cfg.serviceId, cfg.templateId, { to_email: Array.isArray(to) ? to.join(', ') : to, subject, message: body, from_name: cfg.fromName }).then(() => { s.emaillog[0].status = 'Sent'; S.emit(); }).catch(() => { s.emaillog[0].status = 'Failed'; S.emit(); });
+        }
+      } catch (e) { /* emailjs not loaded */ }
+    }
+    /* mailto fallback — opens user's mail client */
+    try {
+      const mailto = 'mailto:' + encodeURIComponent(Array.isArray(to) ? to[0] : to) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body || '');
+      if (cfg.service === 'mailto') window.open(mailto, '_blank');
+    } catch (e) { /* ignore */ }
+    S.emit();
+  }
+  function notifyEmail(to, subject, body) { try { sendEmail(to, subject, body); } catch (e) { /* never break */ } }
+
+  pages.emailconfig = {
+    title: 'Email Configuration', crumb: 'SMTP / EmailJS settings · notification rules', icon: 'mail', color: '#00a8e8', group: 'Administration',
+    render() {
+      const cfg = emailCfg();
+      return `<div class="card" style="max-width:820px">
+        <h3><span class="pip"></span>Email server configuration</h3>
+        <form id="emailcfg-form">
+          <div class="fgrid">
+            <label class="f">Service<select class="in" name="service"><option value="emailjs" ${cfg.service === 'emailjs' ? 'selected' : ''}>EmailJS (recommended)</option><option value="mailto" ${cfg.service === 'mailto' ? 'selected' : ''}>Mailto (opens mail client)</option><option value="smtp" ${cfg.service === 'smtp' ? 'selected' : ''}>SMTP (via backend)</option></select></label>
+            <label class="f">From email<input class="in" name="fromEmail" value="${esc(cfg.fromEmail)}" placeholder="noreply@company.com"></label>
+            <label class="f">From name<input class="in" name="fromName" value="${esc(cfg.fromName)}" placeholder="SMART ITMS"></label>
+            <label class="f">EmailJS public key<input class="in" name="publicKey" value="${esc(cfg.publicKey)}" placeholder="user_xxxxx"></label>
+            <label class="f">EmailJS service ID<input class="in" name="serviceId" value="${esc(cfg.serviceId)}" placeholder="service_xxxxx"></label>
+            <label class="f">EmailJS template ID<input class="in" name="templateId" value="${esc(cfg.templateId)}" placeholder="template_xxxxx"></label>
+            <label class="f">SMTP host<input class="in" name="smtpHost" value="${esc(cfg.smtpHost)}" placeholder="smtp.gmail.com"></label>
+            <label class="f">SMTP port<input class="in" name="smtpPort" type="number" value="${cfg.smtpPort}"></label>
+            <label class="f">SMTP username<input class="in" name="smtpUser" value="${esc(cfg.smtpUser)}"></label>
+            <label class="f">SMTP password<input class="in" name="smtpPass" type="password" value="${esc(cfg.smtpPass)}"></label>
+          </div>
+          <h3 style="margin-top:18px"><span class="pip"></span>Notification rules</h3>
+          <div class="fgrid">
+            <label class="f">Notify on new service request<select class="in" name="notifyOnRequest"><option value="Yes" ${cfg.notifyOnRequest === 'Yes' ? 'selected' : ''}>Yes — IT + manager</option><option value="No">No</option></select></label>
+            <label class="f">Notify on resolution<select class="in" name="notifyOnResolve"><option value="Yes" ${cfg.notifyOnResolve === 'Yes' ? 'selected' : ''}>Yes — requester + manager</option><option value="No">No</option></select></label>
+            <label class="f">Notify on major incident update<select class="in" name="notifyOnMajorIncident"><option value="Yes" ${cfg.notifyOnMajorIncident === 'Yes' ? 'selected' : ''}>Yes — IT + commander</option><option value="No">No</option></select></label>
+            <label class="f">Always CC manager<select class="in" name="notifyManager"><option value="Yes" ${cfg.notifyManager === 'Yes' ? 'selected' : ''}>Yes</option><option value="No">No</option></select></label>
+          </div>
+          <div style="margin-top:14px"><button class="btn" type="submit">${ic('check')}Save configuration</button> <button class="btn ghost" type="button" data-act="email.test">${ic('mail')}Send test email</button></div>
+        </form>
+        <div class="card mt"><h3>Email log (last 50)</h3>${UI.table({ id: 'emlog', rows: () => (D().emaillog || []).slice(0, 50), sort: 'at', dir: -1, text: (r) => r.to + r.subject, cols: [{ k: 'at', label: 'At', render: (r) => fdt(r.at) }, { k: 'to', label: 'To' }, { k: 'subject', label: 'Subject' }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'Sent' ? 'Published' : r.status === 'Failed' ? 'Expired' : 'Draft') }], actions: () => '', toolbar: '' })}</div>
+      </div>`;
+    },
+    after() {
+      const f = document.getElementById('emailcfg-form');
+      if (f) f.addEventListener('submit', (e) => { e.preventDefault(); const fd = new FormData(f); const cfg = emailCfg(); ['service','fromEmail','fromName','publicKey','serviceId','templateId','smtpHost','smtpUser','smtpPass','notifyOnRequest','notifyOnResolve','notifyOnMajorIncident','notifyManager'].forEach((k) => { cfg[k] = fd.get(k) || cfg[k]; }); cfg.smtpPort = +fd.get('smtpPort') || 587; S.emit(); UI.toast('Email configuration saved'); });
+    },
+  };
+  UI.on('email.test', () => {
+    const cfg = emailCfg();
+    const to = prompt('Send test email to:', cfg.fromEmail);
+    if (!to) return;
+    sendEmail(to, 'SMART ITMS — Test email', 'This is a test email from SMART ITMS. If you received this, your email configuration is working.');
+    UI.toast('Test email queued — check email log');
+  });
+
+  /* ---- hook email notifications into service request lifecycle ---- */
+  UI.on('sr.notifyNew', (el) => {
+    const cfg = emailCfg(); if (cfg.notifyOnRequest !== 'Yes') return;
+    const r = (H().requests || []).find((x) => x.id === el.dataset.id); if (!r) return;
+    const mgr = L.emp(r.requester);
+    const mgrEmail = (mgr && mgr.manager) ? (L.emp(mgr.manager) || {}).email : '';
+    const itEmail = 'it@company.com';
+    const to = [itEmail]; if (cfg.notifyManager === 'Yes' && mgrEmail) to.push(mgrEmail);
+    notifyEmail(to, `[SMART ITMS] New service request ${r.id}`, `Request ${r.id} raised by ${L.empName(r.requester)}.\nSubject: ${r.subject}\nPriority: ${r.priority}\n\nView: ${location.origin}/#/tickets`);
+  });
+  UI.on('sr.notifyResolved', (el) => {
+    const cfg = emailCfg(); if (cfg.notifyOnResolve !== 'Yes') return;
+    const r = (H().requests || []).find((x) => x.id === el.dataset.id); if (!r) return;
+    const mgr = L.emp(r.requester);
+    const mgrEmail = (mgr && mgr.manager) ? (L.emp(mgr.manager) || {}).email : '';
+    const to = [(L.emp(r.requester) || {}).email || r.requester]; if (cfg.notifyManager === 'Yes' && mgrEmail) to.push(mgrEmail);
+    notifyEmail(to, `[SMART ITMS] Request ${r.id} resolved`, `Your request "${r.subject}" has been resolved.\nResolution: ${r.resolution || 'Completed'}\nStatus: ${r.status}\n\nView: ${location.origin}/#/tickets`);
+  });
+
+  /* ---- hook email notifications into major incident lifecycle ---- */
+  const origNotifyMajorInc = notifyEmail;
+  UI.on('mi.notifyStatus', (el) => {
+    const cfg = emailCfg(); if (cfg.notifyOnMajorIncident !== 'Yes') return;
+    const r = (I().majorIncidents || []).find((x) => x.id === el.dataset.id); if (!r) return;
+    const to = ['it@company.com', 'it-manager@company.com'];
+    if (r.commander) { const cmd = (H().techs || []).find((t) => t.name === r.commander); if (cmd && cmd.email) to.push(cmd.email); }
+    notifyEmail(to, `[SMART ITMS] Major incident ${r.id} → ${r.status}`, `Major incident "${r.title}" is now: ${r.status}.\nSeverity: ${r.severity}\nCommander: ${r.commander}\nService: ${r.serviceName || r.service}\n\nView: ${location.origin}/#/majorinc`);
+  });
 })();

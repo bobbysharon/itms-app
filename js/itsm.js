@@ -191,6 +191,15 @@ General: General Query, Feedback, Complaint, Suggestion`;
     r.manager = _mgr ? _mgr.no : ''; r.managerName = _mgrName || '';
     hist(r, 'Request created' + (r.tech ? ` and assigned to ${r.tech} (${r.group})` : ' - routed to ' + r.group + ', awaiting technician'));
     if (_mgr) { try { const s = ITMS.sdp.D(); (s.notiflog = s.notiflog || []).unshift({ id: 'NT-' + Date.now().toString().slice(-6), at: now(), channel: 'Email', to: _mgr.name, subject: 'Info: new IT request ' + r.id + ' raised by ' + L.empName(r.requester), body: 'Request ' + r.id + ': ' + r.subject + ' (' + r.category + ') has been raised and routed to ' + r.group + '. This is for your information.' }); } catch (e) { /* ignore */ } }
+    /* email notification to IT + manager on new request */
+    try {
+      if (ITMS.sendEmail && ITMS.emailCfg) {
+        const cfg = ITMS.emailCfg(); if (cfg.notifyOnRequest === 'Yes') {
+          const to = ['it@company.com']; if (cfg.notifyManager === 'Yes' && _mgr && _mgr.email) to.push(_mgr.email);
+          ITMS.sendEmail(to, `[SMART ITMS] New service request ${r.id}`, `Request ${r.id} raised by ${L.empName(r.requester)}.\nSubject: ${r.subject}\nPriority: ${r.priority}\nCategory: ${r.category}\nGroup: ${r.group}\n\nView: ${location.origin}/#/tickets`);
+        }
+      }
+    } catch (e) { /* never break */ }
     h.requests.unshift(r); L.log('Helpdesk', `Request ${r.id}: ${r.subject}`, r.requester); return r;
   }
   const lockedReq = () => (ITMS.sdp && ITMS.sdp.lockedRequester ? ITMS.sdp.lockedRequester() : null);
