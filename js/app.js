@@ -32,12 +32,35 @@
     },
     {
       id: 'hrm', title: 'Human Resources', icon: 'users', color: '#00c2ff', sections: [
-        { title: 'HR', items: ['hr'] },
+        { title: 'HR Operations', items: [
+          { id: 'hr', params: { tab: 'staff' }, label: 'Staff directory' },
+          { id: 'hr', params: { tab: 'req' }, label: 'On/offboarding requests' },
+          { id: 'hr', params: { tab: 'leave' }, label: 'Leave management' },
+          { id: 'hr', params: { tab: 'bal' }, label: 'Leave balances' },
+          { id: 'hr', params: { tab: 'clear' }, label: 'Exit clearance' },
+          { id: 'hr', params: { tab: 'desk' }, label: 'HR desk' },
+        ]},
       ],
     },
     {
       id: 'fin', title: 'Finance', icon: 'dollar', color: '#64748b', sections: [
-        { title: 'Finance', items: ['finance'] },
+        { title: 'Accounts payable', items: [
+          { id: 'finance', params: { tab: 'exp' }, label: 'Expense claims' },
+          { id: 'finance', params: { tab: 'pay' }, label: 'Vendor payments' },
+          { id: 'finance', params: { tab: 'bills' }, label: 'AP Bills' },
+          { id: 'finance', params: { tab: 'invoices' }, label: 'Invoices' },
+          { id: 'finance', params: { tab: 'grninv' }, label: 'GRN → invoices' },
+        ]},
+        { title: 'General ledger', items: [
+          { id: 'finance', params: { tab: 'jv' }, label: 'Journal vouchers' },
+          { id: 'finance', params: { tab: 'ledger' }, label: 'General ledger' },
+          { id: 'finance', params: { tab: 'tb' }, label: 'Trial balance' },
+          { id: 'finance', params: { tab: 'recon' }, label: 'Reconciliation' },
+        ]},
+        { title: 'Setup', items: [
+          { id: 'finance', params: { tab: 'coa' }, label: 'Chart of accounts' },
+          { id: 'finance', params: { tab: 'links' }, label: 'Linked areas' },
+        ]},
       ],
     },
     {
@@ -51,7 +74,11 @@
       ],
     },
   ];
-  const ORDER = MENU.reduce((a, g) => a.concat(g.single ? [g.id] : g.sections.flatMap((s) => s.items)), []);
+  const ORDER = MENU.reduce((a, g) => {
+    if (g.single) return a.concat(g.id);
+    const items = g.sections ? g.sections.flatMap((s) => s.items) : (g.items || []);
+    return a.concat(items.map((it) => (typeof it === 'string' ? it : it.id)));
+  }, []);
   const NAVKEY = 'itms.nav.v2'; const navState = (() => { try { return JSON.parse(localStorage.getItem(NAVKEY)) || {}; } catch (e) { return {}; } })();
   const saveNav = () => { try { localStorage.setItem(NAVKEY, JSON.stringify(navState)); } catch (e) { /* ignore */ } };
 
@@ -74,18 +101,36 @@
   }
   function renderNav() {
     const b = badges(); const cur = ITMS.nav.page; let h = '';
-    const item = (id) => { const p = ITMS.pages[id] || { title: id, icon: 'grid', color: '#2f6bff' }; return `<a data-nav="${id}" title="${esc(p.title)}" class="${cur === id ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${p.title}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`; };
+    const mkHref = (it) => {
+      if (typeof it === 'string') return `#/${it}`;
+      const q = it.params ? '?' + Object.entries(it.params).map(([k,v]) => k+'='+encodeURIComponent(v)).join('&') : '';
+      return `#/${it.id}${q}`;
+    };
+    const item = (it) => {
+      const id = typeof it === 'string' ? it : it.id;
+      const label = typeof it === 'string' ? (ITMS.pages[it]?.title || it) : (it.label || it.id);
+      const p = ITMS.pages[id] || { title: label, icon: 'grid', color: '#2f6bff' };
+      const href = mkHref(it);
+      const isOn = location.hash.startsWith('#/' + id) && (!it.params || Object.entries(it.params).every(([k,v]) => ITMS.nav.params[k] === v));
+      return `<a href="${href}" title="${esc(p.title)}" class="${isOn ? 'on' : ''}" style="--c:${p.color}"><span class="ni">${ic(p.icon)}</span>${label}${b[id] ? `<span class="bd ${b[id][1] === 2 ? 'b2' : ''}">${b[id][0]}</span>` : ''}</a>`;
+    };
     MENU.forEach((g) => {
       if (g.single) { h += item(g.id); return; }
       if (g.id === 'admin') { try { if (ITMS.sdp.effRole() !== 'Administrator') return; } catch (e) { /* show on error */ } }
-      const canP = (id) => { try { return ITMS.sdp.canPage(id); } catch (e) { return true; } };
-      const gItems = (g.sections ? g.sections.flatMap((s) => s.items) : (g.items || [])).filter(canP);
+      const canP = (it) => { try { const id = typeof it === 'string' ? it : it.id; return ITMS.sdp.canPage(id); } catch (e) { return true; } };
+      const sections = g.sections || [{ items: g.items || [] }];
+      const gItems = sections.flatMap((s) => s.items).filter(canP);
       if (!gItems.length) return;
-      const has = gItems.includes(cur); const open = !!navState[g.id];
-      const sum = gItems.reduce((n, id) => n + (b[id] && typeof b[id][0] === 'number' ? b[id][0] : (b[id] ? 1 : 0)), 0);
-      const sub = g.sections
-        ? g.sections.filter((s) => s.items.some(canP)).map((s) => `<div class="sec-label">${esc(s.title)}</div>${s.items.filter(canP).map(item).join('')}`).join('')
-        : gItems.map(item).join('');
+      const has = gItems.some((it) => {
+        const id = typeof it === 'string' ? it : it.id;
+        return location.hash.startsWith('#/' + id) && (!it.params || Object.entries(it.params).every(([k,v]) => ITMS.nav.params[k] === v));
+      });
+      const open = !!navState[g.id];
+      const sum = gItems.reduce((n, it) => {
+        const id = typeof it === 'string' ? it : it.id;
+        return n + (b[id] && typeof b[id][0] === 'number' ? b[id][0] : (b[id] ? 1 : 0));
+      }, 0);
+      const sub = sections.filter((s) => s.items.some(canP)).map((s) => `<div class="sec-label">${esc(s.title)}</div>${s.items.filter(canP).map(item).join('')}`).join('');
       h += `<div class="grp ${open ? 'open' : ''}" style="--c:${g.color}"><div class="gh ${has ? 'has' : ''}" data-grp="${g.id}" title="${esc(g.title)}"><span class="gi">${ic(g.icon)}</span><span class="gt">${g.title}</span>${sum && !open ? `<span class="bd">${sum}</span>` : ''}<i class="chev"></i></div><div class="sub">${sub}</div></div>`;
     });
     document.getElementById('nav').innerHTML = h + `<div class="navver" title="Deployed code version — quote this when reporting issues">build ${esc(ITMS.BUILD || '?')}</div>`; if (navState._last !== cur) { navState._last = cur; saveNav(); }
