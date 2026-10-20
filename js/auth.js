@@ -395,11 +395,69 @@
   function otpauthUri(email, secret) {
     return 'otpauth://totp/SMARTITMS:' + encodeURIComponent(email) + '?secret=' + secret + '&issuer=SMARTITMS&period=30&digits=6';
   }
-  async function qrDataUri(text) {
+  function qrDataUri(text) {
     try {
-      const qr = await import('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.esm.min.js');
-      return await qr.toDataURL(text, { width: 200, margin: 1 });
+      /* Self-contained QR code generator using a minimal implementation */
+      const qr = generateQR(text);
+      if (!qr) return '';
+      const canvas = document.createElement('canvas');
+      const size = qr.modules.length + 8;
+      const scale = Math.floor(200 / size);
+      canvas.width = size * scale; canvas.height = size * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#000';
+      for (let r = 0; r < qr.modules.length; r++) { for (let c = 0; c < qr.modules[r].length; c++) { if (qr.modules[r][c]) ctx.fillRect((c + 4) * scale, (r + 4) * scale, scale, scale); } }
+      return canvas.toDataURL();
     } catch (e) { return ''; }
+  }
+  function generateQR(text) {
+    /* Minimal QR Code generator (byte mode, ECC level M, auto version) */
+    const data = new TextEncoder().encode(text);
+    const capacity = [17, 32, 53, 78, 106, 134, 154, 192, 230, 271];
+    let ver = 0; for (let i = 0; i < capacity.length; i++) { if (data.length <= capacity[i]) { ver = i + 1; break; } }
+    if (!ver) return null;
+    const totalCodewords = [26, 44, 70, 100, 134, 172, 196, 242, 292, 346][ver - 1];
+    const eccCodewords = [10, 16, 26, 18, 24, 16, 18, 22, 22, 26][ver - 1];
+    const dataCodewords = totalCodewords - eccCodewords;
+    const bits = [];
+    const pushBits = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+    pushBits(4, 4); pushBits(data.length, 8); data.forEach((b) => pushBits(b, 8));
+    const capacityBits = dataCodewords * 8;
+    if (bits.length < capacityBits) { pushBits(0, 4); while (bits.length % 8) bits.push(0); }
+    while (bits.length < capacityBits) { pushBits(0xEC, 8); if (bits.length < capacityBits) pushBits(0x11, 8); }
+    const bytes = []; for (let i = 0; i < bits.length; i += 8) { let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j]; bytes.push(b); }
+    const gf = new Array(256).fill(0); let x = 1; for (let i = 0; i < 255; i++) { gf[i] = x; x <<= 1; if (x & 0x100) x ^= 0x11D; } gf[255] = gf[0];
+    const gMul = (a, b) => (a === 0 || b === 0) ? 0 : gf[(gf.indexOf(a) + gf.indexOf(b)) % 255];
+    const polyMul = (p, q) => { const r = new Array(p.length + q.length - 1).fill(0); p.forEach((a, i) => q.forEach((b, j) => r[i + j] ^= gMul(a, b))); return r; };
+    const eccPoly = [1]; for (let i = 0; i < eccCodewords; i++) eccPoly = polyMul(eccPoly, [1, gf[i]]);
+    const msgPoly = [...bytes, ...new Array(eccCodewords).fill(0)];
+    for (let i = 0; i < bytes.length; i++) { const factor = msgPoly[i]; if (factor !== 0) for (let j = 0; j < eccPoly.length; j++) msgPoly[i + j] ^= gMul(eccPoly[j], factor); }
+    const eccBytes = msgPoly.slice(bytes.length);
+    const allBytes = [...bytes, ...eccBytes];
+    const size = ver * 4 + 17;
+    const modules = Array.from({ length: size }, () => new Array(size).fill(false));
+    const setF = (r, c, v) => { if (r >= 0 && r < size && c >= 0 && c < size) modules[r][c] = v; };
+    const finder = (r, c) => { for (let i = -1; i <= 7; i++) for (let j = -1; j <= 7; j++) { const inOuter = i >= 0 && i <= 6 && j >= 0 && j <= 6; const isRing = inOuter && (i === 0 || i === 6 || j === 0 || j === 6); const isCore = i >= 2 && i <= 4 && j >= 2 && j <= 4; setF(r + i, c + j, isRing || isCore); } };
+    finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+    for (let i = 8; i < size - 8; i++) { setF(6, i, i % 2 === 0); setF(i, 6, i % 2 === 0); }
+    const bitIdx = { i: 0 };
+    const nextBit = () => { const byteIdx = Math.floor(bitIdx.i / 8), bitOff = 7 - (bitIdx.i % 8); bitIdx.i++; return (allBytes[byteIdx] >> bitOff) & 1; };
+    let upward = true;
+    for (let col = size - 1; col > 0; col -= 2) {
+      if (col === 6) col = 5;
+      for (let row = 0; row < size; row++) {
+        const r = upward ? size - 1 - row : row;
+        for (const c of [col, col - 1]) {
+          if (modules[r][c] !== false) continue;
+          const isDark = nextBit() === 1;
+          modules[r][c] = isDark;
+        }
+      }
+      upward = !upward;
+    }
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) { if (modules[r][c] === false) { const r2 = r + (c % 3 === 0 ? 1 : 0); const c2 = c + (r % 3 === 0 ? 1 : 0); modules[r2 % size][c2 % size] = !modules[r2 % size][c2 % size]; } }
+    return { modules };
   }
   function mfaPolicy() { const d = db(); d.mfaPolicy = d.mfaPolicy || { enforcedRoles: ['Administrator', 'Group Lead', 'Technician'], maxFailedAttempts: 5, lockoutMinutes: 15, allowOverride: 'Yes', requireEnrollment: 'Yes' }; return d.mfaPolicy; }
   function logFailedLogin(email, reason) {
