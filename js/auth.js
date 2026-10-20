@@ -93,9 +93,11 @@
   function tryLogin() {
     const em = document.getElementById('li-email'), pw = document.getElementById('li-pass'), er = document.getElementById('li-err');
     const email = em ? em.value : '', password = pw ? pw.value : '';
+    const u = db().users.find((x) => x.email.toLowerCase() === String(email || '').trim().toLowerCase());
+    if (u && isLockedOut(email)) { if (er) { er.textContent = 'Account locked due to too many failed attempts. Try again in ' + mfaPolicy().lockoutMinutes + ' minutes.'; er.style.display = ''; } return; }
     const r = login(email, password);
     if (r.ok) {
-      if (mfaNeeded(r.ok.email)) {
+      if (mfaNeeded(r.ok.email) && !r.ok.mfaOverride) {
         const ov = UI.modal(`<header><span class="gem" style="width:42px;height:42px;border-radius:13px">${ic('shield')}</span><div><h3>Two-step verification</h3><small>Enter the 6-digit code from your authenticator app</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body" style="text-align:center">
           <p style="color:var(--muted)">Open Google Authenticator or Microsoft Authenticator to get your code.</p>
           <div style="margin:16px 0"><input class="in" id="li-mfa-code" style="text-align:center;font-size:24px;letter-spacing:10px;max-width:240px" maxlength="6" autocomplete="off" placeholder="000000"></div>
@@ -109,6 +111,7 @@
               try { sessionStorage.setItem(SES + '.mfa', '1'); } catch (e2) { /* ignore */ }
               UI.close(ov); refreshGate(); UI.toast('Welcome, ' + (L.empName(r.ok.empNo) || r.ok.email));
             } else {
+              logFailedLogin(r.ok.email, 'Invalid MFA code');
               UI.toast('Invalid code — try again', 'err');
               const c = document.getElementById('li-mfa-code'); c.value = ''; c.focus();
             }
@@ -119,7 +122,10 @@
         refreshGate(); UI.toast('Welcome, ' + (L.empName(r.ok.empNo) || r.ok.email));
       }
     }
-    else if (er) { er.textContent = r.err; er.style.display = ''; if (pw) { pw.value = ''; pw.focus(); } }
+    else {
+      if (u) logFailedLogin(email, 'Invalid password');
+      if (er) { er.textContent = r.err; er.style.display = ''; if (pw) { pw.value = ''; pw.focus(); } }
+    }
   }
   document.addEventListener('DOMContentLoaded', () => {
     refreshGate();
@@ -395,13 +401,43 @@
       return await qr.toDataURL(text, { width: 200, margin: 1 });
     } catch (e) { return ''; }
   }
+  function mfaPolicy() { const d = db(); d.mfaPolicy = d.mfaPolicy || { enforcedRoles: ['Administrator', 'Group Lead', 'Technician'], maxFailedAttempts: 5, lockoutMinutes: 15, allowOverride: 'Yes', requireEnrollment: 'Yes' }; return d.mfaPolicy; }
+  function logFailedLogin(email, reason) {
+    const d = db(); d.failedLogins = d.failedLogins || [];
+    d.failedLogins.unshift({ id: 'FL-' + Date.now().toString().slice(-6), at: now(), email, reason: reason || '', by: email });
+    if (d.failedLogins.length > 500) d.failedLogins.length = 500;
+    S.emit();
+  }
+  function failedAttempts(email) {
+    const d = db(); const cutoff = Date.now() - (mfaPolicy().lockoutMinutes * 60000);
+    return (d.failedLogins || []).filter((x) => x.email === email && new Date(x.at).getTime() > cutoff).length;
+  }
+  function isLockedOut(email) { return failedAttempts(email) >= mfaPolicy().maxFailedAttempts; }
+  function mfaOverride(email, reason) {
+    if (!canAdmin()) return false;
+    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
+    if (!u) return false;
+    u.mfaOverride = reason || ''; u.mfaOverrideAt = now(); u.mfaOverrideBy = validSession() ? validSession().email : 'admin';
+    S.emit(); return true;
+  }
+  function mfaRequiredForRole(role) { return mfaPolicy().enforcedRoles.indexOf(role) >= 0; }
+  function mfaEnrollmentStatus(email) {
+    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
+    if (!u) return 'Unknown';
+    if (u.mfaOverride) return 'Overridden';
+    if (u.mfaSecret) return 'Enrolled';
+    if (mfaRequiredForRole(u.role)) return 'Required — not enrolled';
+    return 'Not required';
+  }
   function mfaStatus() {
     const users = db().users || [];
     const total = users.length;
     const enrolled = users.filter((u) => u.mfaSecret).length;
-    return { total, enrolled, pending: total - enrolled };
+    const overridden = users.filter((u) => u.mfaOverride).length;
+    const pending = users.filter((u) => !u.mfaSecret && !u.mfaOverride && mfaRequiredForRole(u.role)).length;
+    return { total, enrolled, overridden, pending, policy: mfaPolicy() };
   }
-  ITMS.auth.mfa = { mfaNeeded, mfaVerify, mfaEnroll, mfaDisable, otpauthUri, qrDataUri, totp, mfaStatus, genSecret };
+  ITMS.auth.mfa = { mfaNeeded, mfaVerify, mfaEnroll, mfaDisable, otpauthUri, qrDataUri, totp, mfaStatus, genSecret, mfaPolicy, mfaOverride, mfaRequiredForRole, mfaEnrollmentStatus, logFailedLogin, failedAttempts, isLockedOut };
 
   /* ---------- MFA enrollment UI ---------- */
   UI.on('mfa.enroll', async () => {

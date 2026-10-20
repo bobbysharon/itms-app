@@ -70,7 +70,7 @@
     },
     {
       id: 'admin', title: 'Administration', icon: 'cog', color: '#5b8def', sections: [
-        { title: 'Configure', items: ['masters', 'sites', 'integrations', 'settings', 'itsmadmin', 'emailconfig', 'mfamanage'] },
+        { title: 'Configure', items: ['masters', 'sites', 'integrations', 'settings', 'itsmadmin', 'emailconfig', 'mfamanage', 'mfapolicy'] },
       ],
     },
   ];
@@ -204,7 +204,7 @@
     } catch (e) { /* nav stays as-is */ }
     if (ITMS.nav.page !== 'dashboard' && ITMS.sdp) { try { if (!ITMS.sdp.canPage(ITMS.nav.page)) { UI.toast('Your role has no access to this module', 'err'); ITMS.nav.page = 'dashboard'; } } catch (e) { /* open on error */ } }
     /* Administration module: only Administrator role */
-    const adminPages = ['masters', 'sites', 'integrations', 'settings', 'emailconfig', 'mfamanage'];
+    const adminPages = ['masters', 'sites', 'integrations', 'settings', 'emailconfig', 'mfamanage', 'mfapolicy'];
     if (adminPages.indexOf(ITMS.nav.page) >= 0) { try { if (ITMS.sdp.effRole() !== 'Administrator') { UI.toast('Administration module is restricted to Administrator role', 'err'); ITMS.nav.page = 'dashboard'; } } catch (e) { /* open on error */ } }
     ITMS.nav.params = {}; if (q) q.split('&').forEach((kv) => { const [k, v] = kv.split('='); ITMS.nav.params[k] = decodeURIComponent(v || ''); });
     ITMS.nav.fresh = true; document.querySelector('.side').classList.remove('open'); render();

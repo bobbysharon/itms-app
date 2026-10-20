@@ -1755,18 +1755,50 @@
     UI.toast('Test email queued — check email log');
   });
 
+  /* ---------- MFA Policy Configuration page ---------- */
+  pages.mfapolicy = {
+    title: 'MFA Policy', crumb: 'MFA enforcement rules · lockout policy · role-based enforcement', icon: 'shield', color: '#00a8e8', group: 'Administration',
+    render() {
+      const p = ITMS.auth.mfa.mfaPolicy();
+      const st = ITMS.auth.mfa.mfaStatus();
+      return `<div class="card" style="max-width:820px">
+        <h3><span class="pip"></span>MFA Policy Configuration</h3>
+        <p style="color:var(--muted)">Enforce multi-factor authentication by role. ${st.enrolled} enrolled · ${st.pending} pending · ${st.overridden} overridden.</p>
+        <form id="mfapolicy-form">
+          <h3 style="margin-top:14px"><span class="pip"></span>Enforcement</h3>
+          <div class="fgrid">
+            <label class="f">Roles requiring MFA<select class="in" name="enrolledRoles" multiple size="5">${['Administrator','Group Lead','Technician','Requester','Auditor','Vendor / External'].map((r) => `<option value="${r}" ${p.enforcedRoles.includes(r) ? 'selected' : ''}>${r}</option>`).join('')}</select></label>
+            <label class="f">Require enrollment<select class="in" name="requireEnrollment"><option value="Yes" ${p.requireEnrollment === 'Yes' ? 'selected' : ''}>Yes — all required users must enroll</option><option value="No">No — optional</option></select></label>
+            <label class="f">Allow admin override<select class="in" name="allowOverride"><option value="Yes" ${p.allowOverride === 'Yes' ? 'selected' : ''}>Yes — with reason</option><option value="No">No — strict enforcement</option></select></label>
+          </div>
+          <h3 style="margin-top:14px"><span class="pip"></span>Lockout Policy</h3>
+          <div class="fgrid">
+            <label class="f">Max failed attempts<select class="in" name="maxFailedAttempts">${[3,5,10,20].map((n) => `<option value="${n}" ${p.maxFailedAttempts === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+            <label class="f">Lockout duration (minutes)<select class="in" name="lockoutMinutes">${[5,10,15,30,60].map((n) => `<option value="${n}" ${p.lockoutMinutes === n ? 'selected' : ''}>${n} min</option>`).join('')}</select></label>
+          </div>
+          <div style="margin-top:14px"><button class="btn" type="submit">${ic('check')}Save policy</button></div>
+        </form>
+        <div class="card mt"><h3>Failed login log (last 20)</h3>${UI.table({ id: 'mfaflog', rows: () => (db().failedLogins || []).slice(0, 20), sort: 'at', dir: -1, text: (r) => r.email + r.reason, cols: [{ k: 'at', label: 'At', render: (r) => fdt(r.at) }, { k: 'email', label: 'User' }, { k: 'reason', label: 'Reason' }], actions: () => '', toolbar: '' })}</div>
+      </div>`;
+    },
+    after() {
+      const f = document.getElementById('mfapolicy-form');
+      if (f) f.addEventListener('submit', (e) => { e.preventDefault(); const fd = new FormData(f); const p = ITMS.auth.mfa.mfaPolicy(); p.enforcedRoles = fd.getAll('enrolledRoles'); p.requireEnrollment = fd.get('requireEnrollment'); p.allowOverride = fd.get('allowOverride'); p.maxFailedAttempts = +fd.get('maxFailedAttempts'); p.lockoutMinutes = +fd.get('lockoutMinutes'); S.emit(); UI.toast('MFA policy saved'); });
+    },
+  };
+
   /* ---------- MFA management page ---------- */
   pages.mfamanage = {
     title: 'MFA Management', crumb: 'Two-factor authentication · TOTP enrollment · compliance', icon: 'shield', color: '#00a8e8', group: 'Administration',
     render() {
       const st = ITMS.auth.mfa.mfaStatus();
-      const users = (db().users || []).map((u) => ({ email: u.email, role: u.role || '', mfa: u.mfaSecret ? 'Enabled' : '—' }));
+      const users = (db().users || []).map((u) => ({ email: u.email, role: u.role || '', mfa: u.mfaSecret ? 'Enabled' : '—', status: ITMS.auth.mfa.mfaEnrollmentStatus(u.email), override: u.mfaOverride || '' }));
       return `<div class="card">
         <h3><span class="pip"></span>Two-Factor Authentication (MFA) Management</h3>
-        <p style="color:var(--muted)">TOTP-based MFA compatible with Google Authenticator and Microsoft Authenticator. ${st.enrolled} of ${st.total} users enrolled.</p>
-        <table class="t"><thead><tr><th>User</th><th>Role</th><th>MFA</th><th></th></tr></thead>
-        <tbody>${users.map((u) => `<tr><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${u.mfa === 'Enabled' ? P('Published', 'mint') : '—'}</td><td><button class="btn xs" data-act="mfa.toggle" data-id="${esc(u.email)}">${u.mfa === 'Enabled' ? 'Disable' : 'Enroll'}</button></td></tr>`).join('')}</tbody></table>
-        <div style="margin-top:14px"><button class="btn ghost" data-act="mfa.enroll">${ic('shield')}Enroll my MFA</button></div>
+        <p style="color:var(--muted)">TOTP-based MFA compatible with Google Authenticator and Microsoft Authenticator. ${st.enrolled} enrolled · ${st.pending} pending · ${st.overridden} overridden.</p>
+        <table class="t"><thead><tr><th>User</th><th>Role</th><th>MFA</th><th>Status</th><th>Override</th><th></th></tr></thead>
+        <tbody>${users.map((u) => `<tr><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${u.mfa === 'Enabled' ? P('Published', 'mint') : '—'}</td><td>${esc(u.status)}</td><td>${u.override ? esc(u.override) : '—'}</td><td><button class="btn xs" data-act="mfa.toggle" data-id="${esc(u.email)}">${u.mfa === 'Enabled' ? 'Disable' : 'Enroll'}</button> <button class="btn xs ghost" data-act="mfa.override" data-id="${esc(u.email)}" ${u.override ? '' : 'disabled'}>${u.override ? 'Remove override' : 'Override'}</button></td></tr>`).join('')}</tbody></table>
+        <div style="margin-top:14px"><button class="btn ghost" data-act="mfa.enroll">${ic('shield')}Enroll my MFA</button> <a class="btn ghost" data-go="#/mfapolicy">${ic('cog')}MFA Policy</a></div>
       </div>`;
     },
   };
@@ -1779,6 +1811,15 @@
       ov2.addEventListener('click', (e2) => { if (e2.target.closest('[data-x]')) UI.close(ov2); });
     }); }
     UI.toast('MFA enrolled for ' + em);
+  });
+  UI.on('mfa.override', (el) => {
+    const em = el.dataset.id;
+    if (!ITMS.canDelete || !ITMS.canDelete()) return UI.toast('Only Administrator can override MFA', 'err');
+    const u = (db().users || []).find((x) => x.email === em);
+    if (u && u.mfaOverride) { delete u.mfaOverride; delete u.mfaOverrideAt; delete u.mfaOverrideBy; S.emit(); UI.toast('Override removed for ' + em); return; }
+    const reason = prompt('Reason for MFA override (required):');
+    if (!reason || !reason.trim()) return UI.toast('A reason is required for override', 'err');
+    if (ITMS.auth.mfa.mfaOverride(em, reason.trim())) UI.toast('MFA overridden for ' + em + ' — reason recorded');
   });
 
   /* ---- hook email notifications into service request lifecycle ---- */
