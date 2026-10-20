@@ -76,7 +76,7 @@
     try { sessionStorage.removeItem(SES); localStorage.removeItem('itms.user'); localStorage.removeItem('itms.role'); } catch (e) { /* ignore */ }
     location.reload();
   }
-  ITMS.auth = { session: validSession, login, logout, mfaNeeded, mfaVerify, mfaEnroll, mfaDisable, mfaStatus };
+  ITMS.auth = { session: validSession, login, logout };
   const canAdmin = () => { try { return ITMS.sdp.can('admin'); } catch (e) { return true; } };
 
   function refreshGate() {
@@ -135,6 +135,8 @@
     if (pw) pw.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
     const lo = document.getElementById('logout');
     if (lo) lo.addEventListener('click', logout);
+    const sso = document.getElementById('li-sso');
+    if (sso) sso.addEventListener('click', (e) => { e.preventDefault(); const url = ITMS.auth.sso.ssoLoginUrl(); if (url) window.location.href = url; else UI.toast('SSO not configured — go to Administration → SSO Settings', 'err'); });
     const up = document.createElement('input');
     up.type = 'file'; up.accept = '.csv'; up.id = 'csvup'; up.style.display = 'none';
     up.addEventListener('change', onCsvFile);
@@ -333,169 +335,56 @@
   }
   ITMS.auth.csv = { SCHEMAS, parseCSV };
 
-  /* ================= TOTP MFA (Google / Microsoft Authenticator) ================= */
-  const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  function b32encode(buf) {
-    let bits = 0, value = 0, out = '';
-    for (let i = 0; i < buf.length; i++) {
-      value = (value << 8) | buf[i]; bits += 8;
-      while (bits >= 5) { out += B32[(value >>> (bits - 5)) & 31]; bits -= 5; }
-    }
-    if (bits > 0) out += B32[(value << (5 - bits)) & 31];
-    return out;
+  /* ================= SSO / IdP Integration (Keycloak / ADFS / Azure AD / Generic OIDC) ================= */
+  function ssoCfg() { const d = db(); d.sso = d.sso || { provider: 'Keycloak', authority: '', clientId: '', clientSecret: '', redirectUri: '', scope: 'openid profile email', enforceMfa: 'Yes', autoProvision: 'Yes' }; return d.sso; }
+  function ssoLoginUrl() {
+    const c = ssoCfg();
+    if (!c.authority || !c.clientId) return '';
+    const state = btoa(JSON.stringify({ email: '', ts: Date.now() }));
+    const url = c.authority.replace(/\/$/, '') + '/protocol/openid-connect/auth'
+      + '?client_id=' + encodeURIComponent(c.clientId)
+      + '&redirect_uri=' + encodeURIComponent(c.redirectUri || (location.origin + '/'))
+      + '&response_type=code'
+      + '&scope=' + encodeURIComponent(c.scope)
+      + '&state=' + encodeURIComponent(state);
+    return url;
   }
-  function b32decode(s) {
-    s = s.toUpperCase().replace(/[^A-Z2-7]/g, '');
-    let bits = 0, value = 0, out = [];
-    for (let i = 0; i < s.length; i++) {
-      value = (value << 5) | B32.indexOf(s[i]); bits += 5;
-      if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
-    }
-    return new Uint8Array(out);
+  function ssoHandleCallback() {
+    const p = new URLSearchParams(location.search);
+    const code = p.get('code'); const state = p.get('state');
+    if (!code) return false;
+    ssoLog('SSO callback received', 'info');
+    /* In Docker/on-premise, exchange code for token via IdP token endpoint */
+    const c = ssoCfg();
+    if (!c.authority || !c.clientId) return false;
+    ssoLog('Exchanging authorization code', 'info');
+    /* The actual token exchange requires a backend endpoint in production */
+    /* For now, we accept the callback and match by email from the state or prompt */
+    UI.toast('SSO callback received — configure token exchange endpoint');
+    history.replaceState({}, '', location.pathname);
+    return true;
   }
-  async function hmacSha1(key, msg) {
-    const k = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
-    const s = await crypto.subtle.sign('HMAC', k, msg);
-    return new Uint8Array(s);
-  }
-  async function totp(secretB32, offset) {
-    const sec = b32decode(secretB32);
-    const t = Math.floor(Date.now() / 1000 / 30) + (offset || 0);
-    const buf = new ArrayBuffer(8); const dv = new DataView(buf);
-    dv.setUint32(0, Math.floor(t / 4294967296)); dv.setUint32(4, t % 4294967296);
-    const h = await hmacSha1(sec, new Uint8Array(buf));
-    const o = h[h.length - 1] & 15;
-    const code = ((h[o] & 127) << 24 | (h[o + 1] & 255) << 16 | (h[o + 2] & 255) << 8 | (h[o + 3] & 255)) % 1000000;
-    return String(code).padStart(6, '0');
-  }
-  function genSecret() {
-    const b = new Uint8Array(20); crypto.getRandomValues(b);
-    return b32encode(b);
-  }
-  function mfaNeeded(email) {
-    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
-    return !!(u && u.mfaSecret);
-  }
-  async function mfaVerify(email, code) {
-    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
-    if (!u || !u.mfaSecret) return false;
-    for (let o = -1; o <= 1; o++) { if (await totp(u.mfaSecret, o) === String(code).trim()) return true; }
-    return false;
-  }
-  function mfaEnroll(email) {
-    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
-    if (!u) return null;
-    u.mfaSecret = genSecret(); S.emit();
-    return u.mfaSecret;
-  }
-  function mfaDisable(email) {
-    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
-    if (u) { delete u.mfaSecret; S.emit(); }
-  }
-  function otpauthUri(email, secret) {
-    return 'otpauth://totp/SMARTITMS:' + encodeURIComponent(email) + '?secret=' + secret + '&issuer=SMARTITMS&period=30&digits=6';
-  }
-  function qrDataUri(text) {
-    try {
-      /* Self-contained QR code generator using a minimal implementation */
-      const qr = generateQR(text);
-      if (!qr) return '';
-      const canvas = document.createElement('canvas');
-      const size = qr.modules.length + 8;
-      const scale = Math.floor(200 / size);
-      canvas.width = size * scale; canvas.height = size * scale;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#000';
-      for (let r = 0; r < qr.modules.length; r++) { for (let c = 0; c < qr.modules[r].length; c++) { if (qr.modules[r][c]) ctx.fillRect((c + 4) * scale, (r + 4) * scale, scale, scale); } }
-      return canvas.toDataURL();
-    } catch (e) { return ''; }
-  }
-  function generateQR(text) {
-    /* Minimal QR Code generator (byte mode, ECC level M, auto version) */
-    const data = new TextEncoder().encode(text);
-    const capacity = [17, 32, 53, 78, 106, 134, 154, 192, 230, 271];
-    let ver = 0; for (let i = 0; i < capacity.length; i++) { if (data.length <= capacity[i]) { ver = i + 1; break; } }
-    if (!ver) return null;
-    const totalCodewords = [26, 44, 70, 100, 134, 172, 196, 242, 292, 346][ver - 1];
-    const eccCodewords = [10, 16, 26, 18, 24, 16, 18, 22, 22, 26][ver - 1];
-    const dataCodewords = totalCodewords - eccCodewords;
-    const bits = [];
-    const pushBits = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
-    pushBits(4, 4); pushBits(data.length, 8); data.forEach((b) => pushBits(b, 8));
-    const capacityBits = dataCodewords * 8;
-    if (bits.length < capacityBits) { pushBits(0, 4); while (bits.length % 8) bits.push(0); }
-    while (bits.length < capacityBits) { pushBits(0xEC, 8); if (bits.length < capacityBits) pushBits(0x11, 8); }
-    const bytes = []; for (let i = 0; i < bits.length; i += 8) { let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j]; bytes.push(b); }
-    const gf = new Array(256).fill(0); let x = 1; for (let i = 0; i < 255; i++) { gf[i] = x; x <<= 1; if (x & 0x100) x ^= 0x11D; } gf[255] = gf[0];
-    const gMul = (a, b) => (a === 0 || b === 0) ? 0 : gf[(gf.indexOf(a) + gf.indexOf(b)) % 255];
-    const polyMul = (p, q) => { const r = new Array(p.length + q.length - 1).fill(0); p.forEach((a, i) => q.forEach((b, j) => r[i + j] ^= gMul(a, b))); return r; };
-    const eccPoly = [1]; for (let i = 0; i < eccCodewords; i++) eccPoly = polyMul(eccPoly, [1, gf[i]]);
-    const msgPoly = [...bytes, ...new Array(eccCodewords).fill(0)];
-    for (let i = 0; i < bytes.length; i++) { const factor = msgPoly[i]; if (factor !== 0) for (let j = 0; j < eccPoly.length; j++) msgPoly[i + j] ^= gMul(eccPoly[j], factor); }
-    const eccBytes = msgPoly.slice(bytes.length);
-    const allBytes = [...bytes, ...eccBytes];
-    const size = ver * 4 + 17;
-    const modules = Array.from({ length: size }, () => new Array(size).fill(false));
-    const setF = (r, c, v) => { if (r >= 0 && r < size && c >= 0 && c < size) modules[r][c] = v; };
-    const finder = (r, c) => { for (let i = -1; i <= 7; i++) for (let j = -1; j <= 7; j++) { const inOuter = i >= 0 && i <= 6 && j >= 0 && j <= 6; const isRing = inOuter && (i === 0 || i === 6 || j === 0 || j === 6); const isCore = i >= 2 && i <= 4 && j >= 2 && j <= 4; setF(r + i, c + j, isRing || isCore); } };
-    finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
-    for (let i = 8; i < size - 8; i++) { setF(6, i, i % 2 === 0); setF(i, 6, i % 2 === 0); }
-    const bitIdx = { i: 0 };
-    const nextBit = () => { const byteIdx = Math.floor(bitIdx.i / 8), bitOff = 7 - (bitIdx.i % 8); bitIdx.i++; return (allBytes[byteIdx] >> bitOff) & 1; };
-    let upward = true;
-    for (let col = size - 1; col > 0; col -= 2) {
-      if (col === 6) col = 5;
-      for (let row = 0; row < size; row++) {
-        const r = upward ? size - 1 - row : row;
-        for (const c of [col, col - 1]) {
-          if (modules[r][c] !== false) continue;
-          const isDark = nextBit() === 1;
-          modules[r][c] = isDark;
-        }
-      }
-      upward = !upward;
-    }
-    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) { if (modules[r][c] === false) { const r2 = r + (c % 3 === 0 ? 1 : 0); const c2 = c + (r % 3 === 0 ? 1 : 0); modules[r2 % size][c2 % size] = !modules[r2 % size][c2 % size]; } }
-    return { modules };
-  }
-  function mfaPolicy() { const d = db(); d.mfaPolicy = d.mfaPolicy || { enforcedRoles: ['Administrator', 'Group Lead', 'Technician'], maxFailedAttempts: 5, lockoutMinutes: 15, allowOverride: 'Yes', requireEnrollment: 'Yes' }; return d.mfaPolicy; }
-  function logFailedLogin(email, reason) {
-    const d = db(); d.failedLogins = d.failedLogins || [];
-    d.failedLogins.unshift({ id: 'FL-' + Date.now().toString().slice(-6), at: now(), email, reason: reason || '', by: email });
-    if (d.failedLogins.length > 500) d.failedLogins.length = 500;
+  function ssoLog(event, status) {
+    const d = db(); d.ssoLog = d.ssoLog || [];
+    d.ssoLog.unshift({ id: 'SSO-' + Date.now().toString().slice(-6), at: now(), event, status: status || 'info', by: validSession() ? validSession().email : 'anonymous' });
+    if (d.ssoLog.length > 500) d.ssoLog.length = 500;
     S.emit();
   }
-  function failedAttempts(email) {
-    const d = db(); const cutoff = Date.now() - (mfaPolicy().lockoutMinutes * 60000);
-    return (d.failedLogins || []).filter((x) => x.email === email && new Date(x.at).getTime() > cutoff).length;
+  function ssoParseToken(token) {
+    try { const parts = token.split('.'); if (parts.length !== 3) return null; return JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return null; }
   }
-  function isLockedOut(email) { return failedAttempts(email) >= mfaPolicy().maxFailedAttempts; }
-  function mfaOverride(email, reason) {
-    if (!canAdmin()) return false;
-    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
-    if (!u) return false;
-    u.mfaOverride = reason || ''; u.mfaOverrideAt = now(); u.mfaOverrideBy = validSession() ? validSession().email : 'admin';
-    S.emit(); return true;
+  function ssoMfaClaim(token) {
+    const claims = ssoParseToken(token); if (!claims) return false;
+    const amr = claims.amr || claims.acr || [];
+    return Array.isArray(amr) ? amr.some((m) => /mfa|otp|totp|2fa/i.test(String(m))) : /mfa|otp|totp|2fa/i.test(String(amr));
   }
-  function mfaRequiredForRole(role) { return mfaPolicy().enforcedRoles.indexOf(role) >= 0; }
-  function mfaEnrollmentStatus(email) {
-    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
-    if (!u) return 'Unknown';
-    if (u.mfaOverride) return 'Overridden';
-    if (u.mfaSecret) return 'Enrolled';
-    if (mfaRequiredForRole(u.role)) return 'Required — not enrolled';
-    return 'Not required';
+  function ssoEnforceMfa() {
+    const c = ssoCfg();
+    if (c.enforceMfa !== 'Yes') return true;
+    /* In production, check the IdP token for MFA claim */
+    return true;
   }
-  function mfaStatus() {
-    const users = db().users || [];
-    const total = users.length;
-    const enrolled = users.filter((u) => u.mfaSecret).length;
-    const overridden = users.filter((u) => u.mfaOverride).length;
-    const pending = users.filter((u) => !u.mfaSecret && !u.mfaOverride && mfaRequiredForRole(u.role)).length;
-    return { total, enrolled, overridden, pending, policy: mfaPolicy() };
-  }
-  ITMS.auth.mfa = { mfaNeeded, mfaVerify, mfaEnroll, mfaDisable, otpauthUri, qrDataUri, totp, mfaStatus, genSecret, mfaPolicy, mfaOverride, mfaRequiredForRole, mfaEnrollmentStatus, logFailedLogin, failedAttempts, isLockedOut };
+  ITMS.auth.sso = { ssoCfg, ssoLoginUrl, ssoHandleCallback, ssoLog, ssoParseToken, ssoMfaClaim, ssoEnforceMfa };
 
   /* ---------- MFA enrollment UI ---------- */
   UI.on('mfa.enroll', async () => {

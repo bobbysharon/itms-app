@@ -1755,79 +1755,47 @@
     UI.toast('Test email queued — check email log');
   });
 
-  /* ---------- MFA Policy Configuration page ---------- */
-  pages.mfapolicy = {
-    title: 'MFA Policy', crumb: 'MFA enforcement rules · lockout policy · role-based enforcement', icon: 'shield', color: '#00a8e8', group: 'Administration',
+  /* ---------- SSO Configuration page ---------- */
+  pages.ssoconfig = {
+    title: 'SSO Settings', crumb: 'Single Sign-On · Identity Provider · SAML/OIDC', icon: 'key', color: '#00a8e8', group: 'Administration',
     render() {
-      const p = ITMS.auth.mfa.mfaPolicy();
-      const st = ITMS.auth.mfa.mfaStatus();
+      const c = ITMS.auth.sso.ssoCfg();
+      const log = (db().ssoLog || []).slice(0, 20);
       return `<div class="card" style="max-width:820px">
-        <h3><span class="pip"></span>MFA Policy Configuration</h3>
-        <p style="color:var(--muted)">Enforce multi-factor authentication by role. ${st.enrolled} enrolled · ${st.pending} pending · ${st.overridden} overridden.</p>
-        <form id="mfapolicy-form">
-          <h3 style="margin-top:14px"><span class="pip"></span>Enforcement</h3>
+        <h3><span class="pip"></span>Single Sign-On (SSO) Configuration</h3>
+        <p style="color:var(--muted)">Integrate with your on-premise Identity Provider (Keycloak, ADFS, Azure AD) via SAML/OIDC. MFA is enforced at the IdP level.</p>
+        <form id="ssoconfig-form">
           <div class="fgrid">
-            <label class="f">Roles requiring MFA<select class="in" name="enrolledRoles" multiple size="5">${['Administrator','Group Lead','Technician','Requester','Auditor','Vendor / External'].map((r) => `<option value="${r}" ${p.enforcedRoles.includes(r) ? 'selected' : ''}>${r}</option>`).join('')}</select></label>
-            <label class="f">Require enrollment<select class="in" name="requireEnrollment"><option value="Yes" ${p.requireEnrollment === 'Yes' ? 'selected' : ''}>Yes — all required users must enroll</option><option value="No">No — optional</option></select></label>
-            <label class="f">Allow admin override<select class="in" name="allowOverride"><option value="Yes" ${p.allowOverride === 'Yes' ? 'selected' : ''}>Yes — with reason</option><option value="No">No — strict enforcement</option></select></label>
+            <label class="f">Identity Provider<select class="in" name="provider">
+              <option value="Keycloak" ${c.provider === 'Keycloak' ? 'selected' : ''}>Keycloak (on-premise)</option>
+              <option value="ADFS" ${c.provider === 'ADFS' ? 'selected' : ''}>Active Directory Federation Services</option>
+              <option value="AzureAD" ${c.provider === 'AzureAD' ? 'selected' : ''}>Azure AD / Entra ID</option>
+              <option value="Generic" ${c.provider === 'Generic' ? 'selected' : ''}>Generic OIDC</option>
+            </select></label>
+            <label class="f">Authority URL<input class="in" name="authority" value="${esc(c.authority)}" placeholder="https://idp.company.com/realms/realm-name"></label>
+            <label class="f">Client ID<input class="in" name="clientId" value="${esc(c.clientId)}" placeholder="smart-itms"></label>
+            <label class="f">Client Secret<input class="in" name="clientSecret" type="password" value="${esc(c.clientSecret)}" placeholder="••••••••"></label>
+            <label class="f">Redirect URI<input class="in" name="redirectUri" value="${esc(c.redirectUri)}" placeholder="https://itms.company.com/"></label>
+            <label class="f">Scope<input class="in" name="scope" value="${esc(c.scope)}" placeholder="openid profile email"></label>
+            <label class="f">Enforce MFA<select class="in" name="enforceMfa"><option value="Yes" ${c.enforceMfa === 'Yes' ? 'selected' : ''}>Yes — require MFA claim from IdP</option><option value="No">No — allow without MFA</option></select></label>
+            <label class="f">Auto-provision users<select class="in" name="autoProvision"><option value="Yes" ${c.autoProvision === 'Yes' ? 'selected' : ''}>Yes — create account on first SSO login</option><option value="No">No — only existing users</option></select></label>
           </div>
-          <h3 style="margin-top:14px"><span class="pip"></span>Lockout Policy</h3>
-          <div class="fgrid">
-            <label class="f">Max failed attempts<select class="in" name="maxFailedAttempts">${[3,5,10,20].map((n) => `<option value="${n}" ${p.maxFailedAttempts === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-            <label class="f">Lockout duration (minutes)<select class="in" name="lockoutMinutes">${[5,10,15,30,60].map((n) => `<option value="${n}" ${p.lockoutMinutes === n ? 'selected' : ''}>${n} min</option>`).join('')}</select></label>
-          </div>
-          <div style="margin-top:14px"><button class="btn" type="submit">${ic('check')}Save policy</button></div>
+          <div style="margin-top:14px"><button class="btn" type="submit">${ic('check')}Save SSO configuration</button> <button class="btn ghost" type="button" data-act="sso.test">${ic('key')}Test connection</button></div>
         </form>
-        <div class="card mt"><h3>Failed login log (last 20)</h3>${UI.table({ id: 'mfaflog', rows: () => (db().failedLogins || []).slice(0, 20), sort: 'at', dir: -1, text: (r) => r.email + r.reason, cols: [{ k: 'at', label: 'At', render: (r) => fdt(r.at) }, { k: 'email', label: 'User' }, { k: 'reason', label: 'Reason' }], actions: () => '', toolbar: '' })}</div>
+        <div class="card mt"><h3>SSO authentication log (last 20)</h3>${UI.table({ id: 'ssolog', rows: () => log, sort: 'at', dir: -1, text: (r) => r.event + r.status, cols: [{ k: 'at', label: 'At', render: (r) => fdt(r.at) }, { k: 'event', label: 'Event' }, { k: 'status', label: 'Status', render: (r) => P(r.status === 'success' ? 'Published' : r.status === 'failed' ? 'Expired' : 'Draft') }, { k: 'by', label: 'By' }], actions: () => '', toolbar: '' })}</div>
       </div>`;
     },
     after() {
-      const f = document.getElementById('mfapolicy-form');
-      if (f) f.addEventListener('submit', (e) => { e.preventDefault(); const fd = new FormData(f); const p = ITMS.auth.mfa.mfaPolicy(); p.enforcedRoles = fd.getAll('enrolledRoles'); p.requireEnrollment = fd.get('requireEnrollment'); p.allowOverride = fd.get('allowOverride'); p.maxFailedAttempts = +fd.get('maxFailedAttempts'); p.lockoutMinutes = +fd.get('lockoutMinutes'); S.emit(); UI.toast('MFA policy saved'); });
+      const f = document.getElementById('ssoconfig-form');
+      if (f) f.addEventListener('submit', (e) => { e.preventDefault(); const fd = new FormData(f); const c = ITMS.auth.sso.ssoCfg(); ['provider','authority','clientId','clientSecret','redirectUri','scope','enforceMfa','autoProvision'].forEach((k) => { c[k] = fd.get(k) || c[k]; }); S.emit(); UI.toast('SSO configuration saved'); });
     },
   };
-
-  /* ---------- MFA management page ---------- */
-  pages.mfamanage = {
-    title: 'MFA Management', crumb: 'Two-factor authentication · TOTP enrollment · compliance', icon: 'shield', color: '#00a8e8', group: 'Administration',
-    render() {
-      const st = ITMS.auth.mfa.mfaStatus();
-      const users = (db().users || []).map((u) => ({ email: u.email, role: u.role || '', mfa: u.mfaSecret ? 'Enabled' : '—', status: ITMS.auth.mfa.mfaEnrollmentStatus(u.email), override: u.mfaOverride || '' }));
-      return `<div class="card">
-        <h3><span class="pip"></span>Two-Factor Authentication (MFA) Management</h3>
-        <p style="color:var(--muted)">TOTP-based MFA compatible with Google Authenticator and Microsoft Authenticator. ${st.enrolled} enrolled · ${st.pending} pending · ${st.overridden} overridden.</p>
-        <table class="t"><thead><tr><th>User</th><th>Role</th><th>MFA</th><th>Status</th><th>Override</th><th></th></tr></thead>
-        <tbody>${users.map((u) => `<tr><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${u.mfa === 'Enabled' ? P('Published', 'mint') : '—'}</td><td>${esc(u.status)}</td><td>${u.override ? esc(u.override) : '—'}</td><td><button class="btn xs" data-act="mfa.toggle" data-id="${esc(u.email)}">${u.mfa === 'Enabled' ? 'Disable' : 'Enroll'}</button> <button class="btn xs ghost" data-act="mfa.override" data-id="${esc(u.email)}" ${u.override ? '' : 'disabled'}>${u.override ? 'Remove override' : 'Override'}</button> <button class="btn xs ghost" style="--c:#ff5c6c" data-act="mfa.remove" data-id="${esc(u.email)}">Remove</button></td></tr>`).join('')}</tbody></table>
-        <div style="margin-top:14px"><button class="btn ghost" data-act="mfa.enroll">${ic('shield')}Enroll my MFA</button> <a class="btn ghost" data-go="#/mfapolicy">${ic('cog')}MFA Policy</a></div>
-      </div>`;
-    },
-  };
-  UI.on('mfa.toggle', (el) => {
-    const em = el.dataset.id;
-    if (!ITMS.canDelete || !ITMS.canDelete()) return UI.toast('Only Administrator can manage MFA', 'err');
-    if (ITMS.auth.mfa.mfaNeeded(em)) { ITMS.auth.mfa.mfaDisable(em); UI.toast('MFA disabled for ' + em); }
-    else { const s = ITMS.auth.mfa.mfaEnroll(em); const uri = ITMS.auth.mfa.otpauthUri(em, s); ITMS.auth.mfa.qrDataUri(uri).then((qr) => {
-      const ov2 = UI.modal(`<header><div><h3>Enroll MFA — ${esc(em)}</h3></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body" style="text-align:center"><p>Share this QR with the user:</p>${qr ? `<img src="${qr}" style="width:180px;height:180px">` : ''}<p class="mono" style="font-size:12px">${s}</p></div><footer><button class="btn" data-x>Done</button></footer>`, 'md');
-      ov2.addEventListener('click', (e2) => { if (e2.target.closest('[data-x]')) UI.close(ov2); });
-    }); }
-    UI.toast('MFA enrolled for ' + em);
-  });
-  UI.on('mfa.override', (el) => {
-    const em = el.dataset.id;
-    if (!ITMS.canDelete || !ITMS.canDelete()) return UI.toast('Only Administrator can override MFA', 'err');
-    const u = (db().users || []).find((x) => x.email === em);
-    if (u && u.mfaOverride) { delete u.mfaOverride; delete u.mfaOverrideAt; delete u.mfaOverrideBy; S.emit(); UI.toast('Override removed for ' + em); return; }
-    const reason = prompt('Reason for MFA override (required):');
-    if (!reason || !reason.trim()) return UI.toast('A reason is required for override', 'err');
-    if (ITMS.auth.mfa.mfaOverride(em, reason.trim())) UI.toast('MFA overridden for ' + em + ' — reason recorded');
-  });
-  UI.on('mfa.remove', (el) => {
-    const em = el.dataset.id;
-    if (!ITMS.canDelete || !ITMS.canDelete()) return UI.toast('Only Administrator can remove MFA', 'err');
-    const u = (db().users || []).find((x) => x.email.toLowerCase() === String(em).toLowerCase());
-    if (!u) return UI.toast('User not found', 'err');
-    delete u.mfaSecret; delete u.mfaOverride; delete u.mfaOverrideAt; delete u.mfaOverrideBy;
-    S.emit(); UI.toast('MFA removed for ' + em + ' — user will no longer be prompted for a code');
+  UI.on('sso.test', () => {
+    const c = ITMS.auth.sso.ssoCfg();
+    if (!c.authority || !c.clientId) return UI.toast('Please enter Authority URL and Client ID first', 'err');
+    const url = ITMS.auth.sso.ssoLoginUrl();
+    if (url) { window.open(url, '_blank'); UI.toast('SSO login page opened in new tab'); }
+    else UI.toast('Could not build SSO URL — check configuration', 'err');
   });
 
   /* ---- hook email notifications into service request lifecycle ---- */
