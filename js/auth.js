@@ -76,7 +76,7 @@
     try { sessionStorage.removeItem(SES); localStorage.removeItem('itms.user'); localStorage.removeItem('itms.role'); } catch (e) { /* ignore */ }
     location.reload();
   }
-  ITMS.auth = { session: validSession, login, logout };
+  ITMS.auth = { session: validSession, login, logout, mfaNeeded, mfaVerify, mfaEnroll, mfaDisable, mfaStatus };
   const canAdmin = () => { try { return ITMS.sdp.can('admin'); } catch (e) { return true; } };
 
   function refreshGate() {
@@ -92,8 +92,33 @@
   }
   function tryLogin() {
     const em = document.getElementById('li-email'), pw = document.getElementById('li-pass'), er = document.getElementById('li-err');
-    const r = login(em ? em.value : '', pw ? pw.value : '');
-    if (r.ok) { refreshGate(); UI.toast('Welcome, ' + (L.empName(r.ok.empNo) || r.ok.email)); }
+    const email = em ? em.value : '', password = pw ? pw.value : '';
+    const r = login(email, password);
+    if (r.ok) {
+      if (mfaNeeded(r.ok.email)) {
+        const ov = UI.modal(`<header><span class="gem" style="width:42px;height:42px;border-radius:13px">${ic('shield')}</span><div><h3>Two-step verification</h3><small>Enter the 6-digit code from your authenticator app</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body" style="text-align:center">
+          <p style="color:var(--muted)">Open Google Authenticator or Microsoft Authenticator to get your code.</p>
+          <div style="margin:16px 0"><input class="in" id="li-mfa-code" style="text-align:center;font-size:24px;letter-spacing:10px;max-width:240px" maxlength="6" autocomplete="off" placeholder="000000"></div>
+        </div><footer><button class="btn" data-mfa-login>${ic('check')}Verify</button> <button class="btn ghost" data-x>Cancel</button></footer>`, 'md');
+        ov.addEventListener('click', async (e) => {
+          if (e.target.closest('[data-x]')) return UI.close(ov);
+          if (e.target.closest('[data-mfa-login]')) {
+            const code = document.getElementById('li-mfa-code').value.trim();
+            if (await mfaVerify(r.ok.email, code)) {
+              r.ok.mfaVerified = true;
+              try { sessionStorage.setItem(SES + '.mfa', '1'); } catch (e2) { /* ignore */ }
+              UI.close(ov); refreshGate(); UI.toast('Welcome, ' + (L.empName(r.ok.empNo) || r.ok.email));
+            } else {
+              UI.toast('Invalid code — try again', 'err');
+              const c = document.getElementById('li-mfa-code'); c.value = ''; c.focus();
+            }
+          }
+        });
+        setTimeout(() => { const c = document.getElementById('li-mfa-code'); if (c) c.focus(); }, 100);
+      } else {
+        refreshGate(); UI.toast('Welcome, ' + (L.empName(r.ok.empNo) || r.ok.email));
+      }
+    }
     else if (er) { er.textContent = r.err; er.style.display = ''; if (pw) { pw.value = ''; pw.focus(); } }
   }
   document.addEventListener('DOMContentLoaded', () => {
@@ -301,4 +326,134 @@
     r.readAsText(f);
   }
   ITMS.auth.csv = { SCHEMAS, parseCSV };
+
+  /* ================= TOTP MFA (Google / Microsoft Authenticator) ================= */
+  const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  function b32encode(buf) {
+    let bits = 0, value = 0, out = '';
+    for (let i = 0; i < buf.length; i++) {
+      value = (value << 8) | buf[i]; bits += 8;
+      while (bits >= 5) { out += B32[(value >>> (bits - 5)) & 31]; bits -= 5; }
+    }
+    if (bits > 0) out += B32[(value << (5 - bits)) & 31];
+    return out;
+  }
+  function b32decode(s) {
+    s = s.toUpperCase().replace(/[^A-Z2-7]/g, '');
+    let bits = 0, value = 0, out = [];
+    for (let i = 0; i < s.length; i++) {
+      value = (value << 5) | B32.indexOf(s[i]); bits += 5;
+      if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
+    }
+    return new Uint8Array(out);
+  }
+  async function hmacSha1(key, msg) {
+    const k = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    const s = await crypto.subtle.sign('HMAC', k, msg);
+    return new Uint8Array(s);
+  }
+  async function totp(secretB32, offset) {
+    const sec = b32decode(secretB32);
+    const t = Math.floor(Date.now() / 1000 / 30) + (offset || 0);
+    const buf = new ArrayBuffer(8); const dv = new DataView(buf);
+    dv.setUint32(0, Math.floor(t / 4294967296)); dv.setUint32(4, t % 4294967296);
+    const h = await hmacSha1(sec, new Uint8Array(buf));
+    const o = h[h.length - 1] & 15;
+    const code = ((h[o] & 127) << 24 | (h[o + 1] & 255) << 16 | (h[o + 2] & 255) << 8 | (h[o + 3] & 255)) % 1000000;
+    return String(code).padStart(6, '0');
+  }
+  function genSecret() {
+    const b = new Uint8Array(20); crypto.getRandomValues(b);
+    return b32encode(b);
+  }
+  function mfaNeeded(email) {
+    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
+    return !!(u && u.mfaSecret);
+  }
+  async function mfaVerify(email, code) {
+    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
+    if (!u || !u.mfaSecret) return false;
+    for (let o = -1; o <= 1; o++) { if (await totp(u.mfaSecret, o) === String(code).trim()) return true; }
+    return false;
+  }
+  function mfaEnroll(email) {
+    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
+    if (!u) return null;
+    u.mfaSecret = genSecret(); S.emit();
+    return u.mfaSecret;
+  }
+  function mfaDisable(email) {
+    const u = db().users.find((x) => x.email.toLowerCase() === String(email).toLowerCase());
+    if (u) { delete u.mfaSecret; S.emit(); }
+  }
+  function otpauthUri(email, secret) {
+    return 'otpauth://totp/SMARTITMS:' + encodeURIComponent(email) + '?secret=' + secret + '&issuer=SMARTITMS&period=30&digits=6';
+  }
+  async function qrDataUri(text) {
+    try {
+      const qr = await import('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.esm.min.js');
+      return await qr.toDataURL(text, { width: 200, margin: 1 });
+    } catch (e) { return ''; }
+  }
+  function mfaStatus() {
+    const users = db().users || [];
+    const total = users.length;
+    const enrolled = users.filter((u) => u.mfaSecret).length;
+    return { total, enrolled, pending: total - enrolled };
+  }
+  ITMS.auth.mfa = { mfaNeeded, mfaVerify, mfaEnroll, mfaDisable, otpauthUri, qrDataUri, totp, mfaStatus, genSecret };
+
+  /* ---------- MFA enrollment UI ---------- */
+  UI.on('mfa.enroll', async () => {
+    const s = validSession(); if (!s) return;
+    const secret = mfaEnroll(s.email); if (!secret) return UI.toast('User not found', 'err');
+    const uri = otpauthUri(s.email, secret);
+    const qr = await qrDataUri(uri);
+    const ov = UI.modal(`<header><span class="gem" style="width:42px;height:42px;border-radius:13px">${ic('shield')}</span><div><h3>Set up MFA</h3><small>SMART ITMS — Authenticator app</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body" style="text-align:center">
+      <p>Scan this QR code with Google Authenticator or Microsoft Authenticator.</p>
+      ${qr ? `<img src="${qr}" style="width:200px;height:200px;margin:10px auto" alt="QR code">` : '<div class="empty">QR code unavailable — use manual entry</div>'}
+      <p style="font-size:12px;color:var(--muted)">Manual entry key: <span class="mono" style="font-size:14px;letter-spacing:2px">${secret}</span></p>
+      <div style="margin:16px 0"><label>Enter the 6-digit code to verify<input class="in" id="mfa-verify-code" style="text-align:center;font-size:20px;letter-spacing:8px;max-width:220px" maxlength="6" autocomplete="off"></label></div>
+    </div><footer><button class="btn" data-mfa-verify>${ic('check')}Verify & enable</button> <button class="btn ghost" data-x>Cancel</button></footer>`, 'md');
+    ov.addEventListener('click', async (e) => {
+      if (e.target.closest('[data-x]')) return UI.close(ov);
+      if (e.target.closest('[data-mfa-verify]')) {
+        const code = document.getElementById('mfa-verify-code').value.trim();
+        if (await mfaVerify(s.email, code)) { UI.close(ov); UI.toast('MFA enabled — you will need a code at next login'); }
+        else UI.toast('Invalid code — try again', 'err');
+      }
+    });
+  });
+  UI.on('mfa.myStatus', async () => {
+    const s = validSession(); if (!s) return;
+    const needed = mfaNeeded(s.email);
+    if (needed) {
+      const ov = UI.modal(`<header><div><h3>MFA active</h3><small>Your account is protected with authenticator app</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><p>MFA is enabled. At each login you will be asked for a 6-digit code from your authenticator app.</p><p style="color:var(--muted);font-size:12px">To disable MFA, contact your administrator.</p></div><footer><button class="btn" data-x>Close</button></footer>`, 'md');
+      ov.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) UI.close(ov); });
+    } else {
+      const ov = UI.modal(`<header><div><h3>MFA not set up</h3><small>Enable authenticator app verification</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><p>MFA is not enabled on your account. We recommend enabling it for secure access.</p></div><footer><button class="btn" data-x>Close</button> <button class="btn" data-mfa-enroll>${ic('shield')}Set up MFA</button></footer>`, 'md');
+      ov.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) UI.close(ov); if (e.target.closest('[data-mfa-enroll]')) UI.acts['mfa.enroll'](); });
+    }
+  });
+  /* ---------- Admin: MFA management page ---------- */
+  UI.on('mfa.admin', () => {
+    if (!canAdmin()) return UI.toast('Administrator only', 'err');
+    const users = (db().users || []).map((u) => ({ email: u.email, role: u.role || '', mfa: u.mfaSecret ? 'Enabled' : '—' }));
+    const st = mfaStatus();
+    const ov = UI.modal(`<header><div><h3>MFA management</h3><small>${st.enrolled} of ${st.total} users enrolled</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body">
+      <div class="card"><table class="t"><thead><tr><th>User</th><th>Role</th><th>MFA</th><th></th></tr></thead><tbody>${users.map((u) => `<tr><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${u.mfa === 'Enabled' ? P('Published', 'mint') : '—'}</td><td><button class="btn xs" data-mfa-toggle="${esc(u.email)}">${u.mfa === 'Enabled' ? 'Disable' : 'Enroll'}</button></td></tr>`).join('')}</tbody></table></div>
+    </div><footer><button class="btn" data-x>Close</button></footer>`, 'lg');
+    ov.addEventListener('click', (e) => {
+      if (e.target.closest('[data-x]')) return UI.close(ov);
+      const t = e.target.closest('[data-mfa-toggle]'); if (t) {
+        const em = t.dataset.mfaToggle;
+        if (mfaNeeded(em)) { mfaDisable(em); UI.toast('MFA disabled for ' + em); }
+        else { const s = mfaEnroll(em); const uri = otpauthUri(em, s); qrDataUri(uri).then((qr) => {
+          const ov2 = UI.modal(`<header><div><h3>Enroll MFA — ${esc(em)}</h3></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body" style="text-align:center"><p>Share this QR with the user:</p>${qr ? `<img src="${qr}" style="width:180px;height:180px">` : ''}<p class="mono" style="font-size:12px">${s}</p></div><footer><button class="btn" data-x>Done</button></footer>`, 'md');
+          ov2.addEventListener('click', (e2) => { if (e2.target.closest('[data-x]')) UI.close(ov2); });
+        }); }
+        UI.acts['mfa.admin']();
+      }
+    });
+  });
 })();

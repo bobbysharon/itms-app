@@ -70,7 +70,7 @@
     },
     {
       id: 'admin', title: 'Administration', icon: 'cog', color: '#5b8def', sections: [
-        { title: 'Configure', items: ['masters', 'sites', 'integrations', 'settings', 'itsmadmin', 'emailconfig'] },
+        { title: 'Configure', items: ['masters', 'sites', 'integrations', 'settings', 'itsmadmin', 'emailconfig', 'mfamanage'] },
       ],
     },
   ];

@@ -1755,6 +1755,32 @@
     UI.toast('Test email queued — check email log');
   });
 
+  /* ---------- MFA management page ---------- */
+  pages.mfamanage = {
+    title: 'MFA Management', crumb: 'Two-factor authentication · TOTP enrollment · compliance', icon: 'shield', color: '#00a8e8', group: 'Administration',
+    render() {
+      const st = ITMS.auth.mfa.mfaStatus();
+      const users = (db().users || []).map((u) => ({ email: u.email, role: u.role || '', mfa: u.mfaSecret ? 'Enabled' : '—' }));
+      return `<div class="card">
+        <h3><span class="pip"></span>Two-Factor Authentication (MFA) Management</h3>
+        <p style="color:var(--muted)">TOTP-based MFA compatible with Google Authenticator and Microsoft Authenticator. ${st.enrolled} of ${st.total} users enrolled.</p>
+        <table class="t"><thead><tr><th>User</th><th>Role</th><th>MFA</th><th></th></tr></thead>
+        <tbody>${users.map((u) => `<tr><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${u.mfa === 'Enabled' ? P('Published', 'mint') : '—'}</td><td><button class="btn xs" data-act="mfa.toggle" data-id="${esc(u.email)}">${u.mfa === 'Enabled' ? 'Disable' : 'Enroll'}</button></td></tr>`).join('')}</tbody></table>
+        <div style="margin-top:14px"><button class="btn ghost" data-act="mfa.enroll">${ic('shield')}Enroll my MFA</button></div>
+      </div>`;
+    },
+  };
+  UI.on('mfa.toggle', (el) => {
+    const em = el.dataset.id;
+    if (!ITMS.canDelete || !ITMS.canDelete()) return UI.toast('Only Administrator can manage MFA', 'err');
+    if (ITMS.auth.mfa.mfaNeeded(em)) { ITMS.auth.mfa.mfaDisable(em); UI.toast('MFA disabled for ' + em); }
+    else { const s = ITMS.auth.mfa.mfaEnroll(em); const uri = ITMS.auth.mfa.otpauthUri(em, s); ITMS.auth.mfa.qrDataUri(uri).then((qr) => {
+      const ov2 = UI.modal(`<header><div><h3>Enroll MFA — ${esc(em)}</h3></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body" style="text-align:center"><p>Share this QR with the user:</p>${qr ? `<img src="${qr}" style="width:180px;height:180px">` : ''}<p class="mono" style="font-size:12px">${s}</p></div><footer><button class="btn" data-x>Done</button></footer>`, 'md');
+      ov2.addEventListener('click', (e2) => { if (e2.target.closest('[data-x]')) UI.close(ov2); });
+    }); }
+    UI.toast('MFA enrolled for ' + em);
+  });
+
   /* ---- hook email notifications into service request lifecycle ---- */
   UI.on('sr.notifyNew', (el) => {
     const cfg = emailCfg(); if (cfg.notifyOnRequest !== 'Yes') return;
