@@ -136,7 +136,17 @@
     const lo = document.getElementById('logout');
     if (lo) lo.addEventListener('click', logout);
     const sso = document.getElementById('li-sso');
-    if (sso) sso.addEventListener('click', (e) => { e.preventDefault(); const url = ITMS.auth.sso.ssoLoginUrl(); if (url) window.location.href = url; else UI.toast('SSO not configured — go to Administration → SSO Settings', 'err'); });
+    if (sso) sso.addEventListener('click', (e) => {
+      e.preventDefault();
+      const url = ITMS.auth.sso.ssoLoginUrl();
+      if (url) { window.location.href = url; }
+      else {
+        const em = document.getElementById('li-email');
+        if (em) em.value = 'systemadmin@example.com';
+        UI.toast('SSO not configured. Please configure in Administration → SSO Settings after login.', 'err');
+        setTimeout(() => { const pw = document.getElementById('li-pass'); if (pw) pw.focus(); }, 500);
+      }
+    });
     const up = document.createElement('input');
     up.type = 'file'; up.accept = '.csv'; up.id = 'csvup'; up.style.display = 'none';
     up.addEventListener('change', onCsvFile);
