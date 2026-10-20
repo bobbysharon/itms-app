@@ -1797,7 +1797,7 @@
         <h3><span class="pip"></span>Two-Factor Authentication (MFA) Management</h3>
         <p style="color:var(--muted)">TOTP-based MFA compatible with Google Authenticator and Microsoft Authenticator. ${st.enrolled} enrolled · ${st.pending} pending · ${st.overridden} overridden.</p>
         <table class="t"><thead><tr><th>User</th><th>Role</th><th>MFA</th><th>Status</th><th>Override</th><th></th></tr></thead>
-        <tbody>${users.map((u) => `<tr><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${u.mfa === 'Enabled' ? P('Published', 'mint') : '—'}</td><td>${esc(u.status)}</td><td>${u.override ? esc(u.override) : '—'}</td><td><button class="btn xs" data-act="mfa.toggle" data-id="${esc(u.email)}">${u.mfa === 'Enabled' ? 'Disable' : 'Enroll'}</button> <button class="btn xs ghost" data-act="mfa.override" data-id="${esc(u.email)}" ${u.override ? '' : 'disabled'}>${u.override ? 'Remove override' : 'Override'}</button></td></tr>`).join('')}</tbody></table>
+        <tbody>${users.map((u) => `<tr><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${u.mfa === 'Enabled' ? P('Published', 'mint') : '—'}</td><td>${esc(u.status)}</td><td>${u.override ? esc(u.override) : '—'}</td><td><button class="btn xs" data-act="mfa.toggle" data-id="${esc(u.email)}">${u.mfa === 'Enabled' ? 'Disable' : 'Enroll'}</button> <button class="btn xs ghost" data-act="mfa.override" data-id="${esc(u.email)}" ${u.override ? '' : 'disabled'}>${u.override ? 'Remove override' : 'Override'}</button> <button class="btn xs ghost" style="--c:#ff5c6c" data-act="mfa.remove" data-id="${esc(u.email)}">Remove</button></td></tr>`).join('')}</tbody></table>
         <div style="margin-top:14px"><button class="btn ghost" data-act="mfa.enroll">${ic('shield')}Enroll my MFA</button> <a class="btn ghost" data-go="#/mfapolicy">${ic('cog')}MFA Policy</a></div>
       </div>`;
     },
@@ -1820,6 +1820,14 @@
     const reason = prompt('Reason for MFA override (required):');
     if (!reason || !reason.trim()) return UI.toast('A reason is required for override', 'err');
     if (ITMS.auth.mfa.mfaOverride(em, reason.trim())) UI.toast('MFA overridden for ' + em + ' — reason recorded');
+  });
+  UI.on('mfa.remove', (el) => {
+    const em = el.dataset.id;
+    if (!ITMS.canDelete || !ITMS.canDelete()) return UI.toast('Only Administrator can remove MFA', 'err');
+    const u = (db().users || []).find((x) => x.email.toLowerCase() === String(em).toLowerCase());
+    if (!u) return UI.toast('User not found', 'err');
+    delete u.mfaSecret; delete u.mfaOverride; delete u.mfaOverrideAt; delete u.mfaOverrideBy;
+    S.emit(); UI.toast('MFA removed for ' + em + ' — user will no longer be prompted for a code');
   });
 
   /* ---- hook email notifications into service request lifecycle ---- */
