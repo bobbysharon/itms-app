@@ -93,39 +93,11 @@
   function tryLogin() {
     const em = document.getElementById('li-email'), pw = document.getElementById('li-pass'), er = document.getElementById('li-err');
     const email = em ? em.value : '', password = pw ? pw.value : '';
-    const u = db().users.find((x) => x.email.toLowerCase() === String(email || '').trim().toLowerCase());
-    if (u && isLockedOut(email)) { if (er) { er.textContent = 'Account locked due to too many failed attempts. Try again in ' + mfaPolicy().lockoutMinutes + ' minutes.'; er.style.display = ''; } return; }
     const r = login(email, password);
     if (r.ok) {
-      if (mfaNeeded(r.ok.email) && !r.ok.mfaOverride) {
-        const ov = UI.modal(`<header><span class="gem" style="width:42px;height:42px;border-radius:13px">${ic('shield')}</span><div><h3>Two-step verification</h3><small>Enter the 6-digit code from your authenticator app</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body" style="text-align:center">
-          <p style="color:var(--muted)">Open Google Authenticator or Microsoft Authenticator to get your code.</p>
-          <div style="margin:16px 0"><input class="in" id="li-mfa-code" style="text-align:center;font-size:24px;letter-spacing:10px;max-width:240px" maxlength="6" autocomplete="off" placeholder="000000"></div>
-        </div><footer><button class="btn" data-mfa-login>${ic('check')}Verify</button> <button class="btn ghost" data-x>Cancel</button></footer>`, 'md');
-        ov.addEventListener('click', async (e) => {
-          if (e.target.closest('[data-x]')) return UI.close(ov);
-          if (e.target.closest('[data-mfa-login]')) {
-            const code = document.getElementById('li-mfa-code').value.trim();
-            if (await mfaVerify(r.ok.email, code)) {
-              r.ok.mfaVerified = true;
-              try { sessionStorage.setItem(SES + '.mfa', '1'); } catch (e2) { /* ignore */ }
-              UI.close(ov); refreshGate(); UI.toast('Welcome, ' + (L.empName(r.ok.empNo) || r.ok.email));
-            } else {
-              logFailedLogin(r.ok.email, 'Invalid MFA code');
-              UI.toast('Invalid code — try again', 'err');
-              const c = document.getElementById('li-mfa-code'); c.value = ''; c.focus();
-            }
-          }
-        });
-        setTimeout(() => { const c = document.getElementById('li-mfa-code'); if (c) c.focus(); }, 100);
-      } else {
-        refreshGate(); UI.toast('Welcome, ' + (L.empName(r.ok.empNo) || r.ok.email));
-      }
+      refreshGate(); UI.toast('Welcome, ' + (L.empName(r.ok.empNo) || r.ok.email));
     }
-    else {
-      if (u) logFailedLogin(email, 'Invalid password');
-      if (er) { er.textContent = r.err; er.style.display = ''; if (pw) { pw.value = ''; pw.focus(); } }
-    }
+    else if (er) { er.textContent = r.err; er.style.display = ''; if (pw) { pw.value = ''; pw.focus(); } }
   }
   document.addEventListener('DOMContentLoaded', () => {
     refreshGate();
@@ -151,6 +123,7 @@
     up.type = 'file'; up.accept = '.csv'; up.id = 'csvup'; up.style.display = 'none';
     up.addEventListener('change', onCsvFile);
     document.body.appendChild(up);
+    try { ITMS.auth.sso.ssoHandleCallback(); } catch (e) { /* ignore */ }
   });
 
   /* ---------- employee login access + password reset (admin only) ---------- */
@@ -396,57 +369,4 @@
   }
   ITMS.auth.sso = { ssoCfg, ssoLoginUrl, ssoHandleCallback, ssoLog, ssoParseToken, ssoMfaClaim, ssoEnforceMfa };
 
-  /* ---------- MFA enrollment UI ---------- */
-  UI.on('mfa.enroll', async () => {
-    const s = validSession(); if (!s) return;
-    const secret = mfaEnroll(s.email); if (!secret) return UI.toast('User not found', 'err');
-    const uri = otpauthUri(s.email, secret);
-    const qr = await qrDataUri(uri);
-    const ov = UI.modal(`<header><span class="gem" style="width:42px;height:42px;border-radius:13px">${ic('shield')}</span><div><h3>Set up MFA</h3><small>SMART ITMS — Authenticator app</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body" style="text-align:center">
-      <p>Scan this QR code with Google Authenticator or Microsoft Authenticator.</p>
-      ${qr ? `<img src="${qr}" style="width:200px;height:200px;margin:10px auto" alt="QR code">` : '<div class="empty">QR code unavailable — use manual entry</div>'}
-      <p style="font-size:12px;color:var(--muted)">Manual entry key: <span class="mono" style="font-size:14px;letter-spacing:2px">${secret}</span></p>
-      <div style="margin:16px 0"><label>Enter the 6-digit code to verify<input class="in" id="mfa-verify-code" style="text-align:center;font-size:20px;letter-spacing:8px;max-width:220px" maxlength="6" autocomplete="off"></label></div>
-    </div><footer><button class="btn" data-mfa-verify>${ic('check')}Verify & enable</button> <button class="btn ghost" data-x>Cancel</button></footer>`, 'md');
-    ov.addEventListener('click', async (e) => {
-      if (e.target.closest('[data-x]')) return UI.close(ov);
-      if (e.target.closest('[data-mfa-verify]')) {
-        const code = document.getElementById('mfa-verify-code').value.trim();
-        if (await mfaVerify(s.email, code)) { UI.close(ov); UI.toast('MFA enabled — you will need a code at next login'); }
-        else UI.toast('Invalid code — try again', 'err');
-      }
-    });
-  });
-  UI.on('mfa.myStatus', async () => {
-    const s = validSession(); if (!s) return;
-    const needed = mfaNeeded(s.email);
-    if (needed) {
-      const ov = UI.modal(`<header><div><h3>MFA active</h3><small>Your account is protected with authenticator app</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><p>MFA is enabled. At each login you will be asked for a 6-digit code from your authenticator app.</p><p style="color:var(--muted);font-size:12px">To disable MFA, contact your administrator.</p></div><footer><button class="btn" data-x>Close</button></footer>`, 'md');
-      ov.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) UI.close(ov); });
-    } else {
-      const ov = UI.modal(`<header><div><h3>MFA not set up</h3><small>Enable authenticator app verification</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body"><p>MFA is not enabled on your account. We recommend enabling it for secure access.</p></div><footer><button class="btn" data-x>Close</button> <button class="btn" data-mfa-enroll>${ic('shield')}Set up MFA</button></footer>`, 'md');
-      ov.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) UI.close(ov); if (e.target.closest('[data-mfa-enroll]')) UI.acts['mfa.enroll'](); });
-    }
-  });
-  /* ---------- Admin: MFA management page ---------- */
-  UI.on('mfa.admin', () => {
-    if (!canAdmin()) return UI.toast('Administrator only', 'err');
-    const users = (db().users || []).map((u) => ({ email: u.email, role: u.role || '', mfa: u.mfaSecret ? 'Enabled' : '—' }));
-    const st = mfaStatus();
-    const ov = UI.modal(`<header><div><h3>MFA management</h3><small>${st.enrolled} of ${st.total} users enrolled</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body">
-      <div class="card"><table class="t"><thead><tr><th>User</th><th>Role</th><th>MFA</th><th></th></tr></thead><tbody>${users.map((u) => `<tr><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${u.mfa === 'Enabled' ? P('Published', 'mint') : '—'}</td><td><button class="btn xs" data-mfa-toggle="${esc(u.email)}">${u.mfa === 'Enabled' ? 'Disable' : 'Enroll'}</button></td></tr>`).join('')}</tbody></table></div>
-    </div><footer><button class="btn" data-x>Close</button></footer>`, 'lg');
-    ov.addEventListener('click', (e) => {
-      if (e.target.closest('[data-x]')) return UI.close(ov);
-      const t = e.target.closest('[data-mfa-toggle]'); if (t) {
-        const em = t.dataset.mfaToggle;
-        if (mfaNeeded(em)) { mfaDisable(em); UI.toast('MFA disabled for ' + em); }
-        else { const s = mfaEnroll(em); const uri = otpauthUri(em, s); qrDataUri(uri).then((qr) => {
-          const ov2 = UI.modal(`<header><div><h3>Enroll MFA — ${esc(em)}</h3></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body" style="text-align:center"><p>Share this QR with the user:</p>${qr ? `<img src="${qr}" style="width:180px;height:180px">` : ''}<p class="mono" style="font-size:12px">${s}</p></div><footer><button class="btn" data-x>Done</button></footer>`, 'md');
-          ov2.addEventListener('click', (e2) => { if (e2.target.closest('[data-x]')) UI.close(ov2); });
-        }); }
-        UI.acts['mfa.admin']();
-      }
-    });
-  });
 })();
