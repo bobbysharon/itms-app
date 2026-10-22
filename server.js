@@ -21,9 +21,9 @@ app.get('/api/health', (req, res) => {
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
-// Data routes
-const dataRoutes = require('./routes/data');
-app.use('/api/data', dataRoutes);
+// Admin routes
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', adminRoutes);
 
 // Serve static files (frontend)
 app.use(express.static(path.join(__dirname, '.')));
