@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS employees (
 CREATE TABLE IF NOT EXISTS tickets (
   id VARCHAR(50) PRIMARY KEY,
   subject VARCHAR(500) NOT NULL,
-  desc TEXT,
+  description TEXT,
   requester VARCHAR(50),
   dept VARCHAR(100),
   type VARCHAR(100),
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS hardware (
   id VARCHAR(50) PRIMARY KEY,
   type VARCHAR(100),
   subtype VARCHAR(255),
-  desc TEXT,
+  description TEXT,
   comp_name VARCHAR(255),
   serial VARCHAR(255),
   purchase_date DATE,
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS consumables (
   subtype VARCHAR(100),
   brand VARCHAR(255),
   model VARCHAR(255),
-  desc TEXT,
+  description TEXT,
   uom VARCHAR(20),
   reorder INT DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW()
@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS items (
   price NUMERIC(12,2),
   gl VARCHAR(20),
   vendor VARCHAR(255),
-  desc TEXT,
+  description TEXT,
   active VARCHAR(10) DEFAULT 'Yes',
   created_at TIMESTAMP DEFAULT NOW()
 );
@@ -269,7 +269,7 @@ CREATE TABLE IF NOT EXISTS finance_jv (
   no VARCHAR(20),
   type VARCHAR(50),
   ref VARCHAR(50),
-  desc TEXT,
+  description TEXT,
   total NUMERIC(12,2),
   lines JSONB,
   paid BOOLEAN DEFAULT FALSE,
@@ -281,7 +281,7 @@ CREATE TABLE IF NOT EXISTS finance_expenses (
   emp_no VARCHAR(50),
   date DATE,
   category VARCHAR(100),
-  desc TEXT,
+  description TEXT,
   amount NUMERIC(12,2),
   status VARCHAR(50),
   approver VARCHAR(50),

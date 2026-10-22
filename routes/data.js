@@ -60,9 +60,9 @@ router.post('/tickets', async (req, res) => {
   try {
     const r = req.body;
     await db.query(
-      `INSERT INTO tickets (id, subject, desc, requester, dept, type, mode, category, sub, item, impact, urgency, priority, level, group_name, tech, asset, status, created_at, respond_by, due_by, first_resp, resolved_at, closed_at, resolution, closure, reopened, pending_with, problem, change_ref, solution, desk, manager, manager_name, notes, work, tasks, approvals, hist)
+      `INSERT INTO tickets (id, subject, description, requester, dept, type, mode, category, sub, item, impact, urgency, priority, level, group_name, tech, asset, status, created_at, respond_by, due_by, first_resp, resolved_at, closed_at, resolution, closure, reopened, pending_with, problem, change_ref, solution, desk, manager, manager_name, notes, work, tasks, approvals, hist)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39)
-       ON CONFLICT (id) DO UPDATE SET subject=$2, desc=$3, requester=$4, dept=$5, type=$6, mode=$7, category=$8, sub=$9, item=$10, impact=$11, urgency=$12, priority=$13, level=$14, group_name=$15, tech=$16, asset=$17, status=$18, respond_by=$20, due_by=$21, first_resp=$22, resolved_at=$23, closed_at=$24, resolution=$25, closure=$26, reopened=$27, pending_with=$28, problem=$29, change_ref=$30, solution=$31, desk=$32, manager=$33, manager_name=$34, notes=$35, work=$36, tasks=$37, approvals=$38, hist=$39`,
+       ON CONFLICT (id) DO UPDATE SET subject=$2, description=$3, requester=$4, dept=$5, type=$6, mode=$7, category=$8, sub=$9, item=$10, impact=$11, urgency=$12, priority=$13, level=$14, group_name=$15, tech=$16, asset=$17, status=$18, respond_by=$20, due_by=$21, first_resp=$22, resolved_at=$23, closed_at=$24, resolution=$25, closure=$26, reopened=$27, pending_with=$28, problem=$29, change_ref=$30, solution=$31, desk=$32, manager=$33, manager_name=$34, notes=$35, work=$36, tasks=$37, approvals=$38, hist=$39`,
       [r.id, r.subject, r.desc, r.requester, r.dept, r.type, r.mode, r.category, r.sub, r.item, r.impact, r.urgency, r.priority, r.level, r.group_name || r.group, r.tech, r.asset, r.status || 'Open', r.created_at || new Date(), r.respond_by, r.due_by, r.first_resp, r.resolved_at, r.closed_at, r.resolution, r.closure, r.reopened || 0, r.pending_with, r.problem, r.change_ref, r.solution, r.desk, r.manager, r.manager_name, JSON.stringify(r.notes || []), JSON.stringify(r.work || []), JSON.stringify(r.tasks || []), JSON.stringify(r.approvals || []), JSON.stringify(r.hist || [])]
     );
     res.json({ success: true });
@@ -80,9 +80,9 @@ router.post('/hardware', async (req, res) => {
   try {
     const a = req.body;
     await db.query(
-      `INSERT INTO hardware (id, type, subtype, desc, comp_name, serial, purchase_date, price, vendor, condition, status, holder, issued_date, remarks)
+      `INSERT INTO hardware (id, type, subtype, description, comp_name, serial, purchase_date, price, vendor, condition, status, holder, issued_date, remarks)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-       ON CONFLICT (id) DO UPDATE SET type=$2, subtype=$3, desc=$4, comp_name=$5, serial=$6, purchase_date=$7, price=$8, vendor=$9, condition=$10, status=$11, holder=$12, issued_date=$13, remarks=$14, updated_at=NOW()`,
+       ON CONFLICT (id) DO UPDATE SET type=$2, subtype=$3, description=$4, comp_name=$5, serial=$6, purchase_date=$7, price=$8, vendor=$9, condition=$10, status=$11, holder=$12, issued_date=$13, remarks=$14, updated_at=NOW()`,
       [a.id, a.type, a.subtype, a.desc, a.comp_name, a.serial, a.purchase_date, a.price, a.vendor, a.condition, a.status || 'In Stock', a.holder, a.issued_date, a.remarks]
     );
     res.json({ success: true });
