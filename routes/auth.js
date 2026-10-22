@@ -18,6 +18,9 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     const user = result.rows[0];
+    if (!user.password_hash) {
+      return res.status(401).json({ error: 'Account has no password set. Contact administrator.' });
+    }
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -30,7 +33,7 @@ router.post('/login', async (req, res) => {
     res.json({ token, user: { email: user.email, role: user.role, empNo: user.emp_no } });
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error: ' + err.message });
   }
 });
 

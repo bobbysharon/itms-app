@@ -43,8 +43,39 @@ async function initDB() {
     const schema = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
     await db.query(schema);
     console.log('Database schema initialized');
+
+    // Seed systemadmin user if not exists
+    const adminCheck = await db.query("SELECT id FROM users WHERE email = 'systemadmin@example.com'");
+    if (adminCheck.rows.length === 0) {
+      const bcrypt = require('bcryptjs');
+      const hash = await bcrypt.hash('Admin@12345', 10);
+      await db.query(
+        "INSERT INTO users (email, password_hash, emp_no, role) VALUES ($1, $2, $3, $4)",
+        ['systemadmin@example.com', hash, 'sysadmin', 'Administrator']
+      );
+      console.log('System admin user created');
+    }
+
+    // Seed default COA if empty
+    const coaCheck = await db.query('SELECT code FROM finance_coa LIMIT 1');
+    if (coaCheck.rows.length === 0) {
+      const coaRows = [
+        ['1110','Cash & Bank','Asset'],['1410','Inventory - Consumables','Asset'],
+        ['1430','VAT Input','Asset'],['1510','IT Hardware','Asset'],
+        ['1520','Software & Licences','Asset'],['1590','Accumulated Depreciation','Asset'],
+        ['2110','Accounts Payable','Liability'],['5110','Staff Costs','Expense'],
+        ['5220','Consumables Consumed','Expense'],['5230','Maintenance & AMC','Expense'],
+        ['5240','Software & Licences','Expense'],['5290','Other IT Expenses','Expense'],
+        ['5410','Depreciation','Expense'],['5510','Disposal Loss','Expense']
+      ];
+      for (const [code, name, type] of coaRows) {
+        await db.query('INSERT INTO finance_coa (code, name, type) VALUES ($1,$2,$3) ON CONFLICT (code) DO NOTHING', [code, name, type]);
+      }
+      console.log('Default COA seeded');
+    }
   } catch (err) {
     console.error('Database initialization error:', err.message);
+    console.error(err.stack);
   }
 }
 
