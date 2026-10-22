@@ -61,6 +61,28 @@
     return s;
   }
   function login(email, pw) {
+    // Use backend API for authentication
+    const ITMS = window.ITMS;
+    if (ITMS.api) {
+      ITMS.api.login(email, pw).then((r) => {
+        if (r && r.token) {
+          ITMS.api.setToken(r.token);
+          const s = { empNo: r.user.empNo || '', role: r.user.role || 'Administrator', email: r.user.email, at: new Date().toISOString() };
+          try {
+            sessionStorage.setItem(SES, JSON.stringify(s));
+            localStorage.setItem('itms.user', s.empNo); localStorage.setItem('itms.role', s.role);
+          } catch (e2) { /* ignore */ }
+          refreshGate(); UI.toast('Welcome, ' + (L.empName(s.empNo) || s.email));
+        }
+      }).catch((err) => {
+        const er = document.getElementById('li-err');
+        if (er) { er.textContent = err.message || 'Invalid credentials'; er.style.display = ''; }
+        const pw = document.getElementById('li-pass');
+        if (pw) { pw.value = ''; pw.focus(); }
+      });
+      return { ok: null }; // handled async
+    }
+    // Fallback to local auth (development)
     const u = db().users.find((x) => x.email.toLowerCase() === String(email || '').trim().toLowerCase());
     if (!u || u.hash !== pwHash(pw, SALT)) return { err: 'Invalid email or password.' };
     const e = (u.empNo && u.empNo !== 'sysadmin') ? L.emp(u.empNo) : null;

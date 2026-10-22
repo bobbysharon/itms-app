@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: smart-itms
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smart-itms-db
+          property: connectionString
+
+databases:
+  - name: smart-itms-db
+    databaseName: smart_itms
+    user: smart_itms_user
+    plan: free
