@@ -61,7 +61,7 @@
       { id: 'ESM-HR', name: 'HR Service Desk', dept: 'HR', status: 'Draft', catalog: 0, portal: 'No', created: today() },
       { id: 'ESM-FAC', name: 'Facilities Desk', dept: 'Admin', status: 'Draft', catalog: 0, portal: 'No', created: today() },
     ];
-    s.domains = s.domains || { portal: 'https://servicedesk.company.ae', custom: '', enforced: 'No' };
+    s.domains = s.domains || { portal: 'https://smartitms.tafaseel.ae/', custom: '', enforced: 'No' };
     s.escth = Object.assign({ apprHours: 48, probDays: 0, chatMins: 30, pmDays: 0 }, s.escth || {});
     s.mail = s.mail || {};
     s.mail.smtp = s.mail.smtp || []; s.mail.inbound = s.mail.inbound || []; s.mail.outbox = s.mail.outbox || [];

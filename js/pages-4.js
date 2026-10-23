@@ -114,14 +114,48 @@
         b = `<div class="card"><h3><span class="pip"></span>Payment terms</h3>${UI.table({ id: 'terms', rows: () => d.terms, cols: [{ k: 'id', label: 'Terms ID', render: (t) => `<b>${esc(t.id)}</b>` }, { k: 'desc', label: 'Description' }], actions: (t) => `<button class="ibtn" data-act="pt.edit" data-id="${esc(t.id)}">${ic('edit')}</button>${(typeof ITMS!=='undefined'&&ITMS.canDelete&&ITMS.canDelete())?'<button class="ibtn" style="--c:#ff5c6c" data-act="pt.del" data-id="'+esc(t.id)+'" title="Delete (Admin only)">'+ic('trash')+'</button>':''}`, toolbar: `<button class="btn" data-act="pt.edit">${ic('plus')}Add terms</button>` })}</div>`;
       } else if (tab === 'mail') {
         b = (ITMS.sdpMailUI ? ITMS.sdpMailUI() : '<div class="empty">Email module unavailable</div>');
+      } else if (tab === 'admin') {
+        b = `<div class="card" style="max-width:820px"><h3><span class="pip"></span>System administrator</h3><p style="color:var(--muted)">Manage the system administrator account password. This account has full access to all modules.</p><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px"><span class="mono">systemadmin@example.com</span><button class="btn ghost" data-act="sysadmin.pw">${ic('key')}Change password</button></div></div>`;
       } else {
         b = `<div class="grid g2"><div class="card glow" style="--c:#2f6bff"><h3><span class="pip"></span>Backup &amp; restore</h3><p style="color:var(--muted)">All data lives in this browser (localStorage). Export a JSON backup regularly, or move your data to another computer with Restore.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-act="data.export">${ic('download')}Download backup</button><label class="btn ghost" style="cursor:pointer">${ic('upload')}Restore backup<input type="file" accept=".json" id="restore" hidden></label></div></div>
-        <div class="card glow" style="--c:#ff5c6c"><h3><span class="pip"></span>Reset data</h3><p style="color:var(--muted)">Replaces everything currently stored.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" data-act="data.reset" data-mode="sample">Sample (workbook + received stock)</button><button class="btn ghost" data-act="data.reset" data-mode="workbook">Workbook only (nothing received — test the GRN flow)</button><button class="btn hot" data-act="data.reset" data-mode="empty">Empty (lists only)</button><button class="btn hot" data-act="data.masterReset" style="background:#dc2626;color:#fff">Master Reset (DB — keeps systemadmin)</button></div></div></div>
+        <div class="card glow" style="--c:#ff5c6c"><h3><span class="pip"></span>Reset data</h3><p style="color:var(--muted)">Replaces everything currently stored.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost" data-act="data.reset" data-mode="sample">Sample (workbook + received stock)</button><button class="btn ghost" data-act="data.reset" data-mode="workbook">Workbook only (nothing received — test the GRN flow)</button><button class="btn hot" data-act="data.reset" data-mode="empty">Empty (lists only)</button></div>
+        <div style="margin-top:10px"><p style="color:var(--muted);font-size:12px;margin-bottom:6px">Individual data to be removed separately:</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn xs ghost" data-act="data.reset" data-mode="tickets">Tickets</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="assets">Hardware assets</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="software">Software</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="consumables">Consumables</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="po">Purchase orders</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="grn">GRNs</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="invoices">Invoices</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="amc">AMC contracts</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="contracts">Contracts</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="employees">Employees</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="vendors">Vendors</button>
+          <button class="btn xs ghost" data-act="data.reset" data-mode="finance">Finance (JV, expenses, payments)</button>
+        </div></div>
+        <div style="margin-top:14px"><button class="btn hot" data-act="data.masterReset" style="background:#dc2626;color:#fff">Master Reset — remove ALL data (keeps systemadmin login)</button></div></div>
         <div class="card mt"><h3><span class="pip"></span>Sample helpdesk data</h3><div style="display:flex;gap:10px;flex-wrap:wrap">${(ITMS.hdSample && ITMS.hdSample.has()) ? `<button class="btn ghost" data-act="sample.rm">${ic('trash')}Remove sample data</button>` : `<button class="btn ghost" data-act="sample.load">${ic('download')}Load sample data</button>`}</div></div>
-        <div class="card mt"><h3><span class="pip"></span>Full test data</h3><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn hot" data-act="data.test">Replace all (keep employees) + load test data</button><button class="btn ghost" data-act="data.samples">Top-up samples (fill empty screens only)</button><button class="btn ghost" data-act="data.roll">Roll all dates to current</button></div></div>
-        <div class="card mt"><h3><span class="pip"></span>System administrator</h3><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="mono">systemadmin@example.com</span><button class="btn ghost" data-act="sysadmin.pw">Change password</button></div></div>`;
+        <div class="card mt"><h3><span class="pip"></span>Full test data</h3><p style="color:var(--muted);margin-bottom:8px">Load test data for specific modules or all at once:</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn xs ghost" data-act="data.test" data-mod="tickets">Tickets</button>
+          <button class="btn xs ghost" data-act="data.test" data-mod="assets">Assets</button>
+          <button class="btn xs ghost" data-act="data.test" data-mod="software">Software</button>
+          <button class="btn xs ghost" data-act="data.test" data-mod="consumables">Consumables</button>
+          <button class="btn xs ghost" data-act="data.test" data-mod="po">Purchase orders</button>
+          <button class="btn xs ghost" data-act="data.test" data-mod="amc">AMC contracts</button>
+          <button class="btn xs ghost" data-act="data.test" data-mod="contracts">Contracts</button>
+          <button class="btn xs ghost" data-act="data.test" data-mod="finance">Finance</button>
+          <button class="btn xs ghost" data-act="data.test" data-mod="hr">HR</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn hot" data-act="data.test" data-mod="all">Load full test data (all modules)</button>
+          <button class="btn ghost" data-act="data.samples">Top-up samples (fill empty screens only)</button>
+          <button class="btn ghost" data-act="data.roll">Roll all dates to current</button>
+        </div></div>
+`
       }
-      return `${UI.tabs('settings', [{ id: 'co', label: 'Company' }, { id: 'hw', label: 'Hardware types' }, { id: 'lists', label: 'Other lists' }, { id: 'terms', label: 'Payment terms' }, { id: 'mail', label: 'Email' }, { id: 'data', label: 'Data' }])}${b}`;
+      return `${UI.tabs('settings', [{ id: 'co', label: 'Company' }, { id: 'hw', label: 'Hardware types' }, { id: 'lists', label: 'Other lists' }, { id: 'terms', label: 'Payment terms' }, { id: 'mail', label: 'Email' }, { id: 'data', label: 'Data' }, { id: 'admin', label: 'System Admin' }])}${b}`;
     },
     after() {
       const f = document.getElementById('coform');
@@ -132,8 +166,8 @@
   };
   UI.on('co.nologo', () => { db().company.logo = ''; S.emit(); });
   UI.on('data.export', () => UI.download(`itms-backup-${L.today()}.json`, S.export(), 'application/json'));
-  UI.on('data.reset', async (el) => { if (!ITMS.canDelete()) return UI.toast('Only Administrator can delete records', 'err'); if (await UI.confirm('This replaces <b>all</b> current data. Continue?', 'Reset', true)) { S.reset(el.dataset.mode); UI.toast('Data reset'); } });
-UI.on('data.masterReset', async () => { if (!ITMS.canDelete()) return UI.toast('Only Administrator can perform master reset', 'err'); if (!await UI.confirm('This will delete ALL data (tickets, assets, POs, employees, etc.) but keep the systemadmin login. Continue?', 'Master Reset', true)) return; try { await ITMS.api.post('/api/admin/master-reset', {}); UI.toast('Master reset complete. Page will reload.'); setTimeout(() => location.reload(), 1500); } catch (e) { UI.toast('Reset failed: ' + e.message, 'err'); } });
+  UI.on('data.reset', async (el) => { if (!ITMS.canDelete()) return UI.toast('Only Administrator can delete records', 'err'); const mode = el.dataset.mode || 'empty'; const modResets = ['tickets','assets','software','consumables','po','grn','invoices','amc','contracts','employees','vendors','finance']; if (modResets.indexOf(mode) >= 0) { if (!await UI.confirm('Remove all ' + mode + ' data? This cannot be undone.', 'Reset', true)) return; const d = db(); switch (mode) { case 'tickets': d.tickets = []; break; case 'assets': d.hw = []; break; case 'software': d.sw = []; break; case 'consumables': d.cons = []; d.consPurch = []; d.consIssue = []; break; case 'po': d.pos = []; break; case 'grn': d.grns = []; break; case 'invoices': d.sdp.fin.invoices = []; break; case 'amc': d.amcs = []; break; case 'contracts': d.contracts = []; break; case 'employees': d.employees = d.employees.filter((e) => e.sys); break; case 'vendors': d.vendors = []; break; case 'finance': d.sdp.fin.jv = []; d.sdp.fin.expenses = []; d.sdp.fin.payments = []; break; } S.emit(); UI.toast(mode + ' data removed'); return; } if (await UI.confirm('This replaces <b>all</b> current data. Continue?', 'Reset', true)) { S.reset(mode); UI.toast('Data reset'); } });
+UI.on('data.masterReset', async () => { if (!ITMS.canDelete()) return UI.toast('Only Administrator can perform master reset', 'err'); if (!await UI.confirm('This will delete ALL data (tickets, assets, POs, employees, etc.) but keep the systemadmin login. Continue?', 'Master Reset', true)) return; try { await ITMS.api.post('/api/admin/master-reset', {}); try { localStorage.removeItem('itms.db'); } catch (e) {} try { sessionStorage.clear(); } catch (e) {} UI.toast('Master reset complete. Page will reload.'); setTimeout(() => location.reload(), 1500); } catch (e) { UI.toast('Reset failed: ' + e.message, 'err'); } });
   const lines = (a) => (a || []).join('\n'); const unl = (s) => s.split('\n').map((x) => x.trim()).filter(Boolean);
   UI.on('lt.hw', (el) => { const i = el.dataset.i; const t = i != null ? db().lists.hwTypes[+i] : { type: '', prefix: 'IT-HW-', retention: 5, subtypes: [] };
     UI.form({ title: i != null ? 'Edit ' + t.type : 'New hardware type', icon: 'cog', fields: [{ k: 'type', label: 'Type name', req: true, ro: i != null }, { k: 'prefix', label: 'ID prefix', req: true }, { k: 'retention', label: 'Retention (years)', type: 'number', min: 1 }, { k: 'sub', label: 'Subtypes (one per line)', type: 'textarea', full: true }], values: Object.assign({}, t, { sub: lines(t.subtypes) }), onSubmit: (v) => { const o = { type: v.type.trim(), prefix: v.prefix.trim(), retention: +v.retention || 5, subtypes: unl(v.sub) }; if (i != null) db().lists.hwTypes[+i] = o; else { if (db().lists.hwTypes.some((x) => x.type === o.type)) throw new Error('Type already exists'); db().lists.hwTypes.push(o); } S.emit(); } }); });

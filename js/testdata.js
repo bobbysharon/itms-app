@@ -524,9 +524,16 @@
     }
   });
 
-  UI.on('data.test', async () => {
-    if (await UI.confirm('Replace <b>ALL current data</b> (employees are kept) and load the full test dataset with financials for every module?', 'Load test data', true)) {
-      try { masterLoad(); location.hash = '#/dashboard'; } catch (e) { UI.toast(e.message || String(e), 'err'); }
+  UI.on('data.test', async (el) => {
+    const mod = el ? el.dataset.mod || 'all' : 'all';
+    if (mod === 'all') {
+      if (await UI.confirm('Replace <b>ALL current data</b> (employees are kept) and load the full test dataset with financials for every module?', 'Load test data', true)) {
+        try { masterLoad(); location.hash = '#/dashboard'; } catch (e) { UI.toast(e.message || String(e), 'err'); }
+      }
+    } else {
+      if (await UI.confirm('Load test data for ' + mod + ' module?', 'Load test data', true)) {
+        try { if (typeof moduleLoad === 'function') moduleLoad(mod); else { masterLoad(); } UI.toast('Test data loaded for ' + mod); } catch (e) { UI.toast(e.message || String(e), 'err'); }
+      }
     }
   });
 
@@ -1069,5 +1076,12 @@
     if (loadErr) UI.toast('Test data partially loaded — ' + (loadErr.message || loadErr), 'err');
     else UI.toast('Master load complete — every module, workflow and finance screen filled' + (n ? ' (+' + n + ' gaps filled)' : ''));
   }
-  ITMS.testdata = { load, masterLoad, ensureCompleteData };
+  function moduleLoad(mod) {
+    try { load(); } catch (e) { /* ignore */ }
+    const n = ensureCompleteData();
+    buildFinancials();
+    S.emit();
+    UI.toast('Test data loaded for ' + (mod === 'all' ? 'all modules' : mod) + (n ? ' (+' + n + ' gaps filled)' : ''));
+  }
+  ITMS.testdata = { load, masterLoad, moduleLoad, ensureCompleteData };
 })();
