@@ -342,18 +342,20 @@
     const subsel = (v) => { try { return (ITMS.itsm && ITMS.itsm.subsOf) ? ITMS.itsm.subsOf(v.category) : []; } catch (er) { return []; } };
     const itemsel = (v) => { try { return (ITMS.itsm && ITMS.itsm.itemsOf) ? ITMS.itsm.itemsOf(v.category, v.sub) : []; } catch (er) { return []; } };
     UI.form({
-      title: 'New service request', sub: `${e.name} · ${e.dept || ''}`, icon: 'plus',
+      title: 'New IT service request', sub: `${e.name} · ${e.dept || ''}`, icon: 'plus',
       fields: [{ k: 'requester', label: 'Requester (locked to you)', type: 'select', options: [{ v: e.no, l: `${e.name} (${e.no})` }], req: true, ro: true, blank: false },
-        { k: 'subject', label: 'What do you need?', req: true, full: true },
         { section: 'Classification' },
         { k: 'category', label: 'Category', type: 'select', options: catsel, req: true },
         { k: 'sub', label: 'Subcategory', type: 'select', options: subsel },
-        { k: 'item', label: 'Item', type: 'select', options: itemsel },
+        { k: 'item', label: 'Item (issued to you)', type: 'select', options: (v) => {
+          const hw = db().hw.filter((a) => a.holder === e.no && a.status !== 'Disposed');
+          return hw.map((a) => ({ v: a.id, l: `${a.id} · ${a.desc} (${a.type})` }));
+        } },
         { k: 'impact', label: 'Impact', type: 'select', options: IMP, blank: false },
         { k: 'urgency', label: 'Urgency', type: 'select', options: URG, blank: false },
         { k: 'desc', label: 'Details', type: 'textarea', full: true }],
       deps: { category: 1, sub: 1 },
-      onSubmit: (v) => { const r = mkTicket({ requester: e.no, subject: v.subject, category: v.category, sub: v.sub, item: v.item, desc: v.desc, type: v.type || 'Service Request', impact: v.impact, urgency: v.urgency, mode: 'Self-Service Portal', source: 'Self-Service Portal' }); runRules('create'); UI.toast(`${r.id} submitted — track it under My requests`); },
+      onSubmit: (v) => { const r = mkTicket({ requester: e.no, subject: (v.item ? 'IT service for ' + v.item : v.sub || v.category), category: v.category, sub: v.sub, item: v.item, desc: v.desc, type: v.type || 'Service Request', impact: v.impact, urgency: v.urgency, mode: 'Self-Service Portal', source: 'Self-Service Portal' }); runRules('create'); UI.toast(`${r.id} submitted — track it under My requests`); },
     });
   });
   UI.on('portal.leave', () => {
@@ -436,6 +438,10 @@
           <div><small style="color:var(--muted)">Status</small><div>${esc(e.status || '-')}</div></div>
         </div></div>
       ${news.map((n) => `<div class="note-box" style="margin-top:10px"><b>${esc(n.title)}</b> — ${esc(n.desc)}</div>`).join('')}
+      <div class="card mt"><h3><span class="pip" style="--c:#00a8e8"></span>Items issued to you</h3>
+        <table class="t"><thead><tr><th>Asset ID</th><th>Type</th><th>Description</th><th>Issued date</th><th>Status</th></tr></thead><tbody>
+        ${(db().hw || []).filter((a) => a.holder === e.no).map((a) => `<tr><td class="mono">${a.id}</td><td>${esc(a.type)}</td><td>${esc(a.desc)}</td><td>${fmtDate(a.issuedDate)}</td><td>${P(a.status)}</td></tr>`).join('') || '<tr><td colspan="5"><div class="empty">No items issued to you</div></td></tr>'}
+        </tbody></table></div>
       <div class="grid g2 mt"><div class="card"><h3>Service catalog — one click</h3><div class="grid g2">${(h ? h.catalog.filter((c) => c.active !== 'No').slice(0, 8) : []).map((c) => `<div class="card"><b>${esc(c.title)}</b> ${c.desk && c.desk !== 'IT' ? `<span class="pill p-blue">${esc(c.desk)}</span>` : ''}<br><small style="color:var(--muted)">${esc(c.desc || '').slice(0, 80)}</small><div style="margin-top:8px"><button class="btn sm" data-act="portal.cat" data-id="${c.id}">Request</button></div></div>`).join('') || '<div class="empty">No catalog items — add them in Solutions & Catalog</div>'}</div></div>
       <div class="card"><h3>My requests</h3><table class="t"><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th></th></tr></thead><tbody>${my.map((r) => `<tr><td class="mono">${r.id}</td><td>${esc(r.subject)}</td><td>${P(r.status)}</td><td>${r.status === 'Resolved' ? `<button class="btn xs" data-act="portal.rate" data-id="${r.id}">Rate</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="4"><div class="empty">No requests yet</div></td></tr>'}</tbody></table></div></div>`;
     },
