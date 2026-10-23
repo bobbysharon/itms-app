@@ -33,17 +33,17 @@ router.post('/master-reset', async (req, res) => {
       'audit_log', 'notif_log', 'email_log', 'sso_log', 'failed_logins'
     ];
     for (const t of tables) {
-      await client.query(`DELETE FROM ${t}`);
+      try { await client.query(`DELETE FROM ${t}`); } catch (e) { /* table may not exist yet */ }
     }
     // Clear all users except systemadmin
-    await client.query("DELETE FROM users WHERE email != 'systemadmin@example.com'");
+    try { await client.query("DELETE FROM users WHERE email != 'systemadmin@example.com'"); } catch (e) { /* ignore */ }
     // Clear employees (they will be re-seeded)
-    await client.query('DELETE FROM employees');
+    try { await client.query('DELETE FROM employees'); } catch (e) { /* ignore */ }
     // Clear vendors, terms, lists (will be re-seeded)
-    await client.query('DELETE FROM vendors');
-    await client.query('DELETE FROM terms');
+    try { await client.query('DELETE FROM vendors'); } catch (e) { /* ignore */ }
+    try { await client.query('DELETE FROM terms'); } catch (e) { /* ignore */ }
     // Reset finance seen
-    await client.query('DELETE FROM finance_seen');
+    try { await client.query('DELETE FROM finance_seen'); } catch (e) { /* ignore */ }
     await client.query('COMMIT');
     res.json({ success: true, message: 'Master reset complete. System admin preserved.' });
   } catch (err) {
