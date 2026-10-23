@@ -526,7 +526,7 @@
       v: 1, company: { name: 'BOBBY SHARON', address: 'DUBAI, UAE', vat: 5, currency: 'AED', warrantyDays: 365, logo: '' }, seq: {},
       employees: [], vendors: [], terms: [], lists: S.lists, prs: [], pos: [], grns: [], hw: [], sw: [], installs: [], amcs: [], cons: [], consPurch: [], consIssue: [], moves: [], log: [],
     };
-    if (mode === 'empty') { db.lists = S.lists; db.terms = S.terms; return db; }
+    if (mode === 'empty') { db.lists = S.lists; db.terms = S.terms; db.hd = {}; return db; }
     db.employees = S.employees; db.vendors = S.vendors; db.terms = S.terms;
     S.prs.forEach((p) => { p.lines.forEach((l) => { l.itemType = l.itemType || 'Hardware'; }); });
     db.prs = S.prs; db.pos = S.pos.map((p) => Object.assign(p, { currency: (vendor(p.vendor) || {}).currency || 'AED', paymentTerms: (vendor(p.vendor) || {}).termsId || '', amcAvail: 'No', amcStart: '', amcEnd: '', notes: '', lines: p.lines.map((l) => Object.assign(l, { received: 0 })) }));
