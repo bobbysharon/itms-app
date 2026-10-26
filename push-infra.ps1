@@ -3,7 +3,7 @@ Set-Location "C:\Users\TF3060\Documents\GitHub\itms-app"
 
 Write-Host "=== Syntax check ===" -ForegroundColor Cyan
 $fail = $false
-foreach ($f in @('js\sdp-plus.js','js\testdata.js')) {
+foreach ($f in @('js\pages-4.js','js\testdata.js')) {
   node --check $f
   if ($LASTEXITCODE -eq 0) { Write-Host "  OK  $f" -ForegroundColor Green }
   else { Write-Host "FAIL  $f" -ForegroundColor Red; $fail = $true }
@@ -12,7 +12,7 @@ if ($fail) { Write-Host 'SYNTAX ERRORS — fix before pushing' -ForegroundColor 
 
 Write-Host "`n=== Git commit + push ===" -ForegroundColor Cyan
 git add -A
-git commit -m "Add BPO-specific IT service catalog items + contact center infrastructure data from Tafaseel manual"
+git commit -m "Add BPO contact center infrastructure assets + load button"
 git pull --rebase origin main
 git push origin main
 

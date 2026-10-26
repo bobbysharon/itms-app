@@ -1111,5 +1111,48 @@
     S.emit();
     UI.toast('Test data loaded for ' + (mod === 'all' ? 'all modules' : mod) + (n ? ' (+' + n + ' gaps filled)' : ''));
   }
-  ITMS.testdata = { load, masterLoad, moduleLoad, ensureCompleteData };
+  function loadInfra() {
+    const infraItems = [
+      ['Server', 'Genesys Primary Server', 'GEN-SRV-01', 'GENSRV001', '2024-01-15', 45000, 'Good', 'In Stock', '', 'Genesys primary application server'],
+      ['Server', 'Genesys Backup Server', 'GEN-SRV-02', 'GENSRV002', '2024-01-15', 45000, 'Good', 'In Stock', '', 'Genesys backup application server'],
+      ['Network Device', 'Core Network Switch', 'CNS-01', 'CNS001', '2024-02-01', 12000, 'Good', 'In Stock', '', 'Primary network switch for contact center'],
+      ['Network Device', 'Firewall', 'FW-01', 'FW001', '2024-02-01', 8500, 'Good', 'In Stock', '', 'Perimeter firewall'],
+      ['Headset', 'Jabra Evolve 40', 'JAB-EV40', 'JAB001', '2024-03-01', 350, 'Good', 'In Stock', '', 'Agent headset with noise cancellation'],
+      ['Headset', 'Jabra Evolve 40', 'JAB-EV40', 'JAB002', '2024-03-01', 350, 'Good', 'In Stock', '', 'Agent headset with noise cancellation'],
+      ['Headset', 'Jabra Evolve 40', 'JAB-EV40', 'JAB003', '2024-03-01', 350, 'Good', 'In Stock', '', 'Agent headset with noise cancellation'],
+      ['Headset', 'Plantronics Voyager 5200', 'PLT-V5200', 'PLT001', '2024-03-01', 450, 'Good', 'In Stock', '', 'Wireless headset for supervisors'],
+      ['UPS', 'APC Smart-UPS 3000VA', 'APC-SU3000', 'APC001', '2024-01-15', 6500, 'Good', 'In Stock', '', 'UPS for server room'],
+      ['Desktop', 'Dell OptiPlex 7010', 'OPT-7010', 'OPT001', '2024-02-15', 3100, 'Good', 'In Stock', '', 'Agent workstation'],
+      ['Desktop', 'Dell OptiPlex 7010', 'OPT-7010', 'OPT002', '2024-02-15', 3100, 'Good', 'In Stock', '', 'Agent workstation'],
+      ['Monitor', 'Dell P2422H 24 inch', 'P2422H', 'MON001', '2024-02-15', 780, 'Good', 'In Stock', '', 'Agent monitor'],
+      ['Monitor', 'Dell P2422H 24 inch', 'P2422H', 'MON002', '2024-02-15', 780, 'Good', 'In Stock', '', 'Agent monitor'],
+      ['Phone', 'Yealink T46S', 'T46S', 'PHN001', '2024-03-01', 620, 'Good', 'In Stock', '', 'Agent desk phone'],
+      ['Phone', 'Yealink T46S', 'T46S', 'PHN002', '2024-03-01', 620, 'Good', 'In Stock', '', 'Agent desk phone'],
+      ['Printer', 'HP LaserJet M404dn', 'LJ-M404DN', 'PRN001', '2024-02-15', 1150, 'Good', 'In Stock', '', 'Office printer - Ajman Boulevard'],
+      ['Printer', 'HP LaserJet M404dn', 'LJ-M404DN', 'PRN002', '2024-02-15', 1150, 'Good', 'In Stock', '', 'Office printer - Ajman Conqueror'],
+      ['Laptop', 'Dell Latitude 5440', 'LAT-5440', 'LAP001', '2024-02-15', 4200, 'Good', 'In Stock', '', 'Management laptop'],
+      ['Laptop', 'Dell Latitude 5440', 'LAT-5440', 'LAP002', '2024-02-15', 4200, 'Good', 'In Stock', '', 'Management laptop'],
+      ['CCTV', 'CCTV Recorder (Dahua)', 'DVR-DH01', 'CCTV001', '2023-06-01', 4500, 'Good', 'In Stock', '', 'CCTV recorder - Ajman Conqueror'],
+      ['Access Control', 'Access Control Panel', 'ACP-01', 'ACP001', '2023-06-01', 2800, 'Good', 'In Stock', '', 'Access control panel - Dubai DCC'],
+      ['Software', 'Heimdal Endpoint Protection', 'HEIMDAL', 'HEIM001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Endpoint protection - all devices enrolled'],
+      ['Software', 'Malwarebytes Cloud Console', 'MBAM', 'MBAM001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Endpoint protection - older projects'],
+      ['Software', 'Safetica DLP', 'SAFETICA', 'SAFE001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Data loss prevention - DHRE laptops'],
+      ['Software', 'VMware vSphere', 'VMWARE', 'VMW001', '2023-06-01', 0, 'Good', 'In Stock', '', 'Virtualization platform'],
+      ['Software', 'Genesys Cloud CX', 'GENESYS', 'GEN001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Cloud contact center platform'],
+      ['Software', 'Ziwo Cloud Contact Center', 'ZIWO', 'ZIWO001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Cloud contact center - 10 instances'],
+      ['Software', 'Avaya IP Office', 'AVAYA', 'AVAYA001', '2023-06-01', 0, 'Good', 'In Stock', '', 'On-premises telephone and contact center'],
+      ['Software', 'Imperium CRM', 'IMPERIUM', 'IMP001', '2023-06-01', 0, 'Good', 'In Stock', '', 'Business application CRM'],
+      ['Software', 'Freshdesk (Rannah + CSR)', 'FRESHDESK', 'FD001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Ticketing - Rannah and CSR instances'],
+      ['Software', 'C-Zentrix CRM', 'CZENTRIX', 'CZ001', '2023-06-01', 0, 'Good', 'In Stock', '', 'Older contact center system'],
+      ['Software', 'Microsoft 365', 'M365', 'M365001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Email for tafaseel.ae - Microsoft 365'],
+      ['Software', 'Heimdal Endpoint Protection', 'HEIMDAL', 'HEIM001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Endpoint protection - all devices enrolled'],
+    ];
+    infraItems.forEach((item) => {
+      L.saveHW({ type: item[0], desc: 'TEST: ' + item[1], compName: item[2], serial: item[3], purchaseDate: item[4], price: item[5], condition: item[6], status: item[7], holder: item[8], remarks: item[9] });
+    });
+    UI.toast('Infrastructure assets loaded — ' + infraItems.length + ' items added');
+  }
+  UI.on('data.loadInfra', () => { try { loadInfra(); } catch (e) { UI.toast(e.message || String(e), 'err'); } });
+  ITMS.testdata = { load, masterLoad, moduleLoad, loadInfra, ensureCompleteData };
+
 })();
