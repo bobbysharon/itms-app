@@ -136,24 +136,14 @@
         </div></div>
         <div style="margin-top:14px"><button class="btn hot" data-act="data.masterReset" style="background:#dc2626;color:#fff">Master Reset — remove ALL data (keeps systemadmin login)</button></div></div>
         <div class="card mt"><h3><span class="pip"></span>Sample helpdesk data</h3><div style="display:flex;gap:10px;flex-wrap:wrap">${(ITMS.hdSample && ITMS.hdSample.has()) ? `<button class="btn ghost" data-act="sample.rm">${ic('trash')}Remove sample data</button>` : `<button class="btn ghost" data-act="sample.load">${ic('download')}Load sample data</button>`}</div></div>
-        <div class="card mt"><h3><span class="pip"></span>Full test data</h3><p style="color:var(--muted);margin-bottom:8px">Load test data for specific modules or all at once:</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-          <button class="btn xs ghost" data-act="data.test" data-mod="tickets">Tickets</button>
-          <button class="btn xs ghost" data-act="data.test" data-mod="assets">Assets</button>
-          <button class="btn xs ghost" data-act="data.test" data-mod="software">Software</button>
-          <button class="btn xs ghost" data-act="data.test" data-mod="consumables">Consumables</button>
-          <button class="btn xs ghost" data-act="data.test" data-mod="po">Purchase orders</button>
-          <button class="btn xs ghost" data-act="data.test" data-mod="amc">AMC contracts</button>
-          <button class="btn xs ghost" data-act="data.test" data-mod="contracts">Contracts</button>
-          <button class="btn xs ghost" data-act="data.test" data-mod="finance">Finance</button>
-          <button class="btn xs ghost" data-act="data.test" data-mod="hr">HR</button>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn hot" data-act="data.test" data-mod="all">Load full test data (all modules)</button>
+        <div class="card mt"><h3><span class="pip"></span>Infrastructure assets</h3><p style="color:var(--muted)">Load BPO contact center infrastructure (servers, firewalls, headsets, network devices, etc.) into the hardware register.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="data.loadInfra">${ic('download')}Load infrastructure assets</button></div></div>`;
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
           <button class="btn ghost" data-act="data.samples">Top-up samples (fill empty screens only)</button>
           <button class="btn ghost" data-act="data.roll">Roll all dates to current</button>
-        </div></div>
-`
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn ghost" data-act="data.samples">Top-up samples (fill empty screens only)</button>
+          <button class="btn ghost" data-act="data.roll">Roll all dates to current</button>
+        </div></div>`;
       }
       return `${UI.tabs('settings', [{ id: 'co', label: 'Company' }, { id: 'hw', label: 'Hardware types' }, { id: 'lists', label: 'Other lists' }, { id: 'terms', label: 'Payment terms' }, { id: 'mail', label: 'Email' }, { id: 'data', label: 'Data' }, { id: 'admin', label: 'System Admin' }])}${b}`;
     },
