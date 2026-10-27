@@ -325,7 +325,8 @@
         const grid = parseCSV(r.result);
         if (grid.length < 2) throw new Error('Empty file — download the sample first for the exact format.');
         const head = grid[0].map((x) => String(x).trim().toLowerCase());
-        const s = SCHEMAS[pendingKey];
+        let s = SCHEMAS[pendingKey];
+    if (head.indexOf('asset clasification') >= 0) s = SCHEMAS.ajmanAssets;
         const missing = s.cols.filter((c) => head.indexOf(c) < 0);
         if (missing.length) throw new Error('Missing columns: ' + missing.join(', ') + ' — use the sample file format.');
         const rows = grid.slice(1).map((g) => { const o = {}; s.cols.forEach((c, i) => { o[c] = (g[head.indexOf(c)] || '').trim(); }); return o; });
@@ -338,7 +339,73 @@
     };
     r.readAsText(f);
   }
-  ITMS.auth.csv = { SCHEMAS, parseCSV };
+  SCHEMAS.ajmanAssets = {
+    file: 'Ajman-Asset-Tracker.csv',
+    cols: ['type', 'desc', 'compName', 'serial', 'purchaseDate', 'price', 'vendor', 'condition', 'status', 'holder', 'remarks'],
+    sample: [
+      ['Laptop', 'Lenovo Thinkbook 15 G2 ITL', 'TAF-ICT-LAP-001', 'MP2622BH', '2024-02-15', '', 'Lenovo', 'Good', 'Active', 'Employee Name', 'Location: Boulevard | Process: CDA'],
+    ],
+    run(rows) {
+      let created = 0, updated = 0; const errors = [];
+      rows.forEach((r, i) => {
+        try {
+          if (!r.type || !r.type.trim()) throw new Error('type is required');
+          const type = r.type.trim();
+          const desc = (r.desc || '').trim() || type;
+          const serial = (r.serial || '').trim().replace(/^S\/N:\s*/i, '');
+          const compName = (r.compName || '').trim();
+          const status = ['Active', 'Spare', 'Faulty', 'Disposed', 'In Stock', 'In Use', 'Under Repair'].indexOf(r.status) >= 0 ? r.status : 'In Stock';
+          const holderName = (r.holder || '').trim();
+          let holder = '';
+          if (holderName && holderName !== 'ICT' && holderName !== 'NA' && holderName !== '') {
+            const he = L.emp(holderName) || db().employees.find((x) => x.name === holderName);
+            holder = he ? he.no : '';
+          }
+          const data = { type: type, desc: 'TEST: ' + desc, compName: compName, serial: serial, purchaseDate: (r.purchaseDate && r.purchaseDate !== 'NA') ? r.purchaseDate : '', price: 0, vendor: (r.vendor || '').trim(), condition: 'Good', status: status, holder: holder, remarks: (r.remarks || '').trim() };
+          if (serial && db().hw.find((a) => a.serial === serial)) { updated++; }
+          else { L.saveHW(data); created++; }
+        } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
+      });
+      return { created, updated, errors };
+    },
+  };
+  /* Map CSV columns for Ajman Asset Tracker */
+  const _origParseCSV = parseCSV;
+  parseCSV = function (t) {
+    const rows = _origParseCSV(t);
+    if (rows.length > 0 && rows[0].indexOf('Asset Clasification') >= 0) {
+      const head = rows[0];
+      const idx = {};
+      head.forEach((h, i) => { idx[h.trim().toLowerCase()] = i; });
+      const mapped = [SCHEMAS.ajmanAssets.cols];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.every((x) => !x.trim())) continue;
+        const make = (r[idx['make']] || '').trim();
+        const model = (r[idx['model']] || '').trim();
+        const desc = (make + ' ' + model).trim() || (r[idx['asset']] || '').trim();
+        const loc = (r[idx['location']] || '').trim();
+        const proc = (r[idx['process']] || '').trim();
+        const remarks = (r[idx['remarks']] || '').trim();
+        const fullRemarks = [remarks, loc ? 'Location: ' + loc : '', proc ? 'Process: ' + proc : ''].filter(Boolean).join(' | ');
+        mapped.push([
+          (r[idx['asset']] || '').trim(),
+          desc,
+          (r[idx['asset tag']] || '').trim(),
+          (r[idx['s/n']] || '').trim().replace(/^S\/N:\s*/i, ''),
+          (r[idx['purchase date']] || '').trim(),
+          '0',
+          (r[idx['vendor']] || '').trim(),
+          'Good',
+          (r[idx['status']] || '').trim(),
+          (r[idx['asset owner']] || '').trim(),
+          fullRemarks
+        ]);
+      }
+      return mapped;
+    }
+    return rows;
+  };
 
   /* ================= SSO / IdP Integration (Keycloak / ADFS / Azure AD / Generic OIDC) ================= */
   function ssoCfg() { const d = db(); d.sso = d.sso || { provider: 'Keycloak', authority: '', clientId: '', clientSecret: '', redirectUri: '', scope: 'openid profile email', enforceMfa: 'Yes', autoProvision: 'Yes' }; return d.sso; }
