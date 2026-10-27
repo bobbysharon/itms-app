@@ -67,6 +67,9 @@ async function initDB() {
         );
         console.log('System admin user created');
       }
+    } catch (e) {
+      console.error('Seed admin error:', e.message);
+    }
     try {
       const tfCheck = await db.query("SELECT id FROM users WHERE email = 'bobby.sharon@tafaseelbpo.com'");
       if (tfCheck.rows.length === 0) {
