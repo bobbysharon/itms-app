@@ -407,7 +407,86 @@
     return rows;
   };
 
-  /* ================= SSO / IdP Integration (Keycloak / ADFS / Azure AD / Generic OIDC) ================= */
+  /* ================= Tafaseel employee data import ================= */
+  SCHEMAS.tafaseelEmployees = {
+    file: 'Data-for-ICT-System.csv',
+    cols: ['no', 'name', 'designation', 'manager', 'doj', 'dol', 'dept', 'location', 'email', 'mobile', 'status', 'role'],
+    sample: [
+      ['TF0001', 'Lana H Y Shabana', 'Senior Operation Director', 'Ahmed Eshag Omer Ahmed', '2013-07-17', '', 'Operations', 'Ajman - Conqueror', 'lana@tafaseel.ae', '507572749', 'Active', 'Administrator'],
+    ],
+    run(rows) {
+      let created = 0, updated = 0; const errors = [];
+      rows.forEach((r, i) => {
+        try {
+          if (!r.no || !r.no.trim()) throw new Error('Employee code is required');
+          if (!r.name || !r.name.trim()) throw new Error('Name is required');
+          const no = r.no.trim().toUpperCase();
+          const name = r.name.trim();
+          const designation = (r.designation || '').trim();
+          const managerRaw = (r.manager || '').trim();
+          const manager = managerRaw.replace(/^TF\d+\s+/i, '').trim();
+          const dept = (r.dept || '').trim();
+          const location = (r.location || '').trim();
+          const email = (r.email || '').trim();
+          const mobile = (r.mobile || '').trim();
+          const status = (r.status || 'Active').trim();
+          const role = (r.role || 'Requester').trim();
+          let doj = (r.doj || '').trim();
+          if (doj && !/^\d{4}-\d{2}-\d{2}$/.test(doj)) {
+            const months = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+            const parts = doj.split('-');
+            if (parts.length === 3) {
+              const day = parts[0].padStart(2, '0');
+              const mon = months[parts[1]] || '01';
+              let year = parts[2];
+              if (year.length === 2) year = (parseInt(year) > 50 ? '19' : '20') + year;
+              doj = year + '-' + mon + '-' + day;
+            }
+          }
+          const data = { no: no, name: name, designation: designation, manager: manager, doj: doj, dol: '', dept: dept, location: location, email: email, mobile: mobile, status: status, role: role };
+          const existing = L.emp(no);
+          if (existing) { L.saveEmployee(data, no); updated++; }
+          else { L.saveEmployee(data); created++; }
+        } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
+      });
+      return { created, updated, errors };
+    },
+  };
+  /* Map CSV columns for Tafaseel employee data */
+  const _origParseCSV2 = parseCSV;
+  parseCSV = function (t) {
+    const rows = _origParseCSV2(t);
+    if (rows.length > 0 && rows[0].indexOf('Employee Code') >= 0) {
+      const head = rows[0];
+      const idx = {};
+      head.forEach((h, i) => { idx[h.trim().toLowerCase()] = i; });
+      const mapped = [SCHEMAS.tafaseelEmployees.cols];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.every((x) => !x.trim())) continue;
+        const code = (r[idx['employee code']] || '').trim();
+        const status = (r[idx['emp. status']] || '').trim();
+        const name = (r[idx['full name (as per passport)']] || '').trim();
+        const hrsType = (r[idx['hrs type']] || '').trim();
+        const location = (r[idx['location']] || '').trim();
+        const manager = (r[idx['reporting manager']] || '').trim();
+        const designation = (r[idx['designation']] || '').trim();
+        const dept = (r[idx['department']] || '').trim();
+        const doj = (r[idx['doj']] || '').trim();
+        const email = (r[idx['official email id']] || '').trim();
+        const mobile = (r[idx['mobile no']] || '').trim();
+        mapped.push([
+          code, name, designation, manager, doj, '', dept, location, email, mobile,
+          status === 'Active' ? 'Active' : 'Inactive',
+          code === 'TF3060' ? 'Administrator' : 'Requester'
+        ]);
+      }
+      return mapped;
+    }
+    return rows;
+  };
+
+  ITMS.auth.csv = { SCHEMAS, parseCSV };
   function ssoCfg() { const d = db(); d.sso = d.sso || { provider: 'Keycloak', authority: '', clientId: '', clientSecret: '', redirectUri: '', scope: 'openid profile email', enforceMfa: 'Yes', autoProvision: 'Yes' }; return d.sso; }
   function ssoLoginUrl() {
     const c = ssoCfg();

@@ -67,8 +67,19 @@ async function initDB() {
         );
         console.log('System admin user created');
       }
+    try {
+      const tfCheck = await db.query("SELECT id FROM users WHERE email = 'bobby.sharon@tafaseelbpo.com'");
+      if (tfCheck.rows.length === 0) {
+        const bcrypt = require('bcryptjs');
+        const hash = await bcrypt.hash('Admin@12345', 10);
+        await db.query(
+          "INSERT INTO users (email, password_hash, emp_no, role) VALUES ($1, $2, $3, $4)",
+          ['bobby.sharon@tafaseelbpo.com', hash, 'TF3060', 'Administrator']
+        );
+        console.log('TF3060 admin user created');
+      }
     } catch (e) {
-      console.error('Seed admin error:', e.message);
+      console.error('Seed tf3060 error:', e.message);
     }
 
     // Seed default COA if empty
