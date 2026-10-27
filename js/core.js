@@ -430,8 +430,11 @@
   /* ---------- masters ---------- */
   function saveEmployee(data, no) {
     if (no) { Object.assign(emp(no), data); } else {
-      const n = db.employees.reduce((m, e) => Math.max(m, parseInt((e.no.split('-')[1] || '0'), 10)), 0) + 1;
-      data.no = 'EMP-' + pad(n); db.employees.push(data); log('Employee', `${data.name} added`, data.no);
+      if (!data.no) {
+        const n = db.employees.reduce((m, e) => Math.max(m, parseInt((e.no.split('-')[1] || '0'), 10)), 0) + 1;
+        data.no = 'EMP-' + pad(n);
+      }
+      db.employees.push(data); log('Employee', `${data.name} added`, data.no);
     }
     store.emit();
   }
