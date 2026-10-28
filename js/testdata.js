@@ -1153,6 +1153,66 @@
     UI.toast('Infrastructure assets loaded — ' + infraItems.length + ' items added');
   }
   UI.on('data.loadInfra', () => { try { loadInfra(); } catch (e) { UI.toast(e.message || String(e), 'err'); } });
-  ITMS.testdata = { load, masterLoad, moduleLoad, loadInfra, ensureCompleteData };
+  function loadSampleTickets() {
+    const E = db().employees.filter((e) => e.status === 'Active' && (e.dept === 'Operations' || /DHRE|DCAA|CSR|CDA|GCAA/i.test(e.process || '')));
+    if (!E.length) { UI.toast('No call center agents found — load employees first', 'err'); return; }
+    const subjects = [
+      'Headset not working - no audio during calls',
+      'Genesys agent desktop not loading',
+      'Call disconnects automatically during customer call',
+      'Unable to hold call - hold button not responding',
+      'Unable to release call after hold',
+      'Inbound call not routing to my queue',
+      'Outbound call fails to connect',
+      'Account locked - cannot login to Genesys',
+      'Password reset required for Genesys',
+      'Computer running slow during calls',
+      'VPN disconnects while working from home',
+      'Printer not working - paper jam',
+      'Email not syncing on Outlook',
+      'Mouse/keyboard not responding',
+      'Monitor flickering during calls',
+      'Headset microphone not picking up voice',
+      'Genesys shows offline status',
+      'Call quality poor - echo and noise',
+      'Unable to transfer call to supervisor',
+      'Wrap-up code not saving',
+    ];
+    const categories = ['Hardware', 'Software', 'Network & Connectivity', 'Accounts & Access', 'Printing & Scanning', 'Email & Collaboration'];
+    const impacts = ['High', 'Medium', 'Low'];
+    const urgencies = ['Urgent', 'High', 'Normal', 'Low'];
+    const statuses = ['Open', 'Assigned', 'In Progress', 'Resolved', 'Closed'];
+    const dates = ['2026-10-26', '2026-10-27', '2026-10-28'];
+    let count = 0;
+    E.forEach((emp, idx) => {
+      const n = 3 + (idx % 2); // 3 or 4 issues per agent
+      for (let i = 0; i < n; i++) {
+        const subj = subjects[(idx * 3 + i) % subjects.length];
+        const cat = categories[(idx * 2 + i) % categories.length];
+        const imp = impacts[(idx + i) % impacts.length];
+        const urg = urgencies[(idx + i) % urgencies.length];
+        const dateStr = dates[(idx + i) % dates.length];
+        const r = mkTicket({ requester: emp.no, subject: subj, category: cat, desc: 'Reported by ' + emp.name + ' (' + emp.no + ') from ' + (emp.process || 'Operations') + ' desk.', type: 'Incident', impact: imp, urgency: urg, mode: 'Self-Service Portal', source: 'Self-Service Portal' });
+        r.created = dateStr + 'T08:00:00.000Z';
+        r.respondBy = dateStr + 'T12:00:00.000Z';
+        r.dueBy = dateStr + 'T17:00:00.000Z';
+        // Set some as resolved/closed
+        const st = statuses[(idx + i) % statuses.length];
+        if (st === 'Resolved' || st === 'Closed') {
+          r.status = st;
+          r.resolvedAt = dateStr + 'T15:00:00.000Z';
+          r.resolution = 'Issue investigated and resolved. ' + subj + ' fixed.';
+          r.closure = 'Success';
+        } else {
+          r.status = st;
+        }
+        count++;
+      }
+    });
+    S.emit();
+    UI.toast('Created ' + count + ' call center tickets for ' + E.length + ' agents');
+  }
+  UI.on('data.sampleTickets', () => { try { loadSampleTickets(); } catch (e) { UI.toast(e.message || String(e), 'err'); } });
+  ITMS.testdata = { load, masterLoad, moduleLoad, loadInfra, loadSampleTickets, ensureCompleteData };
 
 })();
