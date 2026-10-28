@@ -155,7 +155,7 @@
       ['Phone', 'Yealink T46S', 'T46S', 'PHN002', '2024-03-01', 620, 'Good', 'In Stock', '', 'Agent desk phone'],
     ];
     infraItems.forEach((item) => {
-      L.saveHW({ type: item[0], desc: 'TEST: ' + item[1], compName: item[2], serial: item[3], purchaseDate: item[4], price: item[5], condition: item[6], status: item[7], holder: item[8], remarks: item[9] });
+      L.saveHW({ type: item[0], desc: 'TEST: ' + item[1], compName: item[2], serial: item[3], purchaseDate: item[4], price: item[5], condition: item[6], status: item[7], holder: item[8], remarks: item[9] }, item[2]);
     });
     newEmps.forEach((e, i) => {
       const dt = devTypes[i % devTypes.length];
@@ -1148,7 +1148,7 @@
       ['Software', 'Heimdal Endpoint Protection', 'HEIMDAL', 'HEIM001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Endpoint protection - all devices enrolled'],
     ];
     infraItems.forEach((item) => {
-      L.saveHW({ type: item[0], desc: 'TEST: ' + item[1], compName: item[2], serial: item[3], purchaseDate: item[4], price: item[5], condition: item[6], status: item[7], holder: item[8], remarks: item[9] });
+      L.saveHW({ type: item[0], desc: 'TEST: ' + item[1], compName: item[2], serial: item[3], purchaseDate: item[4], price: item[5], condition: item[6], status: item[7], holder: item[8], remarks: item[9] }, item[2]);
     });
     UI.toast('Infrastructure assets loaded — ' + infraItems.length + ' items added');
   }

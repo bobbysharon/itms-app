@@ -331,7 +331,13 @@
     log('Asset', `${id} set to ${status}`, id); store.emit();
   }
   function saveHW(data, id) {
-    if (id) { Object.assign(assertHw(id), data); store.emit(); return hw(id); }
+    if (id) {
+      const existing = hw(id);
+      if (existing) { Object.assign(existing, data); store.emit(); return existing; }
+      // New asset with custom ID (e.g., from asset tag)
+      const a = Object.assign({ status: 'In Stock', condition: 'New', holder: '', issuedDate: '', poNo: '', poLine: '', prRef: '', grn: '', vendor: '', life: (typeCfg(data.type) || {}).retention || 5, price: 0, currency: db.company.currency }, data);
+      a.id = id; db.hw.push(a); log('Asset', `${a.id} added to stock (opening entry)`, a.id); store.emit(); return a;
+    }
     const a = Object.assign({ status: 'In Stock', condition: 'New', holder: '', issuedDate: '', poNo: '', poLine: '', prRef: '', grn: '', vendor: '', life: (typeCfg(data.type) || {}).retention || 5, price: 0, currency: db.company.currency }, data);
     a.id = nextHwId(a.type); db.hw.push(a); log('Asset', `${a.id} added to stock (opening entry)`, a.id); store.emit(); return a;
   }

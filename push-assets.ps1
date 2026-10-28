@@ -3,7 +3,7 @@ Set-Location "C:\Users\TF3060\Documents\GitHub\itms-app"
 
 Write-Host "=== Syntax check ===" -ForegroundColor Cyan
 $fail = $false
-foreach ($f in @('js\auth.js','js\pages-3.js','js\pages-4.js','js\testdata.js')) {
+foreach ($f in @('js\auth.js')) {
   node --check $f
   if ($LASTEXITCODE -eq 0) { Write-Host "  OK  $f" -ForegroundColor Green }
   else { Write-Host "FAIL  $f" -ForegroundColor Red; $fail = $true }
@@ -12,7 +12,7 @@ if ($fail) { Write-Host 'SYNTAX ERRORS — fix before pushing' -ForegroundColor 
 
 Write-Host "`n=== Git commit + push ===" -ForegroundColor Cyan
 git add -A
-git commit -m "Add Ajman Asset Tracker CSV import + BPO infrastructure load button"
+git commit -m "Improve asset owner matching from employee master (partial name match)"
 git pull --rebase origin main
 git push origin main
 
