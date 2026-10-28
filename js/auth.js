@@ -115,11 +115,21 @@
   function tryLogin() {
     const em = document.getElementById('li-email'), pw = document.getElementById('li-pass'), er = document.getElementById('li-err');
     const email = em ? em.value : '', password = pw ? pw.value : '';
-    const r = login(email, password);
-    if (r.ok) {
-      refreshGate(); UI.toast('Welcome, ' + (L.empName(r.ok.empNo) || r.ok.email));
-    }
-    else if (er) { er.textContent = r.err; er.style.display = ''; if (pw) { pw.value = ''; pw.focus(); } }
+    const btn = document.getElementById('li-go');
+    if (btn) btn.disabled = true;
+    ITMS.api.login(email, password).then((r) => {
+      if (r && r.token) {
+        ITMS.api.setToken(r.token);
+        const s = { empNo: r.user.empNo || '', role: r.user.role || 'Administrator', email: r.user.email, at: new Date().toISOString() };
+        try { sessionStorage.setItem(SES, JSON.stringify(s)); localStorage.setItem('itms.user', s.empNo); localStorage.setItem('itms.role', s.role); } catch (e2) { /* ignore */ }
+        refreshGate(); UI.toast('Welcome, ' + (L.empName(s.empNo) || s.email));
+      }
+    }).catch((err) => {
+      if (er) { er.textContent = err.message || 'Invalid credentials'; er.style.display = ''; }
+      if (pw) { pw.value = ''; pw.focus(); }
+    }).finally(() => {
+      if (btn) btn.disabled = false;
+    });
   }
   document.addEventListener('DOMContentLoaded', () => {
     refreshGate();
