@@ -336,7 +336,7 @@
         if (grid.length < 2) throw new Error('Empty file — download the sample first for the exact format.');
         const head = grid[0].map((x) => String(x).trim().toLowerCase());
         let s = SCHEMAS[pendingKey];
-    if (head.indexOf('asset clasification') >= 0) s = SCHEMAS.ajmanAssets;
+    if (head.indexOf('asset clasification') >= 0 || head.some((h) => /asset\s*clas/i.test(h)) || head.indexOf('compname') >= 0) s = SCHEMAS.ajmanAssets;
         const missing = s.cols.filter((c) => head.indexOf(c) < 0);
         if (missing.length) throw new Error('Missing columns: ' + missing.join(', ') + ' — use the sample file format.');
         const rows = grid.slice(1).map((g) => { const o = {}; s.cols.forEach((c, i) => { o[c] = (g[head.indexOf(c)] || '').trim(); }); return o; });
@@ -384,7 +384,7 @@
   const _origParseCSV = parseCSV;
   parseCSV = function (t) {
     const rows = _origParseCSV(t);
-    if (rows.length > 0 && rows[0].indexOf('Asset Clasification') >= 0) {
+    if (rows.length > 0 && rows[0].some((h) => /asset\s*clas/i.test(String(h)))) {
       const head = rows[0];
       const idx = {};
       head.forEach((h, i) => { idx[h.trim().toLowerCase()] = i; });
