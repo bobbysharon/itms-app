@@ -21,7 +21,7 @@
   }
 
   /* ---------- users store + super-admin bootstrap (self-heals after any reset) ----------
-     The super admin (systemadmin@example.com) is NOT an employee record — it lives
+     The super admin (systemadmin@tafaseel.ae) is NOT an employee record — it lives
      only here and is managed from Administration. Personal staff rows are untouched. */
   const SYSADMIN = 'systemadmin@tafaseel.ae';
   const ADMIN_EMAILS = ['bobby.sharon@example.com', 'bobby.sharon@esample.com'];

@@ -36,7 +36,7 @@ router.post('/master-reset', async (req, res) => {
       try { await client.query(`DELETE FROM ${t}`); } catch (e) { /* table may not exist yet */ }
     }
     // Clear all users except systemadmin
-    try { await client.query("DELETE FROM users WHERE email != 'systemadmin@example.com'"); } catch (e) { /* ignore */ }
+    try { await client.query("DELETE FROM users WHERE email != 'systemadmin@tafaseel.ae'"); } catch (e) { /* ignore */ }
     // Clear employees (they will be re-seeded)
     try { await client.query('DELETE FROM employees'); } catch (e) { /* ignore */ }
     // Clear vendors, terms, lists (will be re-seeded)
