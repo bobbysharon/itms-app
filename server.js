@@ -54,16 +54,17 @@ async function initDB() {
       }
     }
     console.log('Database schema initialized');
+    try { await db.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_pw BOOLEAN DEFAULT FALSE'); } catch (e) { /* ignore */ }
 
     // Seed systemadmin user if not exists
     try {
-      const adminCheck = await db.query("SELECT id FROM users WHERE email = 'systemadmin@example.com'");
+      const adminCheck = await db.query("SELECT id FROM users WHERE email = 'systemadmin@tafaseel.ae'");
       if (adminCheck.rows.length === 0) {
         const bcrypt = require('bcryptjs');
         const hash = await bcrypt.hash('Admin@12345', 10);
         await db.query(
           "INSERT INTO users (email, password_hash, emp_no, role) VALUES ($1, $2, $3, $4)",
-          ['systemadmin@example.com', hash, 'sysadmin', 'Administrator']
+          ['systemadmin@tafaseel.ae', hash, 'sysadmin', 'Administrator']
         );
         console.log('System admin user created');
       }
@@ -76,8 +77,8 @@ async function initDB() {
         const bcrypt = require('bcryptjs');
         const hash = await bcrypt.hash('Admin@12345', 10);
         await db.query(
-          "INSERT INTO users (email, password_hash, emp_no, role) VALUES ($1, $2, $3, $4)",
-          ['bobby.sharon@tafaseelbpo.com', hash, 'TF3060', 'Administrator']
+          "INSERT INTO users (email, password_hash, emp_no, role, must_change_pw) VALUES ($1, $2, $3, $4, $5)",
+          ['bobby.sharon@tafaseelbpo.com', hash, 'TF3060', 'Administrator', true]
         );
         console.log('TF3060 admin user created');
       }

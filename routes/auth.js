@@ -30,7 +30,7 @@ router.post('/login', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '24h' }
     );
-    res.json({ token, user: { email: user.email, role: user.role, empNo: user.emp_no } });
+    res.json({ token, user: { email: user.email, role: user.role, empNo: user.emp_no, mustChangePw: user.must_change_pw } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Internal server error: ' + err.message });
@@ -61,4 +61,22 @@ router.post('/sso/callback', async (req, res) => {
   res.json({ message: 'SSO callback received', code });
 });
 
-module.exports = router;
+// Change password
+router.post('/change-password', async (req, res) => {
+  const { email, newPassword } = req.body;
+  if (!email || !newPassword) return res.status(400).json({ error: 'Email and new password required' });
+  if (newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  try {
+    const bcrypt = require('bcryptjs');
+    const hash = await bcrypt.hash(newPassword, 10);
+    const result = await db.query(
+      "UPDATE users SET password_hash = $1, must_change_pw = FALSE, updated_at = NOW() WHERE email = $2 RETURNING id",
+      [hash, email.toLowerCase().trim()]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});

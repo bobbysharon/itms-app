@@ -23,7 +23,7 @@
   /* ---------- users store + super-admin bootstrap (self-heals after any reset) ----------
      The super admin (systemadmin@example.com) is NOT an employee record — it lives
      only here and is managed from Administration. Personal staff rows are untouched. */
-  const SYSADMIN = 'systemadmin@example.com';
+  const SYSADMIN = 'systemadmin@tafaseel.ae';
   const ADMIN_EMAILS = ['bobby.sharon@example.com', 'bobby.sharon@esample.com'];
   function ensure() {
     const d = db(); if (!d) return;
@@ -122,7 +122,21 @@
         ITMS.api.setToken(r.token);
         const s = { empNo: r.user.empNo || '', role: r.user.role || 'Administrator', email: r.user.email, at: new Date().toISOString() };
         try { sessionStorage.setItem(SES, JSON.stringify(s)); localStorage.setItem('itms.user', s.empNo); localStorage.setItem('itms.role', s.role); } catch (e2) { /* ignore */ }
-        refreshGate(); UI.toast('Welcome, ' + (L.empName(s.empNo) || s.email));
+        if (r.user.mustChangePw) {
+          UI.form({ title: 'Change your password', sub: 'You must change your password before continuing', icon: 'key', fields: [{ k: 'pw1', label: 'New password', type: 'password', req: true }, { k: 'pw2', label: 'Confirm password', type: 'password', req: true }], submit: 'Change password', onSubmit: (v) => {
+            const pw = String(v.pw1 || '');
+            if (pw.length < 8) throw new Error('Password must be at least 8 characters');
+            if (pw !== String(v.pw2 || '')) throw new Error('Passwords do not match');
+            // Update password via API
+            ITMS.api.post('/api/auth/change-password', { email: s.email, newPassword: pw }).then(() => {
+              UI.toast('Password changed — please log in again');
+              ITMS.api.clearToken();
+              location.reload();
+            }).catch((e) => { UI.toast(e.message, 'err'); });
+          } });
+        } else {
+          refreshGate(); UI.toast('Welcome, ' + (L.empName(s.empNo) || s.email));
+        }
       }
     }).catch((err) => {
       if (er) { er.textContent = err.message || 'Invalid credentials'; er.style.display = ''; }
@@ -146,7 +160,7 @@
       if (url) { window.location.href = url; }
       else {
         const em = document.getElementById('li-email');
-        if (em) em.value = 'systemadmin@example.com';
+        if (em) em.value = 'systemadmin@tafaseel.ae';
         UI.toast('SSO not configured. Please configure in Administration → SSO Settings after login.', 'err');
         setTimeout(() => { const pw = document.getElementById('li-pass'); if (pw) pw.focus(); }, 500);
       }
@@ -162,11 +176,11 @@
   const ACC_ROLES = ['Administrator', 'Group Lead', 'Technician', 'Requester', 'Auditor', 'Vendor / External'];
   UI.on('sysadmin.pw', () => {
     try { if (!ITMS.sdp.can('admin')) return UI.toast('Your role cannot change this password', 'err'); } catch (e) { /* open on error */ }
-    UI.form({ title: 'System administrator password', sub: 'systemadmin@example.com · super admin', icon: 'key', fields: [{ k: 'pw1', label: 'New password', type: 'password', req: true }, { k: 'pw2', label: 'Confirm password', type: 'password', req: true }], submit: 'Change password', onSubmit: (v) => {
+    UI.form({ title: 'System administrator password', sub: 'systemadmin@tafaseel.ae · super admin', icon: 'key', fields: [{ k: 'pw1', label: 'New password', type: 'password', req: true }, { k: 'pw2', label: 'Confirm password', type: 'password', req: true }], submit: 'Change password', onSubmit: (v) => {
       const pw = String(v.pw1 || '');
       if (pw.length < 8) throw new Error('Password must be at least 8 characters');
       if (pw !== String(v.pw2 || '')) throw new Error('Passwords do not match');
-      const u = db().users.find((x) => x.email === 'systemadmin@example.com');
+      const u = db().users.find((x) => x.email === 'systemadmin@tafaseel.ae');
       if (!u) throw new Error('System admin account missing — reload the app');
       u.hash = pwHash(pw, SALT); S.emit(); UI.toast('System admin password changed');
     } });
@@ -181,7 +195,7 @@
         { k: 'email', label: 'Login email', req: true, ro: !!u }, { k: 'role', label: 'Access role (login + modules)', type: 'select', options: ACC_ROLES, blank: false },
         { k: 'pw1', label: u ? 'New password (blank = keep)' : 'Password', type: 'password' }, { k: 'pw2', label: 'Confirm password', type: 'password' },
       ],
-      values: { email: u ? u.email : (e.email || ''), role: u ? u.role : 'Requester' },
+      values: { email: u ? u.email : (e.email || ''), role: u ? u.role : 'Requester', pw1: u ? '' : 'user@1234', pw2: u ? '' : 'user@1234' },
       submit: u ? 'Save / reset' : 'Create login',
       onSubmit: (v) => {
         if (!u && !String(v.email).includes('@')) throw new Error('A valid email is required');
@@ -195,7 +209,7 @@
           if (pw) { u.hash = pwHash(pw, SALT); UI.toast('Password reset for ' + e.name); }
           else UI.toast('Login updated');
         } else {
-          db().users.push({ email: String(v.email).trim(), hash: pwHash(pw, SALT), empNo: e.no, role: v.role, created: L.today() });
+          db().users.push({ email: String(v.email).trim(), hash: pwHash(pw, SALT), empNo: e.no, role: v.role, created: L.today(), mustChangePw: pw === 'user@1234' });
           UI.toast('Login created for ' + e.name);
         }
         e.role = v.role;

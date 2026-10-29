@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255),
   emp_no VARCHAR(50),
   role VARCHAR(100) NOT NULL DEFAULT 'Requester',
+  must_change_pw BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
