@@ -189,7 +189,8 @@
     if (!ITMS.canDelete || !ITMS.canDelete()) return UI.toast('Only Administrator can create login accounts', 'err');
     if (!await UI.confirm('Create login accounts for all employees without one? Default password: user@1234', 'Create accounts', true)) return;
     try {
-      const r = await ITMS.api.post('/api/admin/create-accounts', {});
+      const emps = (db().employees || []).filter((e) => e.status === 'Active' && e.email);
+      const r = await ITMS.api.post('/api/admin/create-accounts', { employees: emps });
       UI.toast(r.created + ' login accounts created. Default password: user@1234');
     } catch (e) { UI.toast('Failed: ' + e.message, 'err'); }
   });

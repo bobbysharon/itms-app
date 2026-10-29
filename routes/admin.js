@@ -60,16 +60,18 @@ router.post('/create-accounts', async (req, res) => {
   try {
     const bcrypt = require('bcryptjs');
     const hash = await bcrypt.hash('user@1234', 10);
-    const employees = await db.query("SELECT no, email, role FROM employees WHERE status = 'Active' AND no NOT IN (SELECT emp_no FROM users WHERE emp_no IS NOT NULL AND emp_no != '')");
+    const employees = req.body.employees || [];
     let created = 0;
-    for (const emp of employees.rows) {
-      const email = emp.email || (emp.no.toLowerCase() + '@tafaseel.ae');
+    for (const emp of employees) {
+      const no = (emp.no || '').trim();
+      const email = (emp.email || '').trim().toLowerCase();
+      if (!no || !email || !email.includes('@')) continue;
       // Check if user already exists
-      const existing = await db.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+      const existing = await db.query('SELECT id FROM users WHERE email = $1 OR emp_no = $2', [email, no]);
       if (existing.rows.length > 0) continue;
       await db.query(
         "INSERT INTO users (email, password_hash, emp_no, role, must_change_pw) VALUES ($1, $2, $3, $4, $5)",
-        [email.toLowerCase().trim(), hash, emp.no, 'Requester', true]
+        [email, hash, no, 'Requester', true]
       );
       created++;
     }
