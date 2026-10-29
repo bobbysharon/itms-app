@@ -185,6 +185,14 @@
       u.hash = pwHash(pw, SALT); S.emit(); UI.toast('System admin password changed');
     } });
   });
+  UI.on('emp.createAccounts', async () => {
+    if (!ITMS.canDelete || !ITMS.canDelete()) return UI.toast('Only Administrator can create login accounts', 'err');
+    if (!await UI.confirm('Create login accounts for all employees without one? Default password: user@1234', 'Create accounts', true)) return;
+    try {
+      const r = await ITMS.api.post('/api/admin/create-accounts', {});
+      UI.toast(r.created + ' login accounts created. Default password: user@1234');
+    } catch (e) { UI.toast('Failed: ' + e.message, 'err'); }
+  });
   UI.on('emp.access', (el) => {
     if (!canAdmin()) return UI.toast('Your role cannot manage logins', 'err');
     const e = L.emp(el.dataset.id); if (!e) return;

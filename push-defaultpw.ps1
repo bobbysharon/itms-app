@@ -3,7 +3,7 @@ Set-Location "C:\Users\TF3060\Documents\GitHub\itms-app"
 
 Write-Host "=== Syntax check ===" -ForegroundColor Cyan
 $fail = $false
-foreach ($f in @('js\auth.js','server.js','routes\auth.js')) {
+foreach ($f in @('js\auth.js','js\pages-1.js','server.js','routes\admin.js')) {
   node --check $f
   if ($LASTEXITCODE -eq 0) { Write-Host "  OK  $f" -ForegroundColor Green }
   else { Write-Host "FAIL  $f" -ForegroundColor Red; $fail = $true }
@@ -12,7 +12,7 @@ if ($fail) { Write-Host 'SYNTAX ERRORS — fix before pushing' -ForegroundColor 
 
 Write-Host "`n=== Git commit + push ===" -ForegroundColor Cyan
 git add -A
-git commit -m "Add default password user@1234 for employees + change-password flow + SSO/IdP integration"
+git commit -m "Add bulk employee account creation with default password user@1234"
 git pull --rebase origin main
 git push origin main
 

@@ -55,4 +55,27 @@ router.post('/master-reset', async (req, res) => {
   }
 });
 
-module.exports = router;
+// Create login accounts for all employees without one
+router.post('/create-accounts', async (req, res) => {
+  try {
+    const bcrypt = require('bcryptjs');
+    const hash = await bcrypt.hash('user@1234', 10);
+    const employees = await db.query("SELECT no, email, role FROM employees WHERE status = 'Active' AND no NOT IN (SELECT emp_no FROM users WHERE emp_no IS NOT NULL AND emp_no != '')");
+    let created = 0;
+    for (const emp of employees.rows) {
+      const email = emp.email || (emp.no.toLowerCase() + '@tafaseel.ae');
+      // Check if user already exists
+      const existing = await db.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+      if (existing.rows.length > 0) continue;
+      await db.query(
+        "INSERT INTO users (email, password_hash, emp_no, role, must_change_pw) VALUES ($1, $2, $3, $4, $5)",
+        [email.toLowerCase().trim(), hash, emp.no, 'Requester', true]
+      );
+      created++;
+    }
+    res.json({ success: true, created });
+  } catch (err) {
+    console.error('Create accounts error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
