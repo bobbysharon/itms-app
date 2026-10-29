@@ -339,7 +339,7 @@
     if (head.indexOf('asset clasification') >= 0 || head.some((h) => /asset\s*clas/i.test(h)) || head.indexOf('compname') >= 0) s = SCHEMAS.ajmanAssets;
         const missing = s.cols.filter((c) => head.indexOf(c) < 0);
         if (missing.length && missing.length === s.cols.length) throw new Error('No matching columns found — check file format.');
-        const rows = grid.slice(1).map((g) => { const o = {}; s.cols.forEach((c) => { const ci = head.indexOf(c); o[c] = (ci >= 0 && g[ci]) ? String(g[ci]).trim() : ''; }); return o; });
+        const rows = grid.slice(1).map((g) => { const o = {}; s.cols.forEach((c) => { const ci = head.indexOf(c.toLowerCase()); o[c] = (ci >= 0 && g[ci]) ? String(g[ci]).trim() : ''; }); return o; });
         const res = s.run(rows);
         S.emit();
         const ov = UI.modal(`<header><div><h3>Import ${esc(pendingKey)}</h3><small>${res.created} new · ${res.updated} updated · ${res.errors.length} skipped</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body">${res.errors.length ? `<div class="empty" style="text-align:left"><b>Skipped rows</b><br>${res.errors.slice(0, 12).map(esc).join('<br>')}${res.errors.length > 12 ? '<br>…and ' + (res.errors.length - 12) + ' more' : ''}</div>` : '<div class="empty"><b>All rows imported cleanly</b></div>'}</div><footer><button class="btn" data-x>Done</button></footer>`, {});
