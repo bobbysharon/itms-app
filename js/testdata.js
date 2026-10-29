@@ -155,12 +155,12 @@
       ['Phone', 'Yealink T46S', 'T46S', 'PHN002', '2024-03-01', 620, 'Good', 'In Stock', '', 'Agent desk phone'],
     ];
     infraItems.forEach((item) => {
-      L.saveHW({ type: item[0], desc: 'TEST: ' + item[1], compName: item[2], serial: item[3], purchaseDate: item[4], price: item[5], condition: item[6], status: item[7], holder: item[8], remarks: item[9] }, item[2]);
+      L.saveHW({ type: item[0], desc: item[1], compName: item[2], serial: item[3], purchaseDate: item[4], price: item[5], condition: item[6], status: item[7], holder: item[8], remarks: item[9] }, item[2]);
     });
     newEmps.forEach((e, i) => {
       const dt = devTypes[i % devTypes.length];
       const oss = ['Windows 11', 'Windows 11', 'Windows 10', 'Android 14'];
-      const a = L.saveHW({ type: dt[0], desc: 'TEST: ' + dt[1] + ' for ' + e.name, compName: 'TEST-' + e.no, serial: 'TST-' + e.no, purchaseDate: agoD(45), price: dt[2], condition: 'Good', brand: dt[0] === 'Phone' ? 'Yealink' : 'Dell', os: oss[i % oss.length], domain: i % 2 ? 'HQ' : 'BRANCH', network: '192.168.' + (10 + (i % 3)) + '.0/24' });
+      const a = L.saveHW({ type: dt[0], desc: dt[1] + ' for ' + e.name, compName: 'TEST-' + e.no, serial: 'TST-' + e.no, purchaseDate: agoD(45), price: dt[2], condition: 'Good', brand: dt[0] === 'Phone' ? 'Yealink' : 'Dell', os: oss[i % oss.length], domain: i % 2 ? 'HQ' : 'BRANCH', network: '192.168.' + (10 + (i % 3)) + '.0/24' });
       L.issueAssets(e.no, [a.id], agoD(30), 'TEST onboarding allocation');
     });
 
@@ -775,7 +775,7 @@
       const emp = d.employees[i % d.employees.length];
       const amt = [120, 85, 200, 45][i];
       const expDate = L.addDays(T0(), -(5 + i * 7));
-      s.fin.expenses.unshift({ id: 'EX-' + String(i + 1).padStart(4, '0'), empNo: emp.no, date: expDate, category: cat, desc: 'TEST: ' + cat + ' expense claim', amount: amt, status: 'Approved', approver: 'Manager', at: new Date().toISOString(), gl });
+      s.fin.expenses.unshift({ id: 'EX-' + String(i + 1).padStart(4, '0'), empNo: emp.no, date: expDate, category: cat, desc: cat + ' expense claim', amount: amt, status: 'Approved', approver: 'Manager', at: new Date().toISOString(), gl });
       mkJV({ prefix: 'EX', date: expDate, type: 'Expense', ref: emp.no, desc: 'Expense claim ' + cat + ' — ' + emp.name, lines: [{ gl, dr: amt, cr: 0, cx: 'OPEX', ref: 'EX-' + String(i + 1).padStart(4, '0') }, { gl: '1110', dr: 0, cr: amt, cx: '', ref: 'Cash' }] });
     });
 
@@ -1148,7 +1148,7 @@
       ['Software', 'Heimdal Endpoint Protection', 'HEIMDAL', 'HEIM001', '2024-01-15', 0, 'Good', 'In Stock', '', 'Endpoint protection - all devices enrolled'],
     ];
     infraItems.forEach((item) => {
-      L.saveHW({ type: item[0], desc: 'TEST: ' + item[1], compName: item[2], serial: item[3], purchaseDate: item[4], price: item[5], condition: item[6], status: item[7], holder: item[8], remarks: item[9] }, item[2]);
+      L.saveHW({ type: item[0], desc: item[1], compName: item[2], serial: item[3], purchaseDate: item[4], price: item[5], condition: item[6], status: item[7], holder: item[8], remarks: item[9] }, item[2]);
     });
     UI.toast('Infrastructure assets loaded — ' + infraItems.length + ' items added');
   }
