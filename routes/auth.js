@@ -6,14 +6,19 @@ const db = require('../config/database');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'smart-itms-secret-change-in-production';
 
-// Login
+// Login - accepts employee number or email
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
+  const { username, email, password } = req.body;
+  const loginId = (username || email || '').trim();
+  if (!loginId || !password) {
+    return res.status(400).json({ error: 'Employee ID and password required' });
   }
   try {
-    const result = await db.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    // Try employee number first, then email
+    let result = await db.query('SELECT * FROM users WHERE emp_no = $1', [loginId]);
+    if (result.rows.length === 0) {
+      result = await db.query('SELECT * FROM users WHERE email = $1', [loginId.toLowerCase()]);
+    }
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

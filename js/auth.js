@@ -114,10 +114,10 @@
   }
   function tryLogin() {
     const em = document.getElementById('li-email'), pw = document.getElementById('li-pass'), er = document.getElementById('li-err');
-    const email = em ? em.value : '', password = pw ? pw.value : '';
+    const username = em ? em.value : '', password = pw ? pw.value : '';
     const btn = document.getElementById('li-go');
     if (btn) btn.disabled = true;
-    ITMS.api.login(email, password).then((r) => {
+    ITMS.api.login(username, password).then((r) => {
       if (r && r.token) {
         ITMS.api.setToken(r.token);
         const s = { empNo: r.user.empNo || '', role: r.user.role || 'Administrator', email: r.user.email, at: new Date().toISOString() };
