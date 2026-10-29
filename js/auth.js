@@ -364,6 +364,7 @@
           const desc = (r.desc || '').trim() || type;
           const serial = (r.serial || '').trim().replace(/^S\/N:\s*/i, '');
           const compName = (r.compName || '').trim();
+          const assetTag = (compName && compName.toUpperCase() !== 'NA') ? compName : '';
           const status = ['Active', 'Spare', 'Faulty', 'Disposed', 'In Stock', 'In Use', 'Under Repair'].indexOf(r.status) >= 0 ? r.status : 'In Stock';
           const holderName = (r.holder || '').trim();
           let holder = '';
@@ -371,10 +372,10 @@
             const he = L.emp(holderName) || db().employees.find((x) => x.name === holderName) || db().employees.find((x) => x.name.toLowerCase().indexOf(holderName.toLowerCase()) >= 0) || db().employees.find((x) => holderName.toLowerCase().indexOf(x.name.toLowerCase().split(' ')[0]) >= 0);
             holder = he ? he.no : '';
           }
-          const data = { type: type, desc: desc, compName: compName, serial: serial, purchaseDate: (r.purchaseDate && r.purchaseDate !== 'NA') ? r.purchaseDate : '', price: 0, vendor: (r.vendor || '').trim(), condition: 'Good', status: status, holder: holder, remarks: (r.remarks || '').trim() };
-          if (compName && db().hw.find((a) => a.id === compName)) { updated++; }
+          const data = { type: type, desc: desc, compName: assetTag, serial: serial, purchaseDate: (r.purchaseDate && r.purchaseDate !== 'NA') ? r.purchaseDate : '', price: 0, vendor: (r.vendor || '').trim(), condition: 'Good', status: status, holder: holder, remarks: (r.remarks || '').trim() };
+          if (assetTag && db().hw.find((a) => a.id === assetTag)) { updated++; }
           else if (serial && db().hw.find((a) => a.serial === serial)) { updated++; }
-          else { L.saveHW(data, compName || undefined); created++; }
+          else { L.saveHW(data, assetTag || undefined); created++; }
         } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
       });
       return { created, updated, errors };
