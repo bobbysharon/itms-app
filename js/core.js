@@ -49,7 +49,20 @@
   function nextHwId(type) {
     const t = db.lists.hwTypes.find((x) => x.type === type);
     const prefix = t ? t.prefix : 'IT-HW-OTH';
-    return prefix + '-' + pad(seq('hw:' + prefix));
+    // Find the highest existing number for this prefix
+    let maxNum = 0;
+    db.hw.forEach((a) => {
+      if (a.id && a.id.startsWith(prefix + '-')) {
+        const num = parseInt(a.id.slice(prefix.length + 1), 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    });
+    const seqNum = seq('hw:' + prefix);
+    if (seqNum > maxNum) maxNum = seqNum;
+    const next = maxNum + 1;
+    db.seq = db.seq || {};
+    db.seq['hw:' + prefix] = next;
+    return prefix + '-' + pad(next);
   }
   function nextSwId(type) {
     const t = db.lists.swTypes.find((x) => x.type === type);
