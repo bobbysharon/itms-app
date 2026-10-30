@@ -1154,6 +1154,7 @@
   }
   UI.on('data.loadInfra', () => { try { loadInfra(); } catch (e) { UI.toast(e.message || String(e), 'err'); } });
   function loadSampleTickets() {
+    const mkTicket = ITMS.sdp.mkTicket;
     const E = db().employees.filter((e) => e.status === 'Active' && (e.dept === 'Operations' || /DHRE|DCAA|CSR|CDA|GCAA/i.test(e.process || '')));
     if (!E.length) { UI.toast('No call center agents found — load employees first', 'err'); return; }
     const subjects = [
