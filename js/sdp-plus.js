@@ -1647,7 +1647,31 @@
     UI.form({ title: 'Budget category → GL mapping', icon: 'link', fields: f, values: D().fin.catgl, onSubmit: (v) => { Object.assign(D().fin.catgl, v); S.emit(); UI.toast('Mapping saved'); } });
   });
 
-  /* ================= 18. ARCHIVING + AUDIT ================= */
+  /* ================= Key-Value CSV Import (form-style CSVs) ================= */
+  SCHEMAS.kvImport = {
+    file: 'any-kv.csv',
+    cols: ['field', 'value'],
+    sample: [['Field', 'Value']],
+    run(rows) { return { created: 0, updated: 0, errors: ['Key-value CSVs are imported via the dedicated import buttons, not this schema.'] }; }
+  };
+  function parseKVCSV(t) {
+    const rows = [];
+    const lines = t.split(/\r?\n/);
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const parts = line.split(',');
+      if (parts.length >= 2) {
+        rows.push([parts[0].trim(), parts.slice(1).join(',').trim()]);
+      }
+    }
+    return rows;
+  }
+  UI.on('imp.kvFirewall', () => {
+    const f = document.getElementById('csvup'); if (f) { f.value = ''; f.dataset.kvType = 'firewall'; f.click(); }
+  });
+  UI.on('imp.kvIncident', () => {
+    const f = document.getElementById('csvup'); if (f) { f.value = ''; f.dataset.kvType = 'incident'; f.click(); }
+  });
   UI.on('arc.run', () => {
     UI.form({ title: 'Schedule data archiving', sub: 'De-clutter live queues, preserve everything for audit', icon: 'box', fields: [{ k: 'older', label: 'Archive tickets closed/cancelled more than (days)', type: 'number', req: true }, { k: 'note', label: 'Policy note', full: true }], values: { older: 180 }, onSubmit: (v) => {
       const h = H(); const cut = Date.now() - (+v.older) * 864e5; let n = 0;

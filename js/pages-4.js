@@ -134,6 +134,25 @@
           <button class="btn xs ghost" data-act="data.reset" data-mode="vendors">Vendors</button>
           <button class="btn xs ghost" data-act="data.reset" data-mode="finance">Finance (JV, expenses, payments)</button>
         </div></div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+          <p style="color:var(--muted);font-size:12px;margin-bottom:8px"><b>DHRE data import</b> — upload the attached CSV files:</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn xs ghost" data-act="imp.sample" data-k="dhreIncidents">Sample DHRE Incidents</button>
+            <button class="btn xs ghost" data-act="imp.upload" data-k="dhreIncidents">Upload DHRE Incidents</button>
+            <button class="btn xs ghost" data-act="imp.sample" data-k="dhreChanges">Sample DHRE Changes</button>
+            <button class="btn xs ghost" data-act="imp.upload" data-k="dhreChanges">Upload DHRE Changes</button>
+            <button class="btn xs ghost" data-act="imp.sample" data-k="dhreChangeRequest">Sample DHRE CR</button>
+            <button class="btn xs ghost" data-act="imp.upload" data-k="dhreChangeRequest">Upload DHRE CR</button>
+            <button class="btn xs ghost" data-act="imp.sample" data-k="firewallChange">Sample FW Change</button>
+            <button class="btn xs ghost" data-act="imp.upload" data-k="firewallChange">Upload FW Change</button>
+            <button class="btn xs ghost" data-act="imp.sample" data-k="tafaseelIncident">Sample Tafaseel Inc</button>
+            <button class="btn xs ghost" data-act="imp.upload" data-k="tafaseelIncident">Upload Tafaseel Inc</button>
+            <button class="btn xs ghost" data-act="imp.sample" data-k="tafaseelIncident2">Sample Tafaseel Inc2</button>
+            <button class="btn xs ghost" data-act="imp.upload" data-k="tafaseelIncident2">Upload Tafaseel Inc2</button>
+            <button class="btn xs ghost" data-act="imp.sample" data-k="projectTracker">Sample Project Tracker</button>
+            <button class="btn xs ghost" data-act="imp.upload" data-k="projectTracker">Upload Project Tracker</button>
+          </div>
+        </div>
         <div style="margin-top:14px"><button class="btn hot" data-act="data.masterReset" style="background:#dc2626;color:#fff">Master Reset — remove ALL data (keeps systemadmin login)</button></div></div>
         <div class="card mt"><h3><span class="pip"></span>Sample helpdesk data</h3><div style="display:flex;gap:10px;flex-wrap:wrap">${(ITMS.hdSample && ITMS.hdSample.has()) ? `<button class="btn ghost" data-act="sample.rm">${ic('trash')}Remove sample data</button>` : `<button class="btn ghost" data-act="sample.load">${ic('download')}Load sample data</button>`}</div></div>
         <div class="card mt"><h3><span class="pip"></span>Infrastructure assets</h3><p style="color:var(--muted)">Load BPO contact center infrastructure (servers, firewalls, headsets, network devices, etc.) into the hardware register.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="data.loadInfra">${ic('download')}Load infrastructure assets</button></div></div>

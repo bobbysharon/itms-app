@@ -338,6 +338,138 @@
         return { created, updated, errors };
       },
     },
+    dhreChangeRequest: {
+      file: 'DHRE_Change_Request_Tracker.csv',
+      positional: true,
+      cols: ['num', 'requestDate', 'raisedBy', 'title', 'desc', 'status', 'remarks'],
+      sample: [['1', '23/1/2025', 'Sheikh Muhammad Sajjad', 'New IVR Structure', 'Implementation of new IVR changes', 'Implemented', '']],
+      run(rows) {
+        let created = 0; const errors = [];
+        const h = H();
+        rows.forEach((r, i) => {
+          try {
+            if (!r.title || !r.title.trim()) throw new Error('Title required');
+            const ch = { id: 'CHG-DHRE-' + String(h.changes.length + 1).padStart(4, '0'), title: r.title.trim(), desc: r.desc || '', changeType: 'Standard', status: r.status === 'Implemented' ? 'Closed' : 'Planning', category: 'Functional / IVR', group: '', owner: r.raisedBy || '', impact: 'Medium', risk: 'Low', start: r.requestDate || '', end: r.requestDate || '', reason: r.desc || '', rollout: '', backout: '', approvals: [], requests: [], assets: [], hist: [{ at: now(), text: 'Imported from DHRE change request tracker' }], created: r.requestDate || today() };
+            h.changes.unshift(ch); created++;
+          } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
+        });
+        return { created, updated: 0, errors };
+      },
+    },
+    firewallChange: {
+      file: 'Firewall_Change_Request.csv',
+      positional: true,
+      cols: ['requestedBy', 'department', 'normal', 'requiredFrom', 'itsm', 'modification', 'businessReason', 'nameRequestor', 'nameICTManager', 'checkBox'],
+      sample: [['Anwar Mahmood', 'ICT Tafaseel', 'On', '01/09/2023', 'ICT-NW-007', 'Configure 2 more wlan for cctv', 'Business reason', 'anwar', 'Adel Al Aydi', 'Yes']],
+      run(rows) {
+        let created = 0; const errors = [];
+        const h = H();
+        rows.forEach((r, i) => {
+          try {
+            if (!r.modification || !r.modification.trim()) throw new Error('Modification required');
+            const ch = { id: r.itsm || ('CHG-FW-' + String(h.changes.length + 1).padStart(4, '0')), title: 'Firewall Change: ' + (r.modification || '').trim().slice(0, 60), desc: r.modification || '', changeType: 'Standard', status: 'Closed', category: 'Network / Firewall', group: '', owner: r.requestedBy || '', impact: 'Medium', risk: 'Medium', start: r.requiredFrom || '', end: r.requiredFrom || '', reason: r.businessReason || '', rollout: '', backout: '', approvals: [], requests: [], assets: [], hist: [{ at: now(), text: 'Imported from firewall change request' }], created: r.requiredFrom || today() };
+            h.changes.unshift(ch); created++;
+          } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
+        });
+        return { created, updated: 0, errors };
+      },
+    },
+    tafaseelIncident: {
+      file: 'Tafaseel_Incident_Report.csv',
+      positional: true,
+      cols: ['reportDate', 'reportType', 'issueReported', 'supportPerson', 'reportedOn', 'downtime', 'rootCause1', 'rootCause2', 'rootCause3', 'solution1', 'solution2', 'preventive'],
+      sample: [['04/09/2022', 'Downtime Incident Report', 'Internet Disconnected', 'Anwar Mahamood', '03/09/2022 at 10:35 AM', '10 min', 'Firewall connectivity down', 'ONT devices down due to power failure', 'Reported to building maintenance', 'Moved ONT to UPS', 'Fixed power failure', 'All ICT under UPS']],
+      run(rows) {
+        let created = 0; const errors = [];
+        const h = H();
+        rows.forEach((r, i) => {
+          try {
+            if (!r.issueReported || !r.issueReported.trim()) throw new Error('Issue required');
+            const t = (h.requests || []);
+            const id = 'INC-' + String(t.length + 1).padStart(4, '0');
+            t.unshift({ id: id, subject: r.issueReported.trim(), desc: r.issueReported.trim(), impact: 'Medium', urgency: 'Normal', type: 'Incident', mode: 'Web Form', category: 'Network & Connectivity', status: 'Resolved', created: r.reportDate || today(), resolvedAt: r.reportDate || today(), resolution: [r.solution1, r.solution2].filter(Boolean).join('; '), rootCause: [r.rootCause1, r.rootCause2, r.rootCause3].filter(Boolean).join('; '), preventive: r.preventive || '', hist: [{ at: now(), text: 'Imported from Tafaseel incident report' }] });
+            created++;
+          } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
+        });
+        return { created, updated: 0, errors };
+      },
+    },
+    tafaseelIncident2: {
+      file: 'Tafaseel_Incident_Report_Network.csv',
+      positional: true,
+      cols: ['author', 'businessUnit', 'classification', 'reviewer', 'dateTime', 'status', 'problemRef', 'rcaOwner', 'highLevelDesc', 'incidentSummary', 'cause', 'resolution', 'preventiveAction', 'actionOwner', 'targetCompletion'],
+      sample: [['Norton Araujo', 'DHRE', 'Network issue', 'Noorul Ameen', '30/01/2025 1:07 Pm', 'Resolved', 'TAF#7401', 'Anwar Mahamood', 'Network Down DHRE office', 'Network down in DHRE room', 'PDU damaged', 'Replaced PDU', 'Reduced workload in PDU', 'Incident Team', 'Agreed']],
+      run(rows) {
+        let created = 0; const errors = [];
+        const h = H();
+        rows.forEach((r, i) => {
+          try {
+            if (!r.highLevelDesc || !r.highLevelDesc.trim()) throw new Error('Description required');
+            const t = (h.requests || []);
+            const id = 'INC-' + String(t.length + 1).padStart(4, '0');
+            t.unshift({ id: id, subject: r.highLevelDesc.trim(), desc: r.incidentSummary || r.highLevelDesc.trim(), impact: 'High', urgency: 'High', type: 'Incident', mode: 'Web Form', category: 'Network & Connectivity', status: r.status === 'Resolved' ? 'Resolved' : 'Open', created: r.dateTime || today(), resolvedAt: r.status === 'Resolved' ? (r.dateTime || today()) : '', resolution: r.resolution || '', rootCause: r.cause || '', preventive: r.preventiveAction || '', hist: [{ at: now(), text: 'Imported from Tafaseel incident report' }] });
+            created++;
+          } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
+        });
+        return { created, updated: 0, errors };
+      },
+    },
+    dhreIncidents: {
+      file: 'DHRE_Incident_log.csv',
+      positional: true,
+      cols: ['num', 'raisedDate', 'raisedTime', 'resolvedDate', 'resolvedTime', 'desc', 'impact', 'rootCause', 'resolution', 'preventive'],
+      sample: [['1', '23/08/2025', '2.00 PM', '23/08/2025', '3.15 PM', 'Connectivity disrupted at IMPZ Datacenter', 'Multiple services affected', 'Service Node fault', 'Manual failover performed', 'Continuous monitoring implemented']],
+      run(rows) {
+        let created = 0; const errors = [];
+        const h = H();
+        rows.forEach((r, i) => {
+          try {
+            if (!r.desc || !r.desc.trim()) throw new Error('Description required');
+            const t = (h.requests || []);
+            const id = 'INC-' + String(t.length + 1).padStart(4, '0');
+            t.unshift({ id: id, subject: r.desc.trim().slice(0, 100), desc: r.desc.trim(), impact: r.impact || 'Medium', urgency: 'Normal', type: 'Incident', mode: 'Web Form', category: 'Network & Connectivity', status: 'Resolved', created: r.raisedDate || today(), resolvedAt: r.resolvedDate || today(), resolution: r.resolution || '', rootCause: r.rootCause || '', preventive: r.preventive || '', hist: [{ at: now(), text: 'Imported from DHRE incident log' }] });
+            created++;
+          } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
+        });
+        return { created, updated: 0, errors };
+      },
+    },
+    dhreChanges: {
+      file: 'DHRE_Change_Tracker.csv',
+      positional: true,
+      cols: ['num', 'changeId', 'requestDate', 'raisedBy', 'title', 'desc', 'category', 'risk', 'impact', 'assets', 'priority', 'approvalStatus', 'approver', 'implDate', 'implOwner', 'verification', 'validation', 'closure'],
+      sample: [['1', 'CHG-DHRE-2025-001', '2025-01-23', 'Sheikh Muhammad Sajjad', 'New IVR Deployment', 'Development & rollout of new IVRs', 'Functional / IVR', 'Medium', 'High', 'IVR flows, Routing Tables', 'High', 'Approved', 'Head of ICT', '2025-04-07', 'Tafaseel ICT Team', 'Call flow test', 'Verified', 'Closed']],
+      run(rows) {
+        let created = 0; const errors = [];
+        const h = H();
+        rows.forEach((r, i) => {
+          try {
+            if (!r.title || !r.title.trim()) throw new Error('Title required');
+            const ch = { id: r.changeId || ('CHG-' + String(h.changes.length + 1).padStart(4, '0')), title: r.title.trim(), desc: r.desc || '', changeType: 'Standard', status: r.closure === 'Closed' ? 'Closed' : 'Planning', category: r.category || 'General', group: '', owner: r.raisedBy || '', impact: r.impact || 'Medium', risk: r.risk || 'Low', start: r.implDate || '', end: r.implDate || '', reason: r.desc || '', rollout: r.verification || '', backout: '', approvals: [], requests: [], assets: r.assets ? r.assets.split(',').map((a) => a.trim()) : [], hist: [{ at: now(), text: 'Imported from DHRE change tracker' }], created: r.requestDate || today() };
+            h.changes.unshift(ch); created++;
+          } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
+        });
+        return { created, updated: 0, errors };
+      },
+    },
+    projectTracker: {
+      file: 'Project_Status_and_Timeline_Tracker.csv',
+      positional: true,
+      cols: ['itemId', 'project', 'category', 'desc', 'status', 'priority', 'owner', 'startDate', 'targetDate', 'timelineStatus', 'pendingWith', 'latestUpdate', 'nextAction', 'remarks'],
+      sample: [['1', 'DHRE Audit', 'Genesys – User Access', 'Segregate Genesys users', 'Ongoing', 'Critical', 'Uttam – AFT', '15-09-2026', '25-09-2026', '25-09-2026', 'Uttam – AFT', 'Tested successfully', 'Complete migration', 'Initial test completed']],
+      run(rows) {
+        let created = 0; const errors = [];
+        const h = H();
+        rows.forEach((r, i) => {
+          try {
+            if (!r.desc || !r.desc.trim()) throw new Error('Description required');
+            const item = { id: (h.seq.item = (h.seq.item || 0) + 1), project: r.project || 'General', category: r.category || 'General', desc: r.desc.trim(), status: r.status || 'Open', priority: r.priority || 'Medium', owner: r.owner || '', open: r.startDate || today(), target: r.targetDate || '', latest: r.latestUpdate || '', next: r.nextAction || '', remarks: r.remarks || '', log: [], hist: [{ at: now(), text: 'Imported from project tracker' }] };
+            h.items.push(item); created++;
+          } catch (err) { errors.push('Row ' + (i + 2) + ': ' + (err.message || err)); }
+        });
+        return { created, updated: 0, errors };
+      },
+    },
   };
   UI.on('imp.sample', (el) => {
     const s = SCHEMAS[el.dataset.k]; if (!s) return;
@@ -357,13 +489,32 @@
       try {
         const grid = parseCSV(r.result);
         if (grid.length < 2) throw new Error('Empty file — download the sample first for the exact format.');
+        const allText = grid.map((r) => (r || []).join(' ')).join(' ').toLowerCase();
         const head = grid[0].map((x) => String(x).trim().toLowerCase());
         let s = SCHEMAS[pendingKey];
-    if (head.indexOf('asset clasification') >= 0 || head.some((h) => /asset\s*clas/i.test(h)) || head.indexOf('compname') >= 0) s = SCHEMAS.ajmanAssets;
-        const missing = s.cols.filter((c) => head.indexOf(c) < 0);
-        if (missing.length && missing.length === s.cols.length) throw new Error('No matching columns found — check file format.');
-        const rows = grid.slice(1).map((g) => { const o = {}; s.cols.forEach((c) => { const ci = head.indexOf(c.toLowerCase()); o[c] = (ci >= 0 && g[ci]) ? String(g[ci]).trim() : ''; }); return o; });
-        const res = s.run(rows);
+    if (allText.indexOf('asset clasification') >= 0 || allText.indexOf('compname') >= 0) s = SCHEMAS.ajmanAssets;
+    // DHRE format detection
+    if (allText.indexOf('incident raised') >= 0) s = SCHEMAS.dhreIncidents;
+    if (allText.indexOf('change request id') >= 0) s = SCHEMAS.dhreChanges;
+    if (allText.indexOf('item / task description') >= 0 || allText.indexOf('item/task') >= 0) s = SCHEMAS.projectTracker;
+    if (allText.indexOf('request title') >= 0 && allText.indexOf('s.no') >= 0) s = SCHEMAS.dhreChangeRequest;
+    if (allText.indexOf('describe the modification') >= 0) s = SCHEMAS.firewallChange;
+    if (allText.indexOf('issue reported') >= 0 && allText.indexOf('department support person') >= 0) s = SCHEMAS.tafaseelIncident;
+    if (allText.indexOf('high-level description of problem') >= 0) s = SCHEMAS.tafaseelIncident2;
+    // Skip extra header rows for project tracker
+    let startRow = 1;
+    if (s === SCHEMAS.projectTracker) { for (let i = 0; i < grid.length; i++) { if (grid[i] && grid[i].some((c) => /item\s*id/i.test(String(c)))) { startRow = i + 1; break; } } }
+    // Positional mapping for DHRE formats with complex headers
+    let rows;
+    if (s.positional) {
+      const dataGrid = grid.slice(startRow);
+      rows = dataGrid.map((g) => { const o = {}; s.cols.forEach((c, idx) => { o[c] = (g[idx] || '').trim(); }); return o; }).filter((o) => Object.values(o).some((v) => v));
+    } else {
+      const missing = s.cols.filter((c) => head.indexOf(c) < 0);
+      if (missing.length && missing.length === s.cols.length) throw new Error('No matching columns found — check file format.');
+      rows = grid.slice(startRow).map((g) => { const o = {}; s.cols.forEach((c) => { const ci = head.indexOf(c.toLowerCase()); o[c] = (ci >= 0 && g[ci]) ? String(g[ci]).trim() : ''; }); return o; });
+    }
+    const res = s.run(rows);
         S.emit();
         const ov = UI.modal(`<header><div><h3>Import ${esc(pendingKey)}</h3><small>${res.created} new · ${res.updated} updated · ${res.errors.length} skipped</small></div><button class="ibtn x" data-x>${ic('x')}</button></header><div class="body">${res.errors.length ? `<div class="empty" style="text-align:left"><b>Skipped rows</b><br>${res.errors.slice(0, 12).map(esc).join('<br>')}${res.errors.length > 12 ? '<br>…and ' + (res.errors.length - 12) + ' more' : ''}</div>` : '<div class="empty"><b>All rows imported cleanly</b></div>'}</div><footer><button class="btn" data-x>Done</button></footer>`, {});
         ov.addEventListener('click', (ev) => { if (ev.target.closest('[data-x]')) UI.close(ov); });
