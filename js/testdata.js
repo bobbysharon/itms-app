@@ -1215,8 +1215,6 @@
   }
   UI.on('data.sampleTickets', () => { try { loadSampleTickets(); } catch (e) { UI.toast(e.message || String(e), 'err'); } });
   function loadDHREData() {
-    if (db()._dhreLoaded) return;
-    db()._dhreLoaded = true;
     const h = H(), d = D();
     const mkTicket = ITMS.sdp.mkTicket;
     // Parse CSV helper
@@ -1302,7 +1300,7 @@
       projHead.forEach((c, idx) => { o[c] = (r[idx] || '').trim(); });
       if (!o['item / task description']) return;
       const item = { id: (h.seq.item = (h.seq.item || 0) + 1), project: o['project name'] || 'General', category: o['category'] || 'General', desc: o['item / task description'], status: o['status'] || 'Open', priority: o['priority'] || 'Medium', owner: o['owner'] || '', open: o['start / open date'] || '', target: o['target completion date'] || '', latest: o['latest update'] || '', next: o['next action'] || '', remarks: o['remarks'] || '', log: [], hist: [{ at: new Date().toISOString(), text: 'Imported from project tracker' }] };
-      h.items.push(item);
+      if (!h.items.find((x) => x.desc === item.desc && x.project === item.project)) h.items.push(item);
     });
     // Tafaseel Incident Report (Tabby)
     const tafaseelCSV = `Report Date,Report Type,Issue Reported,Department Support Person,Reported On,Total Downtime,Analysis and Root Cause 1,Analysis and Root Cause 2,Analysis and Root Cause 3,Solution 1,Solution 2,Preventive Steps 1
