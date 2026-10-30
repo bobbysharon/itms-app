@@ -1648,12 +1648,6 @@
   });
 
   /* ================= Key-Value CSV Import (form-style CSVs) ================= */
-  SCHEMAS.kvImport = {
-    file: 'any-kv.csv',
-    cols: ['field', 'value'],
-    sample: [['Field', 'Value']],
-    run(rows) { return { created: 0, updated: 0, errors: ['Key-value CSVs are imported via the dedicated import buttons, not this schema.'] }; }
-  };
   function parseKVCSV(t) {
     const rows = [];
     const lines = t.split(/\r?\n/);
