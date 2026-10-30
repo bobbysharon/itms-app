@@ -418,7 +418,7 @@
       const news = h ? h.news.filter((n) => n.active === 'Yes').slice(0, 3) : [];
       const site = curSite();
       return `<div class="note-box" style="margin-bottom:10px"><b>Welcome, ${esc(e.name || 'user')}</b> · ${esc(e.dept || '')} · site: <b>${esc(site)}</b> · domain: <b>${esc(d.domains.custom || d.domains.portal)}</b>
-        <span style="margin-left:auto"></span><label style="font-size:12px">Acting as <select class="in" style="width:auto;display:inline-block" data-actx="emp">${empOpts().map((o) => `<option value="${o.v}" ${o.v === e.no ? 'selected' : ''}>${esc(o.l)}</option>`).join('')}</select></label></div>
+        ${ITMS.sdp && ITMS.sdp.effRole && ITMS.sdp.effRole() === 'Administrator' ? '<span style="margin-left:auto"></span><label style="font-size:12px">Acting as <select class="in" style="width:auto;display:inline-block" data-actx="emp">' + empOpts().map((o) => `<option value="${o.v}" ${o.v === e.no ? 'selected' : ''}>${esc(o.l)}</option>`).join('') + '</select></label>' : ''}</div>
       <div class="grid g3">
         <div class="card"><h3>Request an IT service</h3><p style="color:var(--muted)">Catalog items, approvals and SLA included.</p><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-act="portal.req">${ic('plus')}New request</button><button class="btn ghost" data-act="portal.ad">${ic('key')}Password / unlock</button><button class="btn ghost" data-act="portal.chat">${ic('users')}Live chat</button></div></div>
         <div class="card"><h3>Solve it yourself</h3><p style="color:var(--muted)">${kb.length} published solutions · searchable in Solutions & Catalog.</p></div>
