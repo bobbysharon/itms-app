@@ -1214,6 +1214,140 @@
     UI.toast('Created ' + count + ' call center tickets for ' + E.length + ' agents');
   }
   UI.on('data.sampleTickets', () => { try { loadSampleTickets(); } catch (e) { UI.toast(e.message || String(e), 'err'); } });
-  ITMS.testdata = { load, masterLoad, moduleLoad, loadInfra, loadSampleTickets, ensureCompleteData };
+  function loadDHREData() {
+    if (db()._dhreLoaded) return;
+    db()._dhreLoaded = true;
+    const h = H(), d = D();
+    const mkTicket = ITMS.sdp.mkTicket;
+    // Parse CSV helper
+    function parseCSV(t) {
+      t = String(t || '').replace(/^\uFEFF/, '');
+      const rows = []; let row = [], cur = '', q = false;
+      for (let i = 0; i < t.length; i++) {
+        const c = t[i];
+        if (q) { if (c === '"') { if (t[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+        else if (c === '"') q = true;
+        else if (c === ',') { row.push(cur); cur = ''; }
+        else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+        else cur += c;
+      }
+      if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+      return rows.filter((r) => r.some((x) => String(x).trim() !== ''));
+    }
+    // DHRE Change Tracker v1.2
+    const changeTrackerCSV = `#,Change Request ID,Request Date,Raised By,Change Title,Detailed Change Description,Change Category,Risk Assessment (Pre-Change),Impact Assessment,Assets / Components Affected,Change Priority,Approval Status,Authorized Approver,Implementation Date,Implementation Owner,Verification & UAT,Post-Implementation Validation,Closure Status
+1,CHG-DHRE-2025-001,2025-01-23,Sheikh Muhammad Sajjad,New IVR Deployment,"Development & rollout of new IVRs for Nakheel, Meydan, District 1, and new IVRs for DP & Meraas to standardize flows.",Functional / IVR,Medium,High,"IVR flows, Routing Tables",High,Approved,Head of ICT,2025-04-07,Tafaseel ICT Team & Al Futtaim Genesys Team,"Call flow and routing test, prompt validation",Verified,Closed
+2,CHG-DHRE-2025-002,2025-02-24,Norton Araujo,Ramadan IVR Hours,Update operating hours for Ramadan in DP & Meraas IVRs.,Functional / IVR,Low,Low,IVR Schedules,Medium,Approved,Head of ICT,2025-02-26,Tafaseel ICT Team & Al Futtaim Genesys Team,Prompt playback evidence,Verified,Closed
+3,CHG-DHRE-2025-003,2025-03-01,Sheikh Muhammad Sajjad,License Allocation,Allocation of 6 Genesys licenses for outbound calling for seasonal requirement.,System / Licensing,Low,Low,"User Profiles, Licensing",Low,Approved,Head of ICT,2025-04-28,Tafaseel ICT Team & Al Futtaim Genesys Team,License allocation and user access validation,Verified,Closed
+4,CHG-DHRE-2025-004,2025-03-14,Sheikh Muhammad Sajjad,Salesforce CTI Integration,"Enable existing Genesys CTI connector for Salesforce for all users with screen-pop, click-to-dial, UI workflow.",System / Licensing,Medium,High,CTI Connector,High,Approved,Head of ICT,2025-06-12,Tafaseel ICT Team & Al Futtaim Genesys Team,User Access and Screen pop test,Verified,Closed
+5,CHG-DHRE-2025-005,2025-03-28,Norton Araujo,Eid Al Fitr Holiday Prompt,Holiday schedule prompt added for Eid Al Fitr.,Functional / IVR,Low,Low,IVR Prompts,Low,Approved,Head of ICT,2025-03-29,Tafaseel ICT Team & Al Futtaim Genesys Team,Prompt audio validation,Verified,Closed
+6,CHG-DHRE-2025-006,2025-06-02,Norton Araujo,Outreach Queues,"Creation of new outbound queues for outreach program (DP, Meraas, Nakheel).",Routing / Queue,Low,Medium,New Queues,Medium,Approved,Head of ICT,2025-06-03,Tafaseel ICT Team & Al Futtaim Genesys Team,"Queue Creation and assignment , User Access to queue and report validation",Verified,Closed
+7,CHG-DHRE-2025-007,2025-06-04,Norton Araujo,Eid Al Adha Prompt,Activation of holiday prompt for Eid Al Adha.,Functional / IVR,Low,Low,Prompts,Low,Approved,Head of ICT,2025-06-04,Tafaseel ICT Team & Al Futtaim Genesys Team,Prompt audio validation,Verified,Closed
+8,CHG-DHRE-2025-008,2025-06-11,Sheikh Muhammad Sajjad,IVR Streamlining,Removal of informational prompts in Nakheel & Meydan IVRs to reduce call handling time.,Optimization,Low,Medium,IVR Flow,Medium,Approved,Head of ICT,2025-06-17,Tafaseel ICT Team & Al Futtaim Genesys Team,Call flow and prompt audio validation,Verified,Closed
+9,CHG-DHRE-2025-009,2025-06-15,Sheikh Muhammad Sajjad,Outbound Campaign Setup,"Setup outbound campaigns across Nakheel, Meraas, DP for automation.",Dialer / Campaign,Medium,High,"Outbound Dialer, Lists",High,Approved,Head of ICT,2025-09-26,Tafaseel ICT Team & Al Futtaim Genesys Team,Campaign reports & test calls,Verified,Closed
+10,CHG-DHRE-2025-010,2025-06-25,Sheikh Muhammad Sajjad,Routing Change to DHCM,Routing update for DP & MERAAS 800 numbers to new number 04-499 8301.,Routing,Medium,Medium,Routing Tables,High,Approved,Head of ICT,2024-06-26,Tafaseel ICT Team & Al Futtaim Genesys Team,Call routing validation,Verified,Closed
+11,CHG-DHRE-2025-011,2024-06-26,Norton Araujo,Islamic New Year Prompt,Holiday prompt activation.,IVR,Low,Low,Prompts,Low,Approved,Head of ICT,2024-06-26,Tafaseel ICT Team & Al Futtaim Genesys Team,Prompt audio validation,Verified,Closed
+12,CHG-DHRE-2025-012,2024-06-26,Sheikh Muhammad Sajjad,System Enhancements,"Auto-callback, Power BI integration, high call volume alerts, auto dialer.",System / Functional,Medium,High,"IVR, Callback, BI Connectors",High,Approved,Head of ICT,2025-10-01,Tafaseel ICT Team & Al Futtaim Genesys Team,"Data validation, test calls for call back options validation, automated outbound calls test and prompt audio validation",Verified,Closed
+13,CHG-DHRE-2025-013,2025-07-09,Sheikh Muhammad Sajjad,DHCM Number Update,Updated DHCM contact number 04-499 8300 in IVRs.,Routing,Low,Low,Routing Tables,Medium,Approved,Head of ICT,2025-07-10,Tafaseel ICT Team & Al Futtaim Genesys Team,Call routing validation,Verified,Closed
+14,CHG-DHRE-2025-014,2025-08-26,Sheikh Muhammad Sajjad,Auto Survey Transfer,Automatic survey transfer after agent disconnection.,Functional / CX,Low,Medium,Survey Module,Medium,Approved,Head of ICT,2025-10-30,Tafaseel ICT Team & Al Futtaim Genesys Team,Test calls with survey transfer validation,Verified,Closed
+15,CHG-DHRE-2025-015,2025-09-02,Fazlan,Public Holiday Prompt – Sept 5,Holiday prompt activation.,IVR,Low,Low,Prompts,Low,Approved,Head of ICT,2025-09-03,Tafaseel ICT Team & Al Futtaim Genesys Team,Prompt audio validation,Verified,Closed
+16,CHG-DHRE-2025-016,2025-09-22,Sheikh Muhammad Sajjad,App Promotion Message (AR/EN),Promotion prompt added after language selection + hold time.,IVR,Low,Medium,Prompts,Medium,Approved,Head of ICT,2025-09-23,Tafaseel ICT Team & Al Futtaim Genesys Team,Prompt audio validation,Verified,Closed
+17,CHG-DHRE-2025-017,2025-09-29,Sheikh Muhammad Sajjad,App Promotion Message (EN Only),English promotional prompt added.,IVR,Low,Low,Prompts,Low,Approved,Head of ICT,2025-09-30,Tafaseel ICT Team & Al Futtaim Genesys Team,Prompt audio validation,Verified,Closed`;
+    const rows = parseCSV(changeTrackerCSV);
+    const head = rows[0].map((x) => String(x).trim().toLowerCase());
+    rows.slice(1).forEach((r) => {
+      const o = {};
+      head.forEach((c, idx) => { o[c] = (r[idx] || '').trim(); });
+      const ch = { id: o['change request id'] || '', title: o['change title'] || '', desc: o['detailed change description'] || '', changeType: 'Standard', status: o['closure status'] === 'Closed' ? 'Closed' : 'Planning', category: o['change category'] || 'General', group: '', owner: o['raised by'] || '', impact: o['impact assessment'] || 'Medium', risk: o['risk assessment (pre-change)'] || 'Low', start: o['implementation date'] || '', end: o['implementation date'] || '', reason: o['detailed change description'] || '', rollout: o['verification & uat'] || '', backout: '', approvals: [], requests: [], assets: (o['assets / components affected'] || '').split(',').map((a) => a.trim()).filter(Boolean), hist: [{ at: new Date().toISOString(), text: 'Imported from DHRE change tracker' }], created: o['request date'] || '' };
+      if (ch.id && !h.changes.find((x) => x.id === ch.id)) h.changes.unshift(ch);
+    });
+    // DHRE Incident Log
+    const incidentLogCSV = `Sr,Raised Date,Raised Time,Resolved Date,Resolved Time,Description,Impact,Root Cause,Resolution,Preventive Action
+1,23/08/2025,2.00 PM,23/08/2025,3.15 PM,"Connectivity at the IMPZ Datacenter was disrupted due to a Service Node fault that caused a split-brain condition, impacting multiple datacenter services.",Multiple datacenter services were affected due to a connectivity outage at the IMPZ Datacenter.,Virtual Chassis (VC) ports of services node1 went down (PR#1889062 - known issue under the juniper problem record) which leads to split-brain on both service node switches. Juniper team is still investigating the reason for failure.,"The issue was traced to a Service Node fault leading to a split-brain condition. The technical team performed a manual failover from Node 1 (Primary) to Node 0 (Secondary) on the IPSEC gateway, restoring all services.",Continuous monitoring of the service nodes will be implemented. Coordination with Juniper for root cause analysis and firmware upgrade once the permanent fix is released. Regular validation of VC port health to prevent reoccurrence.
+2,23/10/2025,8.30 AM,23/10/2025,10.30 AM,"Calls were staying in the queue and disconnecting when answered. Agents systems showed Not Responding randomly across all IVRs, affecting multiple agents simultaneously.","Agents were unable to handle some inbound calls, impacting call handling performance across IVRs.",Not shared by team.,Not shared by team.,To be updated once details are received.
+3,27/10/2025,8.45 AM ,27/10/2025,10.00 AM,Tafaseel Wi-Fi was disconnected for all agents due to Firewall policy changes. Alternative Wi-Fi was provided to continue call handling on Genesys.,Temporary loss of Tafaseel Wi-Fi; partial impact on Salesforce case creation. Call handling continued with minimal disruption using alternate Wi-Fi.,Firewall policy modifications caused Tafaseel Wi-Fi disconnection.,Reviewed and adjusted Firewall settings; connectivity restored and verified.,"To prevent similar incidents in the future, a change review process should be implemented for all Firewall modifications."
+4,2026-07-27,09:42:00,2026-07-27,15:05:00,"Incoming calls to the Nakheel, Meydan, and District 1 IVRs were not reaching the contact center. Customers calling the affected numbers experienced the call ringing briefly and then disconnecting without reaching the IVR.","Incoming calls to the Nakheel, Meydan, and District 1 IVRs were not reaching the contact center.",The issue was related to the Hybrid Media configuration following the migration activity performed on 26 July 2026. The required Nakheel Edge device was not correctly included within the applicable Hybrid Media Group.,"The Al-Futtaim/Genesys team added the Nakheel Edge device to the required Hybrid Media Group, after which incoming call routing was restored and the affected IVRs became operational.","Strengthen the MOP for future Genesys architectural/topology changes by including Edge Group segmentation checks."`;
+    const incRows = parseCSV(incidentLogCSV);
+    const incHead = incRows[0].map((x) => String(x).trim().toLowerCase());
+    incRows.slice(1).forEach((r) => {
+      const o = {};
+      incHead.forEach((c, idx) => { o[c] = (r[idx] || '').trim(); });
+      if (!o['description']) return;
+      const id = 'INC-' + String((h.requests || []).length + 1).padStart(4, '0');
+      if (!(h.requests || []).find((x) => x.subject === o['description'].slice(0, 100))) {
+        (h.requests = h.requests || []).unshift({ id: id, subject: o['description'].slice(0, 100), desc: o['description'], impact: o['impact'] || 'Medium', urgency: 'Normal', type: 'Incident', mode: 'Web Form', category: 'Network & Connectivity', status: 'Resolved', created: o['raised date'] || '', resolvedAt: o['resolved date'] || '', resolution: o['resolution'] || '', rootCause: o['root cause'] || '', preventive: o['preventive action'] || '', hist: [{ at: new Date().toISOString(), text: 'Imported from DHRE incident log' }] });
+      }
+    });
+    // Project Status Tracker
+    const projectCSV = `Item ID,Project Name,Category,Item / Task Description,Status,Priority,Owner,Start / Open Date,Target Completion Date,Timeline Status,Pending With,Latest Update,Next Action,Remarks
+1,DHRE Audit,Genesys – User Access and Division Configuration,"Segregate Genesys users, skills, wrap-up codes, queues, and roles within the DHRE Division.",Ongoing,Critical,Uttam – AFT / Genesys Team,15-09-2026,25-09-2026,25-09-2026,Uttam – AFT / Genesys Team,"On 21 September 2026, two users, selected queues, and one supervisor were moved to the DHRE Division for testing.","Complete the migration of the remaining users during the scheduled activity on 23 September 2026.",The initial test was completed successfully.
+2,DHRE Audit,Genesys – Audit and Compliance,Test the Genesys Audit API through Postman to confirm whether audit-log data can be accessed and retrieved successfully.,Ongoing,Critical,Uttam – AFT / Genesys Team,2026-03-09,30-09-2026,30-09-2026,Uttam – AFT / Genesys Team,Uttam provided Audit API access to the assigned Genesys account. DHRE IT is currently testing the API through Postman.,"Review the testing status during the daily audit meetings scheduled until 25th September 2026.",Final confirmation is pending completion of the API testing by DHRE IT.
+3,DHRE Audit,Genesys – Monitoring and Alerting,"Establish centralized monitoring and alerting for queue failures, call drops, role changes, flow modifications, routing updates, and integration failures.",Pending,High,Uttam – AFT / Genesys Team,2026-08-09,30-09-2026,30-09-2026,Uttam – AFT / Genesys Team,The monitoring and alerting requirement has been shared with Uttam. He needs to check the available options and feasibility with the Genesys team.,"Uttam to confirm the supported monitoring capabilities, alerting method, implementation requirements, and proposed timeline.",Awaiting confirmation from Uttam and the Genesys team on feasibility and implementation approach.
+4,DHRE Audit,Genesys – Security and Access Control,"Review and implement security controls for Genesys Cloud embedding restrictions, allowed embeddable domains, allowed IP addresses, division-aware role management, Attribute-Based Access Control (ABAC), and role backfill.",Pending,High,Uttam – AFT / Genesys Team,15-09-2026,30-09-2026,30-09-2026,Uttam – AFT / Genesys Team,The required security and access-control configurations. The current configuration and implementation feasibility need to be reviewed.,"Review the existing Genesys configuration, confirm the supported controls, identify the required changes, and provide an implementation and testing plan.","All changes must be tested and validated."
+5,DHRE Audit,Governance – SOP and Policy Review,Review and correct inconsistencies identified across DHRE SOPs and policies to ensure that the documentation is accurate and aligned.,Ongoing,High,Yasmin Amanullah,16-09-2026,30-09-2026,30-09-2026,Yasmin Amanullah,Naveed shared the relevant SOP with Yasmin for review and correction.,"Yasmin will review the SOP, correct the identified inconsistencies, and share the updated document after completing the review.",Awaiting completion of the SOP review.
+6,DHRE Audit,Genesys – Backup and Data Recovery,Review the backup and data-recovery capabilities available for the DHRE Genesys Cloud environment.,Pending,High,Uttam – AFT / Genesys Team,15-09-2026,30-09-2026,30-09-2026,Uttam – AFT / Genesys Team,The backup and data-recovery requirement has been shared with Uttam for review with the Genesys team.,"Uttam to confirm the available backup scope, data-retention period, recovery options, restoration process, and applicable recovery timelines.",Awaiting confirmation from Uttam and the Genesys team.
+7,DHRE Audit,Governance and Compliance – Manual Controls,Share the documented manual governance controls with the DHRE team for review and confirmation.,Pending,High,Purnima,16-09-2026,30-09-2026,30-09-2026,Purnima,The manual governance controls need to be shared with the DHRE team for review.,"Purnima to share the manual governance controls with the DHRE team and follow up for their review, feedback, and confirmation.",Awaiting submission of the document.
+8,DHRE,DHRE RFP – Proposal Submission,"Upload and submit all completed DHRE RFP documents covering IT, Quality, Operations, Technical Proposal, and other applicable categories.",Ongoing,High,Yasmin Amanullah,,25-09-2026,30-09-2026,Yasmin Amanullah,"All required RFP documents related to IT, Quality, Operations, and the Technical Proposal have been prepared.",Complete the document upload and submit the complete RFP package before the deadline.,Final submission deadline: 25 September 2026.
+9,ServiceDesk Plus ITSM Tool,ITSM – ServiceDesk Plus Implementation,"Onboard and implement the ServiceDesk Plus ITSM tool for Tafaseel, including the initial licensing and basic application setup.",Pending,High,Tafaseel IT / Finance Team,16-09-2026,30-09-2026,Tafaseel IT / Finance team,The proposal was received from the ServiceDesk Plus team and shared with the Tafaseel Finance team.,"Finance to issue the Purchase Order. Once received, the IT team will share it with the ServiceDesk Plus team.",Implementation must be completed before 30 September 2026.
+10,CCR Team / Genesys,Genesys – Vendor Transition and Support Onboarding,"Onboard the CCR team as the new Genesys support and service provider.",Ongoing,High,Tafaseel Team,27-08-2026,before November,before November,Tafaseel Team,A quotation has been received from CCR for AMC and other services.,"Tafaseel must send an official vendor-change email to the Genesys team.",CCR onboarding will replace the existing Al-Futtaim support arrangement.
+11,CCR Team / Genesys,Genesys – Vendor Transition and CCR Onboarding,"Complete the vendor transition from AFT to CCR.",Ongoing,High,Purnima,21-09-2026,before November,before November,Purnima,The CCR quotation for AMC and additional services has been received.,"Purnima to send the official vendor-change email to Genesys, issue the termination letter to the AFT team.",CCR will replace AFT as the Genesys support provider.
+12,Etisalat ,Telephony – SBC-to-SBC Connectivity,Establish SBC-to-SBC connectivity between the existing Tafaseel voice environment and the external vendor's SBC in Saudi Arabia.,Pending,High,Ishaq / Etisalat Team,16-09-2026,NA,On Track,Ishaq / Etisalat Team,The connectivity requirements and technical queries have been shared with Ishaq.,"Ishaq to obtain confirmation from Etisalat regarding external SBC routing support.",Further configuration will proceed after receiving formal confirmation from Etisalat.
+13,Salesforce CRM,Salesforce CRM – Solution and Licensing,"Obtain a Salesforce CRM solution and commercial proposal for the CBUAE Contact Center.",Ongoing,High,Nadir,23-09-2026,NA,On Track,Nadir,Nadir sent an email to the Salesforce team requesting a quotation for 10 licences.,"Obtain the Salesforce solution and pricing proposal, review the licence scope.",Awaiting the quotation and solution details from the Salesforce team.
+14,AI Chatbot,AI Chatbot,"Obtain a detailed proposal for an AI chatbot and telephony solution.",Pending,High,Nadir,22-09-2026,NA,On Track,Nadir,"Nadir emailed Rohith from the Ziwo team requesting the proposed solution.",Follow up with Rohith to obtain the proposal.,Awaiting the technical and commercial proposal from the Ziwo team.
+15,Sprinklr,Sprinklr – Call Recording Extraction,"Extract and deliver 500 hours of call recordings from the Dubai Properties, Nakheel, Meydan, and Meraas IVRs.",Pending,High,DHRE IT / Sprinklr Team,NA,NA,On Track,DHRE IT / Sprinklr Team,A meeting was conducted with the Sprinklr team to discuss the recording-extraction requirement.,"DHRE IT to provide the Amazon S3 bucket and required access details.",The extraction is currently pending confirmation of the data-storage location.`;
+    const projRows = parseCSV(projectCSV);
+    const projHead = projRows[0].map((x) => String(x).trim().toLowerCase());
+    projRows.slice(1).forEach((r) => {
+      const o = {};
+      projHead.forEach((c, idx) => { o[c] = (r[idx] || '').trim(); });
+      if (!o['item / task description']) return;
+      const item = { id: (h.seq.item = (h.seq.item || 0) + 1), project: o['project name'] || 'General', category: o['category'] || 'General', desc: o['item / task description'], status: o['status'] || 'Open', priority: o['priority'] || 'Medium', owner: o['owner'] || '', open: o['start / open date'] || '', target: o['target completion date'] || '', latest: o['latest update'] || '', next: o['next action'] || '', remarks: o['remarks'] || '', log: [], hist: [{ at: new Date().toISOString(), text: 'Imported from project tracker' }] };
+      h.items.push(item);
+    });
+    // Tafaseel Incident Report (Tabby)
+    const tafaseelCSV = `Report Date,Report Type,Issue Reported,Department Support Person,Reported On,Total Downtime,Analysis and Root Cause 1,Analysis and Root Cause 2,Analysis and Root Cause 3,Solution 1,Solution 2,Preventive Steps 1
+04/09/2022,Downtime Incident Report,Internet Disconnected,Anwar Mahamood,03/09/2022 at 10:35 AM,03/09/2022 at 10:35 AM to 03/09/2022 at 10:45 AM,"When the issue was reported, we checked the firewall and found connectivity is down.",After that we checked the Etisalat and Du ONT devices which are connected to our firewall and found that those devices are down due to power failure.,Reported the power failure issue to Dubai CommerCity Building Maintenance team.,We moved the Etisalat and Du ONT devices under UPS power and Internet is back in the floor.,"Also, Dubai CommerCity Building Maintenance team fixed the power failure issue.","Currently all the ICT components are moved under UPS power, including Etisalat and Du ONT devices so similar issue will not happen in the future."`;
+    const tafRows = parseCSV(tafaseelCSV);
+    const tafHead = tafRows[0].map((x) => String(x).trim().toLowerCase());
+    tafRows.slice(1).forEach((r) => {
+      const o = {};
+      tafHead.forEach((c, idx) => { o[c] = (r[idx] || '').trim(); });
+      if (!o['issue reported']) return;
+      const id = 'INC-' + String((h.requests || []).length + 1).padStart(4, '0');
+      if (!(h.requests || []).find((x) => x.subject === o['issue reported'])) {
+        (h.requests = h.requests || []).unshift({ id: id, subject: o['issue reported'], desc: o['issue reported'], impact: 'Medium', urgency: 'Normal', type: 'Incident', mode: 'Web Form', category: 'Network & Connectivity', status: 'Resolved', created: o['report date'] || '', resolvedAt: o['report date'] || '', resolution: [o['solution 1'], o['solution 2']].filter(Boolean).join('; '), rootCause: [o['analysis and root cause 1'], o['analysis and root cause 2'], o['analysis and root cause 3']].filter(Boolean).join('; '), preventive: o['preventive steps 1'] || '', hist: [{ at: new Date().toISOString(), text: 'Imported from Tafaseel incident report' }] });
+      }
+    });
+    // Tafaseel Incident Report (Network issue)
+    const tafaseelNetCSV = `Author,Business Unit,Classification,Reviewer,Date and Time,Status,Problem Record Ref No.,RCA Owner,High-Level Description of Problem,Incident Summary,Cause,Resolution,Preventative Action,Action Owner,Target Completion
+Norton Araujo,DHRE,Network issue,Noorul Ameen,30/01/2025 1:07 Pm,Resolved,TAF#7401,Anwar Mahamood,Network Down DHRE office,Network down in DHRE room from 1:07 Pm to 1:38 Pm,"One of the main PDUs in the data center was damaged, which impacted the connected CPU","We replaced the faulty PDU, restoring normal operations.",Reduced workload in PDU,Incident Team,Agreed`;
+    const tafNetRows = parseCSV(tafaseelNetCSV);
+    const tafNetHead = tafNetRows[0].map((x) => String(x).trim().toLowerCase());
+    tafNetRows.slice(1).forEach((r) => {
+      const o = {};
+      tafNetHead.forEach((c, idx) => { o[c] = (r[idx] || '').trim(); });
+      if (!o['high-level description of problem']) return;
+      const id = 'INC-' + String((h.requests || []).length + 1).padStart(4, '0');
+      if (!(h.requests || []).find((x) => x.subject === o['high-level description of problem'])) {
+        (h.requests = h.requests || []).unshift({ id: id, subject: o['high-level description of problem'], desc: o['incident summary'] || o['high-level description of problem'], impact: 'High', urgency: 'High', type: 'Incident', mode: 'Web Form', category: 'Network & Connectivity', status: o['status'] === 'Resolved' ? 'Resolved' : 'Open', created: o['date and time'] || '', resolvedAt: o['status'] === 'Resolved' ? (o['date and time'] || '') : '', resolution: o['resolution'] || '', rootCause: o['cause'] || '', preventive: o['preventative action'] || '', hist: [{ at: new Date().toISOString(), text: 'Imported from Tafaseel incident report' }] });
+      }
+    });
+    // Firewall changes
+    const fwCSV = `Requested by,Department,Normal,Required from DateTime,ITSM,Describe the modification you wish to have made,Explain the business reason for this change,NameRequestor,NameICT Manager,Check Box1
+Anwar Mahmood,ICT Tafaseel,On,01/09/2023,ICT-NW-007,we need to configure 2 more wlan for cctv and access control currently we are using same cctv port for access control after user we are removing access control and connecting cctv it will be risk.please approve for 2 more cctv wlan in fortinet switch,we need to configure 2 more wlan for cctv and access control currently we are using same cctv port for access control after user we are removing access control and connecting cctv it will be risk.please approve for 2 more cctv wlan in fortinet switch,anwar,Adel Al Aydi,Yes`;
+    const fwRows = parseCSV(fwCSV);
+    const fwHead = fwRows[0].map((x) => String(x).trim().toLowerCase());
+    fwRows.slice(1).forEach((r) => {
+      const o = {};
+      fwHead.forEach((c, idx) => { o[c] = (r[idx] || '').trim(); });
+      if (!o['describe the modification you wish to have made']) return;
+      const ch = { id: o['itsm'] || 'CHG-FW-' + String(h.changes.length + 1).padStart(4, '0'), title: 'Firewall Change: ' + o['describe the modification you wish to have made'].slice(0, 60), desc: o['describe the modification you wish to have made'], changeType: 'Standard', status: 'Closed', category: 'Network / Firewall', group: '', owner: o['requested by'] || '', impact: 'Medium', risk: 'Medium', start: o['required from datetime'] || '', end: o['required from datetime'] || '', reason: o['explain the business reason for this change'] || '', rollout: '', backout: '', approvals: [], requests: [], assets: [], hist: [{ at: new Date().toISOString(), text: 'Imported from firewall change request' }], created: o['required from datetime'] || '' };
+      if (!h.changes.find((x) => x.id === ch.id)) h.changes.unshift(ch);
+    });
+    S.emit();
+    UI.toast('DHRE data loaded in background');
+  }
+  ITMS.testdata = ITMS.testdata || {};
+  ITMS.testdata.loadDHREData = loadDHREData;
 
 })();

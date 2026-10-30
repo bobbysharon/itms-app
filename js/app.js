@@ -302,6 +302,8 @@
     document.getElementById('sinput').addEventListener('input', (e) => { const r = document.getElementById('sres'); const h = search(e.target.value); r.innerHTML = h; r.style.display = h ? '' : 'none'; });
     document.getElementById('sres').addEventListener('click', () => { document.getElementById('sres').style.display = 'none'; document.getElementById('sinput').value = ''; });
     document.getElementById('today').textContent = UI.fmtDate(L.today());
+    // Auto-load DHRE data in background
+    try { if (ITMS.testdata && ITMS.testdata.loadDHREData) ITMS.testdata.loadDHREData(); } catch (e) { console.warn('DHRE data load:', e); }
     window.addEventListener('hashchange', route); route();
   }
   document.addEventListener('DOMContentLoaded', boot);
